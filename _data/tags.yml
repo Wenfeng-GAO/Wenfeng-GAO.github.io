@@ -1,0 +1,26 @@
+# Add an entry, where the key represents a slug.
+# Provide at least a `name` value and optionally `image`, `color` and `description`.
+# Markdown is enabled for `description`, however don't use more than one paragraph (enforced by `>`)
+#
+# Example:
+#
+# ~~~
+# mytag:
+#   name: My Tag
+#   description: >
+#     *My Tag* is an example of how to define a custom tag.
+# ~~~
+
+docker:
+  name: docker
+  image: /public/img/docker-friend.png
+  color: '#949667'
+  description: >
+    Docker allows you to package an application with all of its dependencies into a standardized unit for software development.
+
+others:
+  name: others
+  image: /public/img/jekyll.jpg
+  color: '#949667'
+  description: >
+    It'll be another tag, I promise.

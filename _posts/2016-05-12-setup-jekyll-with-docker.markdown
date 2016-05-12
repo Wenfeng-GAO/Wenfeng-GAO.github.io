@@ -2,6 +2,7 @@
 layout: post
 title:  "Setup Jekyll in Windows environment using Docker"
 date:   2016-05-12 03:09:13 +0000
+tags:   docker
 ---
 
 Github provides a great service for technique bloggers: [Github
