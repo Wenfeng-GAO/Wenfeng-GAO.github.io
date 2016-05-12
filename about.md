@@ -3,13 +3,7 @@ layout: page
 title: About
 permalink: /about/
 ---
+Hi, I'm Wenfeng, another happy coder and daily dreamer, welcome to my technique
+blog, feel free to share your ideas by commentting or emailing.
 
-This is the base Jekyll theme. You can find out more info about customizing your Jekyll theme, as well as basic Jekyll usage documentation at [jekyllrb.com](http://jekyllrb.com/)
-
-You can find the source code for the Jekyll new theme at:
-{% include icon-github.html username="jglovier" %} /
-[jekyll-new](https://github.com/jglovier/jekyll-new)
-
-You can find the source code for Jekyll at
-{% include icon-github.html username="jekyll" %} /
-[jekyll](https://github.com/jekyll/jekyll)
+大家好，我是文枫，欢迎来到我的技术博客，欢迎相互交流。
