@@ -33,7 +33,7 @@ Choose *type: Linux*, *Version: Linux 2.6/3.x/4.x(64-bit)*, and set *Memory* at 
 Keep clicking *next* until *finish*. Once it's done, click *Storage* tab and add your iso image to the IDE controller, then click *Network*
 tab, change connection type from *NAT* to *Bridge*, because we need a static IP address to do the following configurations.
 Now we just boot up our VM, and we'll see this if everything goes right.
-![ISO Install Complete](/assets/setup-coreos-cluster-virtualbox/11.png)
+![ISO Install Complete](/assets/setup-coreos-cluster-virtualbox/11.PNG)
 This means we have a live version of CoreOS running on VirtualBox, with the default *core* user logged in. 
 
 ##### 3. Create *cloud-config.yml* file
@@ -138,14 +138,14 @@ If everything goes well, `ssh` to a host and run
 		systemctl status etcd2
 
 You should see some thing like:
-![etcd2 status](/assets/setup-coreos-cluster-virtualbox/21.png)
+![etcd2 status](/assets/setup-coreos-cluster-virtualbox/21.PNG)
 
 Run
 
 		fleetctl list-machines
 
 You should see come thing like:
-![cluster machine status](/assets/setup-coreos-cluster-virtualbox/22.png)
+![cluster machine status](/assets/setup-coreos-cluster-virtualbox/22.PNG)
 
 Now every goes perfectly, deploy your services and enjoy CoreOS cluster!
 
