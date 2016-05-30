@@ -11,6 +11,14 @@
 #     *My Tag* is an example of how to define a custom tag.
 # ~~~
 
+coreos:
+  name: CoreOS
+  color: '#949667'
+
+cluster:
+  name: cluster
+  color: '#949667'
+
 docker:
   name: docker
   image: /public/img/docker-friend.png
