@@ -153,5 +153,5 @@ Now every goes perfectly, deploy your services and enjoy CoreOS cluster!
 1. You can use `journalctl -f -t etcd2` to see logs of *etcd2* if any error occurs.
 2. All CoreOS VMs in the cluster share the same *discovery key*, and you should generate a new one every time you
 setup a new cluster
-3. Try `sudo rm -rf  /run/systemd/system/etcd2.service.d/`, regenerate *discovery key* and reboot the VM if needed.
+3. Try `sudo rm -rf  /run/systemd/system/etcd2.service.d/` and `sudo rm -rf /var/lib/etcd2`, regenerate *discovery key* and reboot the VM if needed.
 4. Your CoreOS VMs should be able to connect the Internet.
