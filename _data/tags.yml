@@ -23,6 +23,10 @@ cluster:
   name: cluster
   color: '#949667'
 
+kubernetes:
+  name: kubernetes
+  color: '#949667'
+
 docker:
   name: docker
   image: /public/img/docker-friend.png

@@ -8,7 +8,6 @@ Unit test takes an important role in software development, which ensures the cod
 [Mockito](http://mockito.org/) is an open-source mocking framework for unit tests in Java.
 After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito
 to you.
-
 ### Why mock?
 Mock means using a *fake* thing instead of the original one to help us test, but why do we 
 need that?
