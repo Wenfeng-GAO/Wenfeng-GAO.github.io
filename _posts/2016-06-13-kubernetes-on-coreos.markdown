@@ -57,7 +57,7 @@ or just
 
 		sudo journalctl -ex
 
-These commands will help you find what's going wrong, and in most case, you
+These commands will help you find what's going wrong, and in most cases, you
 just need to be **patient**, because downloading takes time specially the first
 time you deploy.
 
