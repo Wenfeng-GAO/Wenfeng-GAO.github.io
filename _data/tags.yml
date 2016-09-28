@@ -31,6 +31,10 @@ shell:
   name: shell
   color: '#949667'
 
+git:
+  name: git
+  color: '#949667'
+
 docker:
   name: docker
   image: /public/img/docker-friend.png
