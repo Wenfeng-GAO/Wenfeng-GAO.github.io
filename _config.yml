@@ -8,7 +8,7 @@ description:      >
   Welcome to Wenfeng's Blog.
 
 # The tags listed as entries in the sidebar
-sidebar_tags:     [docker, unit-test, coreos, cluster, kubernetes, network, git, shell]
+sidebar_tags:     [docker, unit-test, react, coreos, cluster, kubernetes, network, git, shell]
 
 # Fallback image and color if not overwritten for tag or post
 #image:            /public/img/nap.jpg
@@ -24,7 +24,7 @@ author:
   disqus:         wenfeng
 
   # This photo will be used in the about section
-  # photo:          http://qwtel.com/public/img/flo.jpg
+  photo:          /public/img/me.jpg
 
   # Markdown enabled, can use multiple paragraphs (enabled by `|`)
   about:          |
