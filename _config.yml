@@ -8,7 +8,7 @@ description:      >
   Welcome to Wenfeng's Blog.
 
 # The tags listed as entries in the sidebar
-sidebar_tags:     [docker, unit-test, react, coreos, cluster, kubernetes, network, git, shell]
+sidebar_tags:     [docker, unit-test, react, coreos, cluster, kubernetes, network, git, shell, python]
 
 # Fallback image and color if not overwritten for tag or post
 #image:            /public/img/nap.jpg
