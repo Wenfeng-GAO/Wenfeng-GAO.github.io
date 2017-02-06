@@ -15,6 +15,10 @@ network:
   name: network
   color: '#949667'
 
+python:
+  name: python
+  color: '#949667'
+
 react:
   name: react
   color: '#949667'
