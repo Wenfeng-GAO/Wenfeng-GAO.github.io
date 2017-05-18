@@ -11,6 +11,10 @@
 #     *My Tag* is an example of how to define a custom tag.
 # ~~~
 
+mesos:
+  name: mesos
+  color: '#949667'
+
 network:
   name: network
   color: '#949667'
