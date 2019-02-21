@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Coroutine on Je pense donc je suis</title>
+    <link>https://wenfeng-gao.github.io/tags/coroutine/</link>
+    <description>Recent content in Coroutine on Je pense donc je suis</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
+    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <lastBuildDate>Wed, 21 Feb 2018 18:24:14 +0800</lastBuildDate>
+    
+	<atom:link href="https://wenfeng-gao.github.io/tags/coroutine/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Coroutine With Gevent</title>
+      <link>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</link>
+      <pubDate>Wed, 21 Feb 2018 18:24:14 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</guid>
+      <description>背景 工作中用到gevent。
+ gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。
+ 使用过程中，带着某些问题阅读了一部分源码，现在做一下总结与分享。
+协程 Python通过yield与generator，能实现coroutine。举个栗子(更多更详细的例子请 参考this awesome presentation)：
+&amp;gt;&amp;gt;&amp;gt; def grep(pattern): ... print &amp;quot;Looking for %s&amp;quot; % pattern ... while True: ... line = (yield) ... if pattern in line: ... print line ... &amp;gt;&amp;gt;&amp;gt; g = grep(&amp;quot;python&amp;quot;) &amp;gt;&amp;gt;&amp;gt; g.next() Looking for python &amp;gt;&amp;gt;&amp;gt; g.send(&amp;quot;hello world&amp;quot;) &amp;gt;&amp;gt;&amp;gt; g.send(&amp;quot;python generators rock!&amp;quot;) python generators rock! &amp;gt;&amp;gt;&amp;gt;  原本以为gevent会是对yield一些封装，了解后知道，在gevent里面，上下文切换通过 yielding来完成的，但其用到的主要模式是Greenlet， Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部运行在主程序操作系统 的内部，但它们被协作式地调度。在任何时刻，只有一个协程在运行。
+Greenlet 对于Greenlet，暂且不多说， 通过阅读官网的API，我们知道其主要是通过switch这个 方法来实现跳转的，switch如何实现的暂不做讨论，先贴上官网的例子混个脸熟：
+from greenlet import greenlet def test1(): print 12 gr2.</description>
+    </item>
+    
+  </channel>
+</rss>

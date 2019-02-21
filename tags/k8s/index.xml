@@ -29,5 +29,17 @@ kubelet.go
 // initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.</description>
     </item>
     
+    <item>
+      <title>Kubernetes on Coreos</title>
+      <link>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</link>
+      <pubDate>Tue, 13 Jun 2017 18:22:48 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</guid>
+      <description>Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
+ I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
+Although this guide is detailed, there&amp;rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
+First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.</description>
+    </item>
+    
   </channel>
 </rss>

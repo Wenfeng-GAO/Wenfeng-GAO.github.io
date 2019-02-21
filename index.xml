@@ -39,6 +39,117 @@ kubelet.go
     </item>
     
     <item>
+      <title>Core Dump File Size Limit in Docker</title>
+      <link>https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/</link>
+      <pubDate>Tue, 15 May 2018 18:24:30 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/</guid>
+      <description>Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&amp;rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。</description>
+    </item>
+    
+    <item>
+      <title>Coroutine With Gevent</title>
+      <link>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</link>
+      <pubDate>Wed, 21 Feb 2018 18:24:14 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</guid>
+      <description>背景 工作中用到gevent。
+ gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。
+ 使用过程中，带着某些问题阅读了一部分源码，现在做一下总结与分享。
+协程 Python通过yield与generator，能实现coroutine。举个栗子(更多更详细的例子请 参考this awesome presentation)：
+&amp;gt;&amp;gt;&amp;gt; def grep(pattern): ... print &amp;quot;Looking for %s&amp;quot; % pattern ... while True: ... line = (yield) ... if pattern in line: ... print line ... &amp;gt;&amp;gt;&amp;gt; g = grep(&amp;quot;python&amp;quot;) &amp;gt;&amp;gt;&amp;gt; g.next() Looking for python &amp;gt;&amp;gt;&amp;gt; g.send(&amp;quot;hello world&amp;quot;) &amp;gt;&amp;gt;&amp;gt; g.send(&amp;quot;python generators rock!&amp;quot;) python generators rock! &amp;gt;&amp;gt;&amp;gt;  原本以为gevent会是对yield一些封装，了解后知道，在gevent里面，上下文切换通过 yielding来完成的，但其用到的主要模式是Greenlet， Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部运行在主程序操作系统 的内部，但它们被协作式地调度。在任何时刻，只有一个协程在运行。
+Greenlet 对于Greenlet，暂且不多说， 通过阅读官网的API，我们知道其主要是通过switch这个 方法来实现跳转的，switch如何实现的暂不做讨论，先贴上官网的例子混个脸熟：
+from greenlet import greenlet def test1(): print 12 gr2.</description>
+    </item>
+    
+    <item>
+      <title>Python Yield Keyword</title>
+      <link>https://wenfeng-gao.github.io/post/python-yield-keyword/</link>
+      <pubDate>Tue, 06 Feb 2018 18:23:56 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/python-yield-keyword/</guid>
+      <description>Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&amp;rsquo;s no similar thing in Java or C language.
+So in this post, I&amp;rsquo;ll try to explain and conclude what the yield keyword does.
+In fact, the same question was posed on stackoverflow, which gains 5951 votes.</description>
+    </item>
+    
+    <item>
+      <title>A Little Taste on React</title>
+      <link>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</link>
+      <pubDate>Wed, 06 Dec 2017 18:23:43 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</guid>
+      <description>I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:
+ So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.
+ &amp;ldquo;Maybe I should listen to this guy&amp;rsquo;s suggestion&amp;rdquo;, I said to myself, so I spent a week to understand what is React and how to use it.</description>
+    </item>
+    
+    <item>
+      <title>Simple Commit-Msg for Git Hook</title>
+      <link>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</link>
+      <pubDate>Thu, 28 Sep 2017 18:23:26 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</guid>
+      <description>Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
+I wish all the commit messages will follow the pattern like:
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.</description>
+    </item>
+    
+    <item>
+      <title>Basic Shell Commands</title>
+      <link>https://wenfeng-gao.github.io/post/basic-shell-commands/</link>
+      <pubDate>Sat, 29 Jul 2017 18:23:09 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/basic-shell-commands/</guid>
+      <description> 公司某个产品的测试环境比较复杂，它需要在 OpenStack 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产品节点通过接收与发送数据包进行测试。
+整个部署与测试流程都需要用Jenkins做自动化测试，而我的任务是将TestAgent节点移植到Docker容器中。用时一个多月，从熟悉源代码的部署与测试流程，到OpenStack的UI界面和CLI命令的基本使用，到OpenStack网络通信的基本理解，到Python的学习与使用(如使用pexpect通过ssh执行shell命令和脚本)， 到shell脚本的熟悉与使用，这个过程中爬过了许多大大小小的坑，也收获了很多东西，这里主要总结一下shell脚本的常用命令。
+if if TEST-COMMANDS; then CONSEQUENT-COMMANDS; fi
+其中TEST-COMMANDS一般有3种情形：
+ shell command 如果它的返回状态为0，则执行CONSEQUENT-COMMANDS bracket [] double bracket [[]] 在方括号内都会做一些判断，如判断文件是否存在，[ -f FILE ]等等，而其两者的区别在于[[]]是[]的拓展，只支持与bash、zsh等几种shell，所以可移植性要差一些，不过如果不考虑移植性的问题，[[]]会更加简洁与可读，具体可以参考 StackOverFlow上的回答以及这篇文档。  有时简单的逻辑关系可以直接使用&amp;amp;&amp;amp;代替。
+grep grep -rl “pattern” file 返回含有“pattern”的文件名，grep常与awk或者cut一起使用，例如
+ grep &amp;quot;foo&amp;quot; file.txt | awk &#39;{print $1}&#39; grep &amp;quot;/bin/bash&amp;quot; /etc/passwd | cut -d&#39;:&#39; -f1,6  sed  sed -i &#39;pattern&#39; file 直接操作文件的内容而不是stdout sed &#39;s/hello/bonjour/&#39; greetings.txt 基本用法 sed &#39;/is beautiful/i Life&#39; input 在之前插入一行 sed &#39;/Hello/a World&#39; input 在之后增加一行 sed &#39;/^\s*$/d&#39; 删除空白行  echo with color  RED=&#39;\033[0;31m&#39; NC=&#39;\033[0m&#39; # No Color echo -e &amp;quot;I ${RED}love${NC} Stack Overflow\n&amp;quot;  </description>
+    </item>
+    
+    <item>
+      <title>A Ping Question</title>
+      <link>https://wenfeng-gao.github.io/post/a-ping-question/</link>
+      <pubDate>Tue, 04 Jul 2017 18:22:56 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/a-ping-question/</guid>
+      <description>Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
+To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
+If we look at the routing table of Host B, we&amp;rsquo;ll find something like</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes on Coreos</title>
+      <link>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</link>
+      <pubDate>Tue, 13 Jun 2017 18:22:48 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</guid>
+      <description>Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
+ I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
+Although this guide is detailed, there&amp;rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
+First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.</description>
+    </item>
+    
+    <item>
+      <title>Setup Coreos Cluster With Static Ip</title>
+      <link>https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/</link>
+      <pubDate>Thu, 08 Jun 2017 18:22:33 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/</guid>
+      <description>We have talked about how to setup a CoreOS cluster in my previous post: Setup CoreOS Cluster Manually with VirtualBox. However, as we setup the cluster in VirtualBox, which uses DHCP as default, the etcd2 may not work when VM&amp;rsquo;s IP changed.
+So in this article I&amp;rsquo;ll tell you how to upgrade your cluster and enable the VMs use static IPs instead of DHCP.
+Setup Static IP First of all, make sure your cluster node VM uses the bridge connection type (as default), that will enable the connection between outer world, as we are not going to set IP tables.</description>
+    </item>
+    
+    <item>
       <title>Mesos Checkpoint Feature &amp; Master Agent Connection</title>
       <link>https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/</link>
       <pubDate>Thu, 18 May 2017 09:56:49 +0800</pubDate>
@@ -48,6 +159,60 @@ kubelet.go
 本文将讨论的问题：
  Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功能主要能起到3个作用：
 Agent disconnect with executor  当agent线程挂掉，或者与executor无法连接时，如果framework没有使用checkpoint，executor一旦发现与agent断开，立即自动退出。 如果framework使用了checkpoint，executor将在一段时间内（MESOS_RECOVERY_TIMEOUT）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过--recovery_timeout标签来设置，默认15分钟。  Agent disconnect with master  当agent线程挂掉，或者与master连接断开时，如果没有checkpoint，master会立即为此agent管理的所有task发送TASK_LOST状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos health check的时间，可以通过--agent_ping_timeout 和 --max_agent_ping_timeouts标签来设置），如果agent重连成功，master会kill掉之前发送TASK_LOST的所有task。 如果使用了checkpoint，master不会发送TASK_LOST，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。  Agent recovery  当agent重启后，如果没有checkpoint，agent管理的还存活着的task会被立即重启。 如果使用了checkpoint，agent会将一些信息（Task Info, Executor Info, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。 这些设置有3个：  strict: 若为true，恢复时出现的所有error将被视为fatal，恢复中断；若为false，忽略所有error，以最大的可能去恢复；默认为true。 recover：若为reconnect，重连所有存活的executor；若为cleanup，kill所有存活的executor并退出；默认为reconnect。 recovery_timeout，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有executor没有连到，那么那些executor将会自动退出，默认时间为15分钟。   Dealing with Partitioned or Failed Agents 2 mechanisms to track availability and health Mesos master用两种方法来检测跟踪agent的可靠性：</description>
+    </item>
+    
+    <item>
+      <title>Deploy Worldpress in Coreos Cluster Using Fleet</title>
+      <link>https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/</link>
+      <pubDate>Fri, 03 Jun 2016 18:22:13 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/</guid>
+      <description>In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&amp;rsquo;t have one.
+Ok, ssh to one of your cluster node, let&amp;rsquo;s start.
+Step 1 Create MySQL service Create a unit file mysql.service
+[Unit] Description=MySQL DataBase After=etcd.service After=docker.service [Service] TimeoutStartSec=0 ExecStartPre=-/usr/bin/docker kill mysql ExecStartPre=-/usr/bin/docker rm mysql ExecStartPre=/usr/bin/docker pull mysql:5.</description>
+    </item>
+    
+    <item>
+      <title>Setup Coreos Cluster Manually with Virtualbox</title>
+      <link>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</link>
+      <pubDate>Mon, 30 May 2016 18:21:53 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</guid>
+      <description>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.</description>
+    </item>
+    
+    <item>
+      <title>浅谈Docker Bridge网络模式</title>
+      <link>https://wenfeng-gao.github.io/post/docker-bridge-network/</link>
+      <pubDate>Fri, 20 May 2016 18:21:36 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/docker-bridge-network/</guid>
+      <description>本文将简单介绍一下Docker的3中网络模式，然后着重介绍bridge模式的数据传输过程，浅谈Docker容器与宿主机 之间，以及与外部世界的数据传输过程。
+Docker的3种网络模式 我们知道，当Docker Daemon启动时，会创建3种网络模式供Docker容器使用：bridge, host 和none模式。 可以通过 docker network ls 看到如下结果
+docker@master:~$ docker network ls NETWORK ID NAME DRIVER 9b7805f760e7 bridge bridge 77a7c8decdc1 host host 8a9285d7055e none null  其中none 将容器加入到一个没有网络接口的特殊网络栈，进入使用none网络的容器执行ifconfig会看到
+root@0cb243cd1293:/# ifconfig lo Link encap:Local Loopback inet addr:127.0.0.1 Mask:255.0.0.0 inet6 addr: ::1/128 Scope:Host UP LOOPBACK RUNNING MTU:65536 Metric:1 RX packets:0 errors:0 dropped:0 overruns:0 frame:0 TX packets:0 errors:0 dropped:0 overruns:0 carrier:0 collisions:0 txqueuelen:0 RX bytes:0 (0.0 B) TX bytes:0 (0.</description>
+    </item>
+    
+    <item>
+      <title>Mock With Mockito</title>
+      <link>https://wenfeng-gao.github.io/post/mock-with-mockito/</link>
+      <pubDate>Fri, 13 May 2016 18:21:19 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/mock-with-mockito/</guid>
+      <description>Unit test takes an important role in software development, which ensures the code quality. Mockito is an open-source mocking framework for unit tests in Java. After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito to you.
+Why mock? Mock means using a fake thing instead of the original one to help us test, but why do we need that?
+Martin Fowler&amp;rsquo;s article Mocks Aren&amp;rsquo;t Stubs makes a lot sense explainning why.</description>
+    </item>
+    
+    <item>
+      <title>Setup Jekyll in Windows environment using Docker</title>
+      <link>https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/</link>
+      <pubDate>Thu, 12 May 2016 18:20:55 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/</guid>
+      <description>Github provides a great service for technique bloggers: Github Pages. Just by creating a repo in GitHub, we can host a domain like http://username.github.io. And with Jekyll we can write blogs with Markdown and preview blog pages locally and conveniently.
+The problem for me is that my work environment is Windows, and it&amp;rsquo;s not easy to install Jekyll in Windows(especially in China). So an idea comes out with me is to use Docker.</description>
     </item>
     
   </channel>

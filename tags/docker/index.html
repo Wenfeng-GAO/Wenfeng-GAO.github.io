@@ -10,9 +10,9 @@
   <title>Overview of all pages with the tag #Docker - Je pense donc je suis</title>
   <meta property="og:title" content="Overview of all pages with the tag #Docker" />
   <meta name="twitter:title" content="Overview of all pages with the tag #Docker" />
-  <meta name="description" content="Overview of all pages with the tag #Docker, such as: Mesos Checkpoint Feature &amp; Master Agent Connection">
-  <meta property="og:description" content="Overview of all pages with the tag #Docker, such as: Mesos Checkpoint Feature &amp; Master Agent Connection">
-  <meta name="twitter:description" content="Overview of all pages with the tag #Docker, such as: Mesos Checkpoint Feature &amp; Master Agent Connection">
+  <meta name="description" content="Overview of all pages with the tag #Docker, such as: Core Dump File Size Limit in Docker">
+  <meta property="og:description" content="Overview of all pages with the tag #Docker, such as: Core Dump File Size Limit in Docker">
+  <meta name="twitter:description" content="Overview of all pages with the tag #Docker, such as: Core Dump File Size Limit in Docker">
   <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -210,6 +210,154 @@
         <div class="posts-list">
           
             <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/">
+                <h2 class="post-title">Core Dump File Size Limit in Docker</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 15, 2018
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;246&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。
+                  <a href="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/kubernetes-on-coreos/">
+                <h2 class="post-title">Kubernetes on Coreos</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on June 13, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;260&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
+ I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
+Although this guide is detailed, there&rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
+First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.
+                  <a href="https://wenfeng-gao.github.io/post/kubernetes-on-coreos/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/">
+                <h2 class="post-title">Setup Coreos Cluster With Static Ip</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on June 8, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;255&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  We have talked about how to setup a CoreOS cluster in my previous post: Setup CoreOS Cluster Manually with VirtualBox. However, as we setup the cluster in VirtualBox, which uses DHCP as default, the etcd2 may not work when VM&rsquo;s IP changed.
+So in this article I&rsquo;ll tell you how to upgrade your cluster and enable the VMs use static IPs instead of DHCP.
+Setup Static IP First of all, make sure your cluster node VM uses the bridge connection type (as default), that will enable the connection between outer world, as we are not going to set IP tables.
+                  <a href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
               <a href="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/">
                 <h2 class="post-title">Mesos Checkpoint Feature &amp; Master Agent Connection</h2>
 
@@ -252,6 +400,197 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
                     <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
                   
                     <a href="https://wenfeng-gao.github.io//tags/mesos/">mesos</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/">
+                <h2 class="post-title">Deploy Worldpress in Coreos Cluster Using Fleet</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on June 3, 2016
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;1&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;206&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&rsquo;t have one.
+Ok, ssh to one of your cluster node, let&rsquo;s start.
+Step 1 Create MySQL service Create a unit file mysql.service
+[Unit] Description=MySQL DataBase After=etcd.service After=docker.service [Service] TimeoutStartSec=0 ExecStartPre=-/usr/bin/docker kill mysql ExecStartPre=-/usr/bin/docker rm mysql ExecStartPre=/usr/bin/docker pull mysql:5.
+                  <a href="https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/">
+                <h2 class="post-title">Setup Coreos Cluster Manually with Virtualbox</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 30, 2016
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;5&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;856&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected.
+                  <a href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/docker-bridge-network/">
+                <h2 class="post-title">浅谈Docker Bridge网络模式</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 20, 2016
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;1&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;181&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  本文将简单介绍一下Docker的3中网络模式，然后着重介绍bridge模式的数据传输过程，浅谈Docker容器与宿主机 之间，以及与外部世界的数据传输过程。
+Docker的3种网络模式 我们知道，当Docker Daemon启动时，会创建3种网络模式供Docker容器使用：bridge, host 和none模式。 可以通过 docker network ls 看到如下结果
+docker@master:~$ docker network ls NETWORK ID NAME DRIVER 9b7805f760e7 bridge bridge 77a7c8decdc1 host host 8a9285d7055e none null  其中none 将容器加入到一个没有网络接口的特殊网络栈，进入使用none网络的容器执行ifconfig会看到
+root@0cb243cd1293:/# ifconfig lo Link encap:Local Loopback inet addr:127.0.0.1 Mask:255.0.0.0 inet6 addr: ::1/128 Scope:Host UP LOOPBACK RUNNING MTU:65536 Metric:1 RX packets:0 errors:0 dropped:0 overruns:0 frame:0 TX packets:0 errors:0 dropped:0 overruns:0 carrier:0 collisions:0 txqueuelen:0 RX bytes:0 (0.0 B) TX bytes:0 (0.
+                  <a href="https://wenfeng-gao.github.io/post/docker-bridge-network/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/network/">network</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/">
+                <h2 class="post-title">Setup Jekyll in Windows environment using Docker</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 12, 2016
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;303&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Github provides a great service for technique bloggers: Github Pages. Just by creating a repo in GitHub, we can host a domain like http://username.github.io. And with Jekyll we can write blogs with Markdown and preview blog pages locally and conveniently.
+The problem for me is that my work environment is Windows, and it&rsquo;s not easy to install Jekyll in Windows(especially in China). So an idea comes out with me is to use Docker.
+                  <a href="https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/jekyll/">jekyll</a>&nbsp;
                   
                 </div>
               

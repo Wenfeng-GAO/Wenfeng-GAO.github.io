@@ -13,8 +13,78 @@
   </url>
   
   <url>
+    <loc>https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/</loc>
+    <lastmod>2018-05-15T18:24:30+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</loc>
+    <lastmod>2018-02-21T18:24:14+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/python-yield-keyword/</loc>
+    <lastmod>2018-02-06T18:23:56+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</loc>
+    <lastmod>2017-12-06T18:23:43+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</loc>
+    <lastmod>2017-09-28T18:23:26+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/basic-shell-commands/</loc>
+    <lastmod>2017-07-29T18:23:09+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/a-ping-question/</loc>
+    <lastmod>2017-07-04T18:22:56+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</loc>
+    <lastmod>2017-06-13T18:22:48+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/</loc>
+    <lastmod>2017-06-08T18:22:33+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/</loc>
     <lastmod>2017-05-18T09:56:49+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/</loc>
+    <lastmod>2016-06-03T18:22:13+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</loc>
+    <lastmod>2016-05-30T18:21:53+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/docker-bridge-network/</loc>
+    <lastmod>2016-05-20T18:21:36+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/mock-with-mockito/</loc>
+    <lastmod>2016-05-13T18:21:19+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/</loc>
+    <lastmod>2016-05-12T18:20:55+08:00</lastmod>
   </url>
   
   <url>
@@ -23,14 +93,38 @@
   </url>
   
   <url>
+    <loc>https://wenfeng-gao.github.io/tags/coreos/</loc>
+    <lastmod>2017-06-13T18:22:48+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/coroutine/</loc>
+    <lastmod>2018-02-21T18:24:14+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/tags/docker/</loc>
-    <lastmod>2017-05-18T09:56:49+08:00</lastmod>
+    <lastmod>2018-05-15T18:24:30+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/git/</loc>
+    <lastmod>2017-09-28T18:23:26+08:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://wenfeng-gao.github.io/</loc>
     <lastmod>2019-02-19T23:07:32+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/jekyll/</loc>
+    <lastmod>2016-05-12T18:20:55+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -53,6 +147,12 @@
   </url>
   
   <url>
+    <loc>https://wenfeng-gao.github.io/tags/network/</loc>
+    <lastmod>2017-07-04T18:22:56+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/page/</loc>
     <lastmod>2019-02-19T23:07:32+08:00</lastmod>
     <priority>0</priority>
@@ -65,8 +165,32 @@
   </url>
   
   <url>
+    <loc>https://wenfeng-gao.github.io/tags/python/</loc>
+    <lastmod>2018-02-21T18:24:14+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/react/</loc>
+    <lastmod>2017-12-06T18:23:43+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/shell/</loc>
+    <lastmod>2017-09-28T18:23:26+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/tags/</loc>
-    <lastmod>2017-05-18T09:56:49+08:00</lastmod>
+    <lastmod>2017-06-13T18:22:48+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/unit-test/</loc>
+    <lastmod>2016-05-13T18:21:19+08:00</lastmod>
     <priority>0</priority>
   </url>
   

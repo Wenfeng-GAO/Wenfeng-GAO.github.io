@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+  <head>
+    
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Python Yield Keyword - Je pense donc je suis</title>
+  <meta property="og:title" content="Python Yield Keyword" />
+  <meta name="twitter:title" content="Python Yield Keyword" />
+  <meta name="description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&rsquo;s no similar thing in Java or C language.
+So in this post, I&rsquo;ll try to explain and conclude what the yield keyword does.
+In fact, the same question was posed on stackoverflow, which gains 5951 votes.">
+  <meta property="og:description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&rsquo;s no similar thing in Java or C language.
+So in this post, I&rsquo;ll try to explain and conclude what the yield keyword does.
+In fact, the same question was posed on stackoverflow, which gains 5951 votes.">
+  <meta name="twitter:description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python …">
+  <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
+{
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": "Je pense donc je suis",
+    
+    "url": "https://wenfeng-gao.github.io/"
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "name": "",
+  "url": "https://wenfeng-gao.github.io/"
+  
+  
+  
+  
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@id": "https://wenfeng-gao.github.io/",
+          "name": "home"
+        }
+    },{
+        "@type": "ListItem",
+        "position": 3,
+        "item": {
+          "@id": "https://wenfeng-gao.github.io/post/python-yield-keyword/",
+          "name": "Python yield keyword"
+        }
+    }]
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Article",
+  "author": {
+    "name" : "Wenfeng Gao"
+  },
+  "headline": "Python Yield Keyword",
+  "description" : "Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&amp;rsquo;s no similar thing in Java or C language.
+So in this post, I&amp;rsquo;ll try to explain and conclude what the yield keyword does.
+In fact, the same question was posed on stackoverflow, which gains 5951 votes.",
+  "inLanguage" : "en",
+  "wordCount": 774,
+  "datePublished" : "2018-02-06T18:23:56",
+  "dateModified" : "2018-02-06T18:23:56",
+  "image" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
+  "keywords" : [ "python" ],
+  "mainEntityOfPage" : "https://wenfeng-gao.github.io/post/python-yield-keyword/",
+  "publisher" : {
+    "@type": "Organization",
+    "name" : "https://wenfeng-gao.github.io/",
+    "logo" : {
+        "@type" : "ImageObject",
+        "url" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
+        "height" :  60 ,
+        "width" :  60
+    }
+  }
+}
+</script>
+
+<meta property="og:title" content="Python Yield Keyword" />
+<meta property="og:description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&rsquo;s no similar thing in Java or C language.
+So in this post, I&rsquo;ll try to explain and conclude what the yield keyword does.
+In fact, the same question was posed on stackoverflow, which gains 5951 votes.">
+<meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/python-yield-keyword/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Je pense donc je suis" />
+  <meta name="twitter:title" content="Python Yield Keyword" />
+  <meta name="twitter:description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python …">
+  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <link href='https://wenfeng-gao.github.io/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta property="og:url" content="https://wenfeng-gao.github.io/post/python-yield-keyword/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Je pense donc je suis" />
+
+  <meta name="generator" content="Hugo 0.54.0" />
+  <link rel="alternate" href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" title="Je pense donc je suis">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/main.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/highlight.min.css" /><link rel="stylesheet" href="https://wenfeng-gao.github.io/css/codeblock.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.css" integrity="sha384-h/L2W9KefUClHWaty3SLE5F/qvc4djlyR4qY3NUV5HGQBBW7stbcfff1+I/vmsHh" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/default-skin/default-skin.min.css" integrity="sha384-iD0dNku6PYSIQLyfTOpB06F2KCZJAKLOThS5HRe8b3ibhdEQ6eKsFf/EeFxdOt5R" crossorigin="anonymous">
+
+
+
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    
+      <div class="avatar-container">
+        <div class="avatar-img-border">
+          <a title="Je pense donc je suis" href="https://wenfeng-gao.github.io/">
+            <img class="avatar-img" src="https://wenfeng-gao.github.io/img/avatar-icon.png" alt="Je pense donc je suis" />
+          </a>
+        </div>
+      </div>
+    
+
+  </div>
+</nav>
+
+
+
+
+    
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+
+  
+  
+  
+
+
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              
+                <h1>Python Yield Keyword</h1>
+              
+              
+              
+              
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on February 6, 2018
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;4&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;774&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p><em>Yield</em> keyword is an important feature in Python language, in order to
+understand coroutine in Python, we need to understand <em>yield</em> and
+<em>generator</em> first. However, this feature also makes the Python newbies like me
+confused a lot, as there&rsquo;s no similar thing in Java or C language.</p>
+
+<p>So in this post, I&rsquo;ll try to explain and conclude what the <em>yield</em> keyword does.</p>
+
+<p>In fact, the same question was posed on
+<a href="http://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do">stackoverflow</a>, which gains 5951 votes.</p>
+
+<h3 id="yield">yield</h3>
+
+<blockquote>
+<p>The yield expression is only used when defining a generator function, and can only be used in the body of a function definition. Using a yield expression in a function definition is sufficient to cause that definition to create a generator function instead of a normal function.</p>
+</blockquote>
+
+<p>We maybe feel confused about the definition of <strong>yield</strong> expresion, but if we&rsquo;ve already understood what <strong>yield</strong> exactly is, we may find that the qoutes from the python documentation is well expressed.</p>
+
+<p>So, <em>the yield expression is only used when defining a generator function</em>.
+What is a <strong>generator function</strong>, or first of all, what is a <strong>gennerator</strong>?</p>
+
+<p>Generators are iterators, but you can only iterate over them once.</p>
+
+<h3 id="iterators">Iterators</h3>
+
+<p>The use of iterators pervades and unifies Python. Most container objects can be looped over using a for statement:</p>
+
+<pre><code class="language-python">for element in [1, 2, 3]:
+    print element
+for element in (1, 2, 3):
+    print element
+for key in {'one':1, 'two':2}:
+    print key
+for char in &quot;123&quot;:
+    print char
+for line in open(&quot;myfile.txt&quot;):
+    print line,
+</code></pre>
+
+<p>Behind the scenes, the for statement calls <code>iter()</code> on the container object. The function returns an iterator object that defines the method <code>next()</code> which accesses elements in the container one at a time. When there are no more elements, <code>next()</code> raises a <code>StopIteration</code> exception which tells the for loop to terminate. This example shows how it all works:</p>
+
+<pre><code class="language-python">&gt;&gt;&gt; s = 'abc'
+&gt;&gt;&gt; it = iter(s)
+&gt;&gt;&gt; it
+&lt;iterator object at 0x00A1DB50&gt;
+&gt;&gt;&gt; it.next()
+'a'
+&gt;&gt;&gt; it.next()
+'b'
+&gt;&gt;&gt; it.next()
+'c'
+&gt;&gt;&gt; it.next()
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in ?
+    it.next()
+StopIteration
+</code></pre>
+
+<p>Having seen the mechanics behind the iterator protocol, it is easy to add iterator behavior to your classes. Define an <code>__iter__()</code> method which returns an object with a next() method. If the class defines <code>next()</code>, then <code>__iter__()</code> can just return self:</p>
+
+<pre><code class="language-python">class Reverse:
+    &quot;&quot;&quot;Iterator for looping over a sequence backwards.&quot;&quot;&quot;
+    def __init__(self, data):
+        self.data = data
+        self.index = len(data)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self.index == 0:
+            raise StopIteration
+        self.index = self.index - 1
+        return self.data[self.index]
+</code></pre>
+
+<pre><code class="language-python">&gt;&gt;&gt; rev = Reverse('spam')
+&gt;&gt;&gt; for char in rev:
+...     print char
+...
+m
+a
+p
+s
+</code></pre>
+
+<h3 id="generators">Generators</h3>
+
+<p>Generators are iterators, but <strong>you can only iterate over them once</strong>. It&rsquo;s because they do not store all the values in memory, <strong>they generate the values on the fly</strong>:</p>
+
+<p>Some simple generators can be coded succinctly as expressions using a syntax similar to list comprehensions but with parentheses instead of brackets.</p>
+
+<pre><code class="language-python">for element in (1, 2, 3):
+    print element
+</code></pre>
+
+<pre><code class="language-python">&gt;&gt;&gt; mygenerator = (x*x for x in range(3))
+&gt;&gt;&gt; for i in mygenerator:
+...    print(i)
+0
+1
+4
+</code></pre>
+
+<p>It is just the same except you used <code>()</code> instead of <code>[]</code>. But, you <strong>cannot</strong> perform <code>for i in mygenerator</code> a second time since generators can only be used once: they calculate 0, then forget about it and calculate 1, and end calculating 4, one by one.</p>
+
+<p>Generators are a simple and powerful tool for creating iterators. They are written like regular functions but use the <strong>yield</strong> statement whenever they want to return data.</p>
+
+<p>An example shows that generators can be trivially easy to create:</p>
+
+<pre><code class="language-python">def reverse(data):
+    for index in range(len(data)-1, -1, -1):
+        yield data[index]
+</code></pre>
+
+<pre><code class="language-python">&gt;&gt;&gt; for char in reverse('golf'):
+...     print char
+...
+f
+l
+o
+g
+</code></pre>
+
+<p>With <strong>Generators</strong> we can deal with large scale of input in <strong>Iterator</strong> manner without the worry of memory limit. For example:</p>
+
+<pre><code class="language-python">def fib():
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a+b
+
+f = fib()
+for i in xrange(1000000):
+    print &quot;%d: %d&quot; % (i, f.next())
+</code></pre>
+
+<p>To be brief, a normal function with <strong>yield</strong> keyword will become a generator function, which returns a <strong>generator</strong> after being called. Then the <strong>generator</strong> could be used by calling the <strong>generator-iterator methods</strong> like <code>generator.next()</code>, <code>generator.send()</code>, etc.</p>
+
+<p>To understand these functions, you have to read the documentation carefully, I won&rsquo;t discuss about it now, perhaps the last example will help you understand.</p>
+
+<pre><code class="language-python">def test_generator():
+    i, s = 1, 2
+    while True:
+        j = yield(i+s)
+        print i
+        print j
+        print s
+        i += 1
+
+&gt;&gt;&gt; t = test_generator()
+&gt;&gt;&gt; t.next()
+3
+&gt;&gt;&gt; t.next()
+1
+None
+2
+4
+&gt;&gt;&gt; t.send(2)
+2
+2
+2
+5
+</code></pre>
+
+
+        
+          <div class="blog-tags">
+            
+              <a href="https://wenfeng-gao.github.io//tags/python/">python</a>&nbsp;
+            
+          </div>
+        
+
+        
+
+        
+          
+          
+        
+      </article>
+
+      
+        <ul class="pager blog-pager">
+          
+            <li class="previous">
+              <a href="https://wenfeng-gao.github.io/post/a-little-taste-on-react/" data-toggle="tooltip" data-placement="top" title="A Little Taste on React">&larr; Previous Post</a>
+            </li>
+          
+          
+            <li class="next">
+              <a href="https://wenfeng-gao.github.io/post/coroutine-with-gevent/" data-toggle="tooltip" data-placement="top" title="Coroutine With Gevent">Next Post &rarr;</a>
+            </li>
+          
+        </ul>
+      
+
+
+      
+        
+          
+          <div class="disqus-comments">                  
+            <button id="show-comments" class="btn btn-default" type="button">Show <span class="disqus-comment-count" data-disqus-url="https://wenfeng-gao.github.io/post/python-yield-keyword">comments</span></button>
+            <div id="disqus_thread"></div>
+
+            <script type="text/javascript">
+              var disqus_config = function () {
+              this.page.url = 'https:\/\/wenfeng-gao.github.io\/post\/python-yield-keyword';
+            };
+
+          </script>
+          </div>
+          
+        
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:elricfeng@gmail.com" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://plus.google.com/103999582027187063854" title="Google&#43;">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-google-plus fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/Wenfeng-GAO" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://stackoverflow.com/users/4262814/wenfeng" title="StackOverflow">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://paypal.me/elricfeng" title="PayPal">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-paypal fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            
+            <a href="https://wenfeng-gao.github.io/index.xml" title="RSS">
+            
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              Wenfeng Gao
+            
+          
+
+          &nbsp;&bull;&nbsp;&copy;
+          
+            2019
+          
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.54.0</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="https://wenfeng-gao.github.io/js/main.js"></script>
+<script src="https://wenfeng-gao.github.io/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script>
+<script> $(document).ready(function() {$("pre.chroma").css("padding","0");}); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.js" integrity="sha384-QELNnmcmU8IR9ZAykt67vGr9/rZJdHbiWi64V88fCPaOohUlHCqUD/unNN0BXSqy" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe-ui-default.min.js" integrity="sha384-m67o7SkQ1ALzKZIFh4CiTA8tmadaujiTa9Vu+nqPSwDOqHrDmxLezTdFln8077+q" crossorigin="anonymous"></script>
+<script src="https://wenfeng-gao.github.io/js/load-photoswipe.js"></script>
+
+
+
+
+
+
+
+<script type="text/javascript">
+$(function(){
+  $('#show-comments').on('click', function(){
+    var disqus_shortname = 'https-wenfeng-gao-github-io';
+      
+    (function() {
+      var disqus = document.createElement('script'); 
+      disqus.type = 'text/javascript'; 
+      disqus.async = true;
+      disqus.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(disqus);
+    })();
+      
+    $(this).hide(); 
+    });
+  });
+      
+</script>
+<script id="dsq-count-scr" src="//https-wenfeng-gao-github-io.disqus.com/count.js" async></script>
+
+
+
+
+  </body>
+</html>
+

@@ -277,8 +277,8 @@ kubelet.go
             </article>
           
             <article class="post-preview">
-              <a href="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/">
-                <h2 class="post-title">Mesos Checkpoint Feature &amp; Master Agent Connection</h2>
+              <a href="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/">
+                <h2 class="post-title">Core Dump File Size Limit in Docker</h2>
 
                 
               </a>
@@ -287,13 +287,13 @@ kubelet.go
                 <span class="post-meta">
   
   
-  <i class="fas fa-calendar"></i>&nbsp;Posted on May 18, 2017
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 15, 2018
   
   
-    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;1&nbsp;minutes
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
   
   
-    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;121&nbsp;words
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;246&nbsp;words
   
   
     &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
@@ -305,11 +305,13 @@ kubelet.go
               </p>
               <div class="post-entry">
                 
-                  Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
-本文将讨论的问题：
- Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功能主要能起到3个作用：
-Agent disconnect with executor  当agent线程挂掉，或者与executor无法连接时，如果framework没有使用checkpoint，executor一旦发现与agent断开，立即自动退出。 如果framework使用了checkpoint，executor将在一段时间内（MESOS_RECOVERY_TIMEOUT）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过--recovery_timeout标签来设置，默认15分钟。  Agent disconnect with master  当agent线程挂掉，或者与master连接断开时，如果没有checkpoint，master会立即为此agent管理的所有task发送TASK_LOST状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos health check的时间，可以通过--agent_ping_timeout 和 --max_agent_ping_timeouts标签来设置），如果agent重连成功，master会kill掉之前发送TASK_LOST的所有task。 如果使用了checkpoint，master不会发送TASK_LOST，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。  Agent recovery  当agent重启后，如果没有checkpoint，agent管理的还存活着的task会被立即重启。 如果使用了checkpoint，agent会将一些信息（Task Info, Executor Info, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。 这些设置有3个：  strict: 若为true，恢复时出现的所有error将被视为fatal，恢复中断；若为false，忽略所有error，以最大的可能去恢复；默认为true。 recover：若为reconnect，重连所有存活的executor；若为cleanup，kill所有存活的executor并退出；默认为reconnect。 recovery_timeout，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有executor没有连到，那么那些executor将会自动退出，默认时间为15分钟。   Dealing with Partitioned or Failed Agents 2 mechanisms to track availability and health Mesos master用两种方法来检测跟踪agent的可靠性：
-                  <a href="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/" class="post-read-more">[Read More]</a>
+                  Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。
+                  <a href="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" class="post-read-more">[Read More]</a>
                 
               </div>
 
@@ -318,7 +320,433 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
                   
                     <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
                   
-                    <a href="https://wenfeng-gao.github.io//tags/mesos/">mesos</a>&nbsp;
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/coroutine-with-gevent/">
+                <h2 class="post-title">Coroutine With Gevent</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on February 21, 2018
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;4&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;839&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  背景 工作中用到gevent。
+ gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。
+ 使用过程中，带着某些问题阅读了一部分源码，现在做一下总结与分享。
+协程 Python通过yield与generator，能实现coroutine。举个栗子(更多更详细的例子请 参考this awesome presentation)：
+&gt;&gt;&gt; def grep(pattern): ... print &quot;Looking for %s&quot; % pattern ... while True: ... line = (yield) ... if pattern in line: ... print line ... &gt;&gt;&gt; g = grep(&quot;python&quot;) &gt;&gt;&gt; g.next() Looking for python &gt;&gt;&gt; g.send(&quot;hello world&quot;) &gt;&gt;&gt; g.send(&quot;python generators rock!&quot;) python generators rock! &gt;&gt;&gt;  原本以为gevent会是对yield一些封装，了解后知道，在gevent里面，上下文切换通过 yielding来完成的，但其用到的主要模式是Greenlet， Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部运行在主程序操作系统 的内部，但它们被协作式地调度。在任何时刻，只有一个协程在运行。
+Greenlet 对于Greenlet，暂且不多说， 通过阅读官网的API，我们知道其主要是通过switch这个 方法来实现跳转的，switch如何实现的暂不做讨论，先贴上官网的例子混个脸熟：
+from greenlet import greenlet def test1(): print 12 gr2.
+                  <a href="https://wenfeng-gao.github.io/post/coroutine-with-gevent/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/python/">python</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coroutine/">coroutine</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/python-yield-keyword/">
+                <h2 class="post-title">Python Yield Keyword</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on February 6, 2018
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;4&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;774&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&rsquo;s no similar thing in Java or C language.
+So in this post, I&rsquo;ll try to explain and conclude what the yield keyword does.
+In fact, the same question was posed on stackoverflow, which gains 5951 votes.
+                  <a href="https://wenfeng-gao.github.io/post/python-yield-keyword/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/python/">python</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/a-little-taste-on-react/">
+                <h2 class="post-title">A Little Taste on React</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on December 6, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;3&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;455&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:
+ So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.
+ &ldquo;Maybe I should listen to this guy&rsquo;s suggestion&rdquo;, I said to myself, so I spent a week to understand what is React and how to use it.
+                  <a href="https://wenfeng-gao.github.io/post/a-little-taste-on-react/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/react/">react</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/simple-commit-msg-hook/">
+                <h2 class="post-title">Simple Commit-Msg for Git Hook</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on September 28, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;361&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
+I wish all the commit messages will follow the pattern like:
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.
+                  <a href="https://wenfeng-gao.github.io/post/simple-commit-msg-hook/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/git/">git</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/shell/">shell</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/basic-shell-commands/">
+                <h2 class="post-title">Basic Shell Commands</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on July 29, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;1&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;84&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  
+
+<p>公司某个产品的测试环境比较复杂，它需要在 <em>OpenStack</em> 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产品节点通过接收与发送数据包进行测试。</p>
+
+<p>整个部署与测试流程都需要用Jenkins做自动化测试，而我的任务是将TestAgent节点移植到Docker容器中。用时一个多月，从熟悉源代码的部署与测试流程，到OpenStack的UI界面和CLI命令的基本使用，到OpenStack网络通信的基本理解，到Python的学习与使用(如使用pexpect通过ssh执行shell命令和脚本)， 到shell脚本的熟悉与使用，这个过程中爬过了许多大大小小的坑，也收获了很多东西，这里主要总结一下shell脚本的常用命令。</p>
+
+<h2 id="if">if</h2>
+
+<p><code>if TEST-COMMANDS; then CONSEQUENT-COMMANDS; fi</code></p>
+
+<p>其中<code>TEST-COMMANDS</code>一般有3种情形：</p>
+
+<ul>
+<li><code>shell command</code>
+如果它的返回状态为0，则执行<code>CONSEQUENT-COMMANDS</code></li>
+<li>bracket <code>[]</code></li>
+<li>double bracket <code>[[]]</code>
+在方括号内都会做一些判断，如判断文件是否存在，<code>[ -f FILE ]</code>等等，而其两者的区别在于<code>[[]]</code>是<code>[]</code>的拓展，只支持与bash、zsh等几种shell，所以可移植性要差一些，不过如果不考虑移植性的问题，<code>[[]]</code>会更加简洁与可读，具体可以参考 <a href="http://stackoverflow.com/questions/669452/is-preferable-over-in-bash-scripts">StackOverFlow上的回答</a>以及<a href="http://mywiki.wooledge.org/BashFAQ/031">这篇文档</a>。</li>
+</ul>
+
+<p>有时简单的逻辑关系可以直接使用<code>&amp;&amp;</code>代替。</p>
+
+<h2 id="grep">grep</h2>
+
+<p><code>grep -rl “pattern” file</code> 返回含有“pattern”的文件名，<code>grep</code>常与<code>awk</code>或者<code>cut</code>一起使用，例如</p>
+
+<ul>
+<li><code>grep &quot;foo&quot; file.txt | awk '{print $1}'</code></li>
+<li><code>grep &quot;/bin/bash&quot; /etc/passwd | cut -d':' -f1,6</code></li>
+</ul>
+
+<h2 id="sed">sed</h2>
+
+<ul>
+<li><code>sed -i 'pattern' file</code> 直接操作文件的内容而不是stdout</li>
+<li><code>sed 's/hello/bonjour/' greetings.txt</code> 基本用法</li>
+<li><code>sed  '/is beautiful/i Life' input</code> 在之前插入一行</li>
+<li><code>sed  '/Hello/a World' input</code> 在之后增加一行</li>
+<li><code>sed '/^\s*$/d'</code> 删除空白行</li>
+</ul>
+
+<h2 id="echo-with-color">echo with color</h2>
+
+<ul>
+<li><code>RED='\033[0;31m'</code></li>
+<li><code>NC='\033[0m' # No Color</code></li>
+<li><code>echo -e &quot;I ${RED}love${NC} Stack Overflow\n&quot;</code></li>
+</ul>
+
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/shell/">shell</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/a-ping-question/">
+                <h2 class="post-title">A Ping Question</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on July 4, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;304&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
+To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
+If we look at the routing table of Host B, we&rsquo;ll find something like
+                  <a href="https://wenfeng-gao.github.io/post/a-ping-question/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/network/">network</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/kubernetes-on-coreos/">
+                <h2 class="post-title">Kubernetes on Coreos</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on June 13, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;260&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
+ I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
+Although this guide is detailed, there&rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
+First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.
+                  <a href="https://wenfeng-gao.github.io/post/kubernetes-on-coreos/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/">
+                <h2 class="post-title">Setup Coreos Cluster With Static Ip</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on June 8, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;255&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  We have talked about how to setup a CoreOS cluster in my previous post: Setup CoreOS Cluster Manually with VirtualBox. However, as we setup the cluster in VirtualBox, which uses DHCP as default, the etcd2 may not work when VM&rsquo;s IP changed.
+So in this article I&rsquo;ll tell you how to upgrade your cluster and enable the VMs use static IPs instead of DHCP.
+Setup Static IP First of all, make sure your cluster node VM uses the bridge connection type (as default), that will enable the connection between outer world, as we are not going to set IP tables.
+                  <a href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
                   
                 </div>
               
@@ -326,6 +754,15 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
             </article>
           
         </div>
+        
+          <ul class="pager main-pager">
+            
+            
+              <li class="next">
+                <a href="/post/page/2/">Older Posts &rarr;</a>
+              </li>
+            
+          </ul>
         
       </div>
     </div>

@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+  <head>
+    
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Core Dump File Size Limit in Docker - Je pense donc je suis</title>
+  <meta property="og:title" content="Core Dump File Size Limit in Docker" />
+  <meta name="twitter:title" content="Core Dump File Size Limit in Docker" />
+  <meta name="description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。">
+  <meta property="og:description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。">
+  <meta name="twitter:description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and …">
+  <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
+{
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": "Je pense donc je suis",
+    
+    "url": "https://wenfeng-gao.github.io/"
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "name": "",
+  "url": "https://wenfeng-gao.github.io/"
+  
+  
+  
+  
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@id": "https://wenfeng-gao.github.io/",
+          "name": "home"
+        }
+    },{
+        "@type": "ListItem",
+        "position": 3,
+        "item": {
+          "@id": "https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/",
+          "name": "Core dump file size limit in docker"
+        }
+    }]
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Article",
+  "author": {
+    "name" : "Wenfeng Gao"
+  },
+  "headline": "Core Dump File Size Limit in Docker",
+  "description" : "Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&amp;rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。",
+  "inLanguage" : "en",
+  "wordCount": 246,
+  "datePublished" : "2018-05-15T18:24:30",
+  "dateModified" : "2018-05-15T18:24:30",
+  "image" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
+  "keywords" : [ "docker" ],
+  "mainEntityOfPage" : "https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/",
+  "publisher" : {
+    "@type": "Organization",
+    "name" : "https://wenfeng-gao.github.io/",
+    "logo" : {
+        "@type" : "ImageObject",
+        "url" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
+        "height" :  60 ,
+        "width" :  60
+    }
+  }
+}
+</script>
+
+<meta property="og:title" content="Core Dump File Size Limit in Docker" />
+<meta property="og:description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and try Method 1: 使用systemd [failed] Systemd&rsquo;s default behavior is to generate core dumps for all processes in /var/lib/systemd/coredump. This behavior can be overridden by creating a configuration snippet in the /etc/systemd/coredump.conf.d/ directory with the following content.
+/etc/systemd/coredump.conf.d/custom.conf [Coredump] Storage=none  然后重载systemd的配置
+systemctl daemon-reload  但是，结果是我们会得到一个诸如Failed to get D-Bus connection: Operation not permitted的error。根据14年的issue Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。">
+<meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Je pense donc je suis" />
+  <meta name="twitter:title" content="Core Dump File Size Limit in Docker" />
+  <meta name="twitter:description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到SIGABRT信号退出时，磁盘容易被撑满。
+所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？
+以下记录了围绕这个目的所做的一些尝试与遇到的问题。
+Try and …">
+  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <link href='https://wenfeng-gao.github.io/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta property="og:url" content="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Je pense donc je suis" />
+
+  <meta name="generator" content="Hugo 0.54.0" />
+  <link rel="alternate" href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" title="Je pense donc je suis">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/main.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/highlight.min.css" /><link rel="stylesheet" href="https://wenfeng-gao.github.io/css/codeblock.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.css" integrity="sha384-h/L2W9KefUClHWaty3SLE5F/qvc4djlyR4qY3NUV5HGQBBW7stbcfff1+I/vmsHh" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/default-skin/default-skin.min.css" integrity="sha384-iD0dNku6PYSIQLyfTOpB06F2KCZJAKLOThS5HRe8b3ibhdEQ6eKsFf/EeFxdOt5R" crossorigin="anonymous">
+
+
+
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    
+      <div class="avatar-container">
+        <div class="avatar-img-border">
+          <a title="Je pense donc je suis" href="https://wenfeng-gao.github.io/">
+            <img class="avatar-img" src="https://wenfeng-gao.github.io/img/avatar-icon.png" alt="Je pense donc je suis" />
+          </a>
+        </div>
+      </div>
+    
+
+  </div>
+</nav>
+
+
+
+
+    
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+
+  
+  
+  
+
+
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              
+                <h1>Core Dump File Size Limit in Docker</h1>
+              
+              
+              
+              
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 15, 2018
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;246&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<h3 id="background">Background</h3>
+
+<p>工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimited），当程序收到<code>SIGABRT</code>信号退出时，磁盘容易被撑满。</p>
+
+<p>所以决定不让其产生core dump file。那么问题来了，在Docker容器环境下，该如何实现？</p>
+
+<p>以下记录了围绕这个目的所做的一些尝试与遇到的问题。</p>
+
+<h3 id="try-and-try">Try and try</h3>
+
+<h4 id="method-1-使用-systemd-failed">Method 1: 使用<code>systemd</code> [failed]</h4>
+
+<p>Systemd&rsquo;s default behavior is to generate core dumps for all processes in <code>/var/lib/systemd/coredump</code>. This behavior can be overridden by creating a configuration snippet in the <code>/etc/systemd/coredump.conf.d/</code> directory with the following content.</p>
+
+<pre><code class="language-bash">/etc/systemd/coredump.conf.d/custom.conf
+[Coredump]
+Storage=none
+</code></pre>
+
+<p>然后重载<code>systemd</code>的配置</p>
+
+<pre><code>systemctl daemon-reload
+</code></pre>
+
+<p>但是，结果是我们会得到一个诸如<code>Failed to get D-Bus connection: Operation not permitted</code>的error。根据14年的issue <a href="https://github.com/moby/moby/issues/7459">Failed to get D-Bus connection: No connection to service manager - CentOS 7 #7459</a>，我们并不能在容器中直接使用systemctl，而是需要用我们自己的process manager（supervisor）来管理进程。</p>
+
+<p>这将带来额外更多的工作量，决定放弃这种方法。</p>
+
+<h4 id="method-2-使用ulimit-更改-etc-security-limits-conf-配置-failed">Method 2： 使用ulimit，更改<code>/etc/security/limits.conf</code>配置 [failed]</h4>
+
+<pre><code>* hard core 0
+</code></pre>
+
+<p>一般来说，在<code>limits.conf</code>文件中添加如上更改，便不会产生core file。然而我们restart容器之后，发现文件虽然确实被修改过，但是通过<code>ulimit -c</code>发现并没有作用。</p>
+
+<p>根据 <a href="http://stackoverflow.com/questions/24180048/linux-limits-conf-not-working">Stackoverflow Ref</a>,  <code>limits.conf</code>文件是被<code>pam_limits.set</code>读取的, 我们修改<code>/etc/pam.d/su</code>，使得</p>
+
+<pre><code>session         required        pam_xauth.so
+</code></pre>
+
+<p>然而依然没有任何作用，或许我们还可以尝试通过<code>--priviliged</code>，挂载文件系统等等方法来尝试，但这样依然代价太大，我们放弃。</p>
+
+<h4 id="method-3-docker-run-ulimit-core-0-0-succeed">Method 3：<code>docker run --ulimit core=0:0</code> [succeed]</h4>
+
+<p>通过起容器时添加<code>--ulimit</code>标签无疑是最方便的做法，而最重要的是，它成功了！</p>
+
+<p>当我们进入容器执行<code>ulimit -c</code>，返回<code>0</code>。恭喜我们，目标达成！</p>
+
+<h3 id="verify-and-experiment">Verify and experiment</h3>
+
+<p>现在我们想人为造一点core dump出来，来验证这个方法确实起作用了，该怎么办呢？</p>
+
+<h4 id="method-1-gdb-and-generate-core-file-failed">Method 1：<code>gdb</code> and <code>generate-core-file</code> [failed]</h4>
+
+<p>或许我们可以用<code>gdb</code>的<code>generate-core-file</code>工具。</p>
+
+<p>首先我们执行一个简单的线程</p>
+
+<pre><code class="language-python">test.py
+#!/usr/bin/env python
+
+import time
+
+while True:
+        print 'hi'
+        time.sleep(2)
+</code></pre>
+
+<p>然后通过<code>ps -ef</code>找到这个进程的<code>PID</code>，执行<code>gdb -p PID</code>，然而这时，问题又来了:</p>
+
+<pre><code class="language-bash">Attaching to process 145
+ptrace: Operation not permitted.
+(gdb) generate-core-file
+You can't do that without a process to debug.
+</code></pre>
+
+<p>而通过这个开了又关关了又开的长长的GitHub Issue <a href="https://github.com/moby/moby/issues/7276">apparmor denies ptrace to docker-default profile #7276</a>，我大概知道，还是找个别的方法更省力。</p>
+
+<h4 id="method-2-kill-abrt-pid-succeed">Method 2: <code>kill -ABRT PID</code> [succeed]</h4>
+
+<p>通过<code>man</code>文档，我们知道这几个<code>signal</code>可以产生core dump文件：</p>
+
+<pre><code class="language-bash">   SIGQUIT       3       Core    Quit from keyboard
+   SIGILL        4       Core    Illegal Instruction
+   SIGABRT       6       Core    Abort signal from abort(3)
+   SIGFPE        8       Core    Floating-point exception
+</code></pre>
+
+<p>这时我们发现，当<code>ulimit -c</code>设为<code>0</code>时，确实不会产生core dump文件；</p>
+
+<p>而当我们把<code>ulimit -c</code>设为<code>4</code>时，产生了core dump，使用<code>gdb ./test.py core.PID</code> debug时，却发现了这样的warning。</p>
+
+<pre><code>BFD: Warning: /root/core.129 is truncated: expected core file size &gt;= 2945024, found: 5488.
+</code></pre>
+
+<p>我们<code>docker run -it --ulimit core=2945024 ...</code>增加<code>ulimit -c</code>的大小，这次得到大小为<code>2.9M</code>的core dump file，使用<code>gdb</code>也再没有问题。</p>
+
+<p>看来，一个完整的core file至少为<code>2945024 byte</code>，当我们设置的<code>ulimit -c</code>的值小于它时，可能得到不完整的文件，如果设置的更小，比如小于<code>3 * 1024</code>，便不会产生文件，设置为<code>0</code>，便是禁止了。</p>
+
+<h3 id="conclusion">Conclusion</h3>
+
+<p>这便是我解决这个问题的一个过程吧，其中踩过了一些坑，也学到了很多新东西，希望能对你也有帮助。 以下是一些解决问题过程中参考过的，觉得有价值的链接，enjoy！</p>
+
+<ul>
+<li><a href="https://ss64.com/bash/ulimit.html">man ulimit</a></li>
+<li><a href="http://man7.org/linux/man-pages/man5/core.5.html">man core - core dump file</a></li>
+<li><a href="https://docs.docker.com/engine/reference/commandline/run/#set-ulimits-in-container---ulimit">docker run with ulimit</a></li>
+<li><a href="http://stackoverflow.com/questions/8305866/how-to-analyze-a-programs-core-dump-file-with-gdb">quick use of gdb</a></li>
+</ul>
+
+
+        
+          <div class="blog-tags">
+            
+              <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+            
+          </div>
+        
+
+        
+
+        
+          
+          
+          <h4 class="see-also">See also</h4>
+          <ul>
+          
+            <li><a href="/post/kubernetes-on-coreos/">Kubernetes on Coreos</a></li>
+          
+            <li><a href="/post/setup-coreos-cluster-with-static-ip/">Setup Coreos Cluster With Static Ip</a></li>
+          
+            <li><a href="/post/mesos_checkpoint_feature/">Mesos Checkpoint Feature &amp; Master Agent Connection</a></li>
+          
+          </ul>
+          
+        
+      </article>
+
+      
+        <ul class="pager blog-pager">
+          
+            <li class="previous">
+              <a href="https://wenfeng-gao.github.io/post/coroutine-with-gevent/" data-toggle="tooltip" data-placement="top" title="Coroutine With Gevent">&larr; Previous Post</a>
+            </li>
+          
+          
+            <li class="next">
+              <a href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" data-toggle="tooltip" data-placement="top" title="Kubernetes源码分析之CPU Manager">Next Post &rarr;</a>
+            </li>
+          
+        </ul>
+      
+
+
+      
+        
+          
+          <div class="disqus-comments">                  
+            <button id="show-comments" class="btn btn-default" type="button">Show <span class="disqus-comment-count" data-disqus-url="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker">comments</span></button>
+            <div id="disqus_thread"></div>
+
+            <script type="text/javascript">
+              var disqus_config = function () {
+              this.page.url = 'https:\/\/wenfeng-gao.github.io\/post\/core-dump-file-size-limit-in-docker';
+            };
+
+          </script>
+          </div>
+          
+        
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:elricfeng@gmail.com" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://plus.google.com/103999582027187063854" title="Google&#43;">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-google-plus fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/Wenfeng-GAO" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://stackoverflow.com/users/4262814/wenfeng" title="StackOverflow">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://paypal.me/elricfeng" title="PayPal">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-paypal fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            
+            <a href="https://wenfeng-gao.github.io/index.xml" title="RSS">
+            
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              Wenfeng Gao
+            
+          
+
+          &nbsp;&bull;&nbsp;&copy;
+          
+            2019
+          
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.54.0</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="https://wenfeng-gao.github.io/js/main.js"></script>
+<script src="https://wenfeng-gao.github.io/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script>
+<script> $(document).ready(function() {$("pre.chroma").css("padding","0");}); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.js" integrity="sha384-QELNnmcmU8IR9ZAykt67vGr9/rZJdHbiWi64V88fCPaOohUlHCqUD/unNN0BXSqy" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe-ui-default.min.js" integrity="sha384-m67o7SkQ1ALzKZIFh4CiTA8tmadaujiTa9Vu+nqPSwDOqHrDmxLezTdFln8077+q" crossorigin="anonymous"></script>
+<script src="https://wenfeng-gao.github.io/js/load-photoswipe.js"></script>
+
+
+
+
+
+
+
+<script type="text/javascript">
+$(function(){
+  $('#show-comments').on('click', function(){
+    var disqus_shortname = 'https-wenfeng-gao-github-io';
+      
+    (function() {
+      var disqus = document.createElement('script'); 
+      disqus.type = 'text/javascript'; 
+      disqus.async = true;
+      disqus.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(disqus);
+    })();
+      
+    $(this).hide(); 
+    });
+  });
+      
+</script>
+<script id="dsq-count-scr" src="//https-wenfeng-gao-github-io.disqus.com/count.js" async></script>
+
+
+
+
+  </body>
+</html>
+
