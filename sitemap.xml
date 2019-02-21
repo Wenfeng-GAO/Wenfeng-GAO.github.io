@@ -8,7 +8,18 @@
   </url>
   
   <url>
+    <loc>https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/</loc>
+    <lastmod>2017-05-18T09:56:49+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/categories/</loc>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/docker/</loc>
+    <lastmod>2017-05-18T09:56:49+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -31,6 +42,12 @@
   </url>
   
   <url>
+    <loc>https://wenfeng-gao.github.io/tags/mesos/</loc>
+    <lastmod>2017-05-18T09:56:49+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/post/</loc>
     <lastmod>2018-11-28T23:14:35+08:00</lastmod>
     <priority>0</priority>
@@ -38,7 +55,7 @@
   
   <url>
     <loc>https://wenfeng-gao.github.io/tags/</loc>
-    <lastmod>2018-11-28T23:14:35+08:00</lastmod>
+    <lastmod>2017-05-18T09:56:49+08:00</lastmod>
     <priority>0</priority>
   </url>
   

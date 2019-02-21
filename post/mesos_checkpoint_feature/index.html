@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+  <head>
+    
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Mesos Checkpoint Feature &amp; Master Agent Connection - Je pense donc je suis</title>
+  <meta property="og:title" content="Mesos Checkpoint Feature &amp; Master Agent Connection" />
+  <meta name="twitter:title" content="Mesos Checkpoint Feature &amp; Master Agent Connection" />
+  <meta name="description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
+本文将讨论的问题：
+ Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功能主要能起到3个作用：
+Agent disconnect with executor  当agent线程挂掉，或者与executor无法连接时，如果framework没有使用checkpoint，executor一旦发现与agent断开，立即自动退出。 如果framework使用了checkpoint，executor将在一段时间内（MESOS_RECOVERY_TIMEOUT）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过--recovery_timeout标签来设置，默认15分钟。  Agent disconnect with master  当agent线程挂掉，或者与master连接断开时，如果没有checkpoint，master会立即为此agent管理的所有task发送TASK_LOST状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos health check的时间，可以通过--agent_ping_timeout 和 --max_agent_ping_timeouts标签来设置），如果agent重连成功，master会kill掉之前发送TASK_LOST的所有task。 如果使用了checkpoint，master不会发送TASK_LOST，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。  Agent recovery  当agent重启后，如果没有checkpoint，agent管理的还存活着的task会被立即重启。 如果使用了checkpoint，agent会将一些信息（Task Info, Executor Info, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。 这些设置有3个：  strict: 若为true，恢复时出现的所有error将被视为fatal，恢复中断；若为false，忽略所有error，以最大的可能去恢复；默认为true。 recover：若为reconnect，重连所有存活的executor；若为cleanup，kill所有存活的executor并退出；默认为reconnect。 recovery_timeout，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有executor没有连到，那么那些executor将会自动退出，默认时间为15分钟。   Dealing with Partitioned or Failed Agents 2 mechanisms to track availability and health Mesos master用两种方法来检测跟踪agent的可靠性：">
+  <meta property="og:description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
+本文将讨论的问题：
+ Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功能主要能起到3个作用：
+Agent disconnect with executor  当agent线程挂掉，或者与executor无法连接时，如果framework没有使用checkpoint，executor一旦发现与agent断开，立即自动退出。 如果framework使用了checkpoint，executor将在一段时间内（MESOS_RECOVERY_TIMEOUT）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过--recovery_timeout标签来设置，默认15分钟。  Agent disconnect with master  当agent线程挂掉，或者与master连接断开时，如果没有checkpoint，master会立即为此agent管理的所有task发送TASK_LOST状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos health check的时间，可以通过--agent_ping_timeout 和 --max_agent_ping_timeouts标签来设置），如果agent重连成功，master会kill掉之前发送TASK_LOST的所有task。 如果使用了checkpoint，master不会发送TASK_LOST，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。  Agent recovery  当agent重启后，如果没有checkpoint，agent管理的还存活着的task会被立即重启。 如果使用了checkpoint，agent会将一些信息（Task Info, Executor Info, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。 这些设置有3个：  strict: 若为true，恢复时出现的所有error将被视为fatal，恢复中断；若为false，忽略所有error，以最大的可能去恢复；默认为true。 recover：若为reconnect，重连所有存活的executor；若为cleanup，kill所有存活的executor并退出；默认为reconnect。 recovery_timeout，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有executor没有连到，那么那些executor将会自动退出，默认时间为15分钟。   Dealing with Partitioned or Failed Agents 2 mechanisms to track availability and health Mesos master用两种方法来检测跟踪agent的可靠性：">
+  <meta name="twitter:description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
+本文将讨论的问题：
+ Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功 …">
+  <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
+{
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": "Je pense donc je suis",
+    
+    "url": "https://wenfeng-gao.github.io/"
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "name": "",
+  "url": "https://wenfeng-gao.github.io/"
+  
+  
+  
+  
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@id": "https://wenfeng-gao.github.io/",
+          "name": "home"
+        }
+    },{
+        "@type": "ListItem",
+        "position": 3,
+        "item": {
+          "@id": "https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/",
+          "name": "Mesos checkpoint feature &amp; master agent connection"
+        }
+    }]
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Article",
+  "author": {
+    "name" : "Wenfeng Gao"
+  },
+  "headline": "Mesos Checkpoint Feature &amp; Master Agent Connection",
+  "description" : "Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
+本文将讨论的问题：
+ Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功能主要能起到3个作用：
+Agent disconnect with executor  当agent线程挂掉，或者与executor无法连接时，如果framework没有使用checkpoint，executor一旦发现与agent断开，立即自动退出。 如果framework使用了checkpoint，executor将在一段时间内（MESOS_RECOVERY_TIMEOUT）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过--recovery_timeout标签来设置，默认15分钟。  Agent disconnect with master  当agent线程挂掉，或者与master连接断开时，如果没有checkpoint，master会立即为此agent管理的所有task发送TASK_LOST状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos health check的时间，可以通过--agent_ping_timeout 和 --max_agent_ping_timeouts标签来设置），如果agent重连成功，master会kill掉之前发送TASK_LOST的所有task。 如果使用了checkpoint，master不会发送TASK_LOST，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。  Agent recovery  当agent重启后，如果没有checkpoint，agent管理的还存活着的task会被立即重启。 如果使用了checkpoint，agent会将一些信息（Task Info, Executor Info, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。 这些设置有3个：  strict: 若为true，恢复时出现的所有error将被视为fatal，恢复中断；若为false，忽略所有error，以最大的可能去恢复；默认为true。 recover：若为reconnect，重连所有存活的executor；若为cleanup，kill所有存活的executor并退出；默认为reconnect。 recovery_timeout，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有executor没有连到，那么那些executor将会自动退出，默认时间为15分钟。   Dealing with Partitioned or Failed Agents 2 mechanisms to track availability and health Mesos master用两种方法来检测跟踪agent的可靠性：",
+  "inLanguage" : "en",
+  "wordCount": 121,
+  "datePublished" : "2017-05-18T09:56:49",
+  "dateModified" : "2017-05-18T09:56:49",
+  "image" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
+  "keywords" : [ "docker, mesos" ],
+  "mainEntityOfPage" : "https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/",
+  "publisher" : {
+    "@type": "Organization",
+    "name" : "https://wenfeng-gao.github.io/",
+    "logo" : {
+        "@type" : "ImageObject",
+        "url" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
+        "height" :  60 ,
+        "width" :  60
+    }
+  }
+}
+</script>
+
+<meta property="og:title" content="Mesos Checkpoint Feature &amp; Master Agent Connection" />
+<meta property="og:description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
+本文将讨论的问题：
+ Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功能主要能起到3个作用：
+Agent disconnect with executor  当agent线程挂掉，或者与executor无法连接时，如果framework没有使用checkpoint，executor一旦发现与agent断开，立即自动退出。 如果framework使用了checkpoint，executor将在一段时间内（MESOS_RECOVERY_TIMEOUT）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过--recovery_timeout标签来设置，默认15分钟。  Agent disconnect with master  当agent线程挂掉，或者与master连接断开时，如果没有checkpoint，master会立即为此agent管理的所有task发送TASK_LOST状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos health check的时间，可以通过--agent_ping_timeout 和 --max_agent_ping_timeouts标签来设置），如果agent重连成功，master会kill掉之前发送TASK_LOST的所有task。 如果使用了checkpoint，master不会发送TASK_LOST，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。  Agent recovery  当agent重启后，如果没有checkpoint，agent管理的还存活着的task会被立即重启。 如果使用了checkpoint，agent会将一些信息（Task Info, Executor Info, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。 这些设置有3个：  strict: 若为true，恢复时出现的所有error将被视为fatal，恢复中断；若为false，忽略所有error，以最大的可能去恢复；默认为true。 recover：若为reconnect，重连所有存活的executor；若为cleanup，kill所有存活的executor并退出；默认为reconnect。 recovery_timeout，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有executor没有连到，那么那些executor将会自动退出，默认时间为15分钟。   Dealing with Partitioned or Failed Agents 2 mechanisms to track availability and health Mesos master用两种方法来检测跟踪agent的可靠性：">
+<meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Je pense donc je suis" />
+  <meta name="twitter:title" content="Mesos Checkpoint Feature &amp; Master Agent Connection" />
+  <meta name="twitter:description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。
+本文将讨论的问题：
+ Mesos checkpoint 机制的作用 Mesos master 与 agent连接检查的机制 Mesos master 与 agent连接断开后的状态变化  Usage of Mesos Checkpoint Feature Mesos的checkpoint功 …">
+  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <link href='https://wenfeng-gao.github.io/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta property="og:url" content="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Je pense donc je suis" />
+
+  <meta name="generator" content="Hugo 0.54.0" />
+  <link rel="alternate" href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" title="Je pense donc je suis">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/main.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/highlight.min.css" /><link rel="stylesheet" href="https://wenfeng-gao.github.io/css/codeblock.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.css" integrity="sha384-h/L2W9KefUClHWaty3SLE5F/qvc4djlyR4qY3NUV5HGQBBW7stbcfff1+I/vmsHh" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/default-skin/default-skin.min.css" integrity="sha384-iD0dNku6PYSIQLyfTOpB06F2KCZJAKLOThS5HRe8b3ibhdEQ6eKsFf/EeFxdOt5R" crossorigin="anonymous">
+
+
+
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    
+      <div class="avatar-container">
+        <div class="avatar-img-border">
+          <a title="Je pense donc je suis" href="https://wenfeng-gao.github.io/">
+            <img class="avatar-img" src="https://wenfeng-gao.github.io/img/avatar-icon.png" alt="Je pense donc je suis" />
+          </a>
+        </div>
+      </div>
+    
+
+  </div>
+</nav>
+
+
+
+
+    
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+
+  
+  
+  
+
+
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              
+                <h1>Mesos Checkpoint Feature &amp; Master Agent Connection</h1>
+              
+              
+              
+              
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on May 18, 2017
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;1&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;121&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-7 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。</p>
+
+<p>本文将讨论的问题：</p>
+
+<ul>
+<li>Mesos checkpoint 机制的作用</li>
+<li>Mesos master 与 agent连接检查的机制</li>
+<li>Mesos master 与 agent连接断开后的状态变化</li>
+</ul>
+
+<h2 id="usage-of-mesos-checkpoint-feature">Usage of Mesos Checkpoint Feature</h2>
+
+<p>Mesos的<code>checkpoint</code>功能主要能起到3个作用：</p>
+
+<h6 id="agent-disconnect-with-executor">Agent disconnect with executor</h6>
+
+<ul>
+<li>当agent线程挂掉，或者与executor无法连接时，如果framework没有使用<code>checkpoint</code>，executor一旦发现与agent断开，立即自动退出。</li>
+<li>如果framework使用了<code>checkpoint</code>，executor将在一段时间内（<code>MESOS_RECOVERY_TIMEOUT</code>）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过<code>--recovery_timeout</code>标签来设置，默认15分钟。</li>
+</ul>
+
+<h6 id="agent-disconnect-with-master">Agent disconnect with master</h6>
+
+<ul>
+<li>当agent线程挂掉，或者与master连接断开时，如果没有<code>checkpoint</code>，master会立即为此agent管理的所有task发送<code>TASK_LOST</code>状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos <code>health check</code>的时间，可以通过<code>--agent_ping_timeout</code> 和 <code>--max_agent_ping_timeouts</code>标签来设置），如果agent重连成功，master会kill掉之前发送<code>TASK_LOST</code>的所有task。</li>
+<li>如果使用了<code>checkpoint</code>，master不会发送<code>TASK_LOST</code>，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。</li>
+</ul>
+
+<h6 id="agent-recovery">Agent recovery</h6>
+
+<ul>
+<li>当agent重启后，如果没有<code>checkpoint</code>，agent管理的还存活着的task会被立即重启。</li>
+<li>如果使用了<code>checkpoint</code>，agent会将一些信息（<code>Task Info</code>, <code>Executor Info</code>, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。
+这些设置有3个：
+
+<ul>
+<li><code>strict</code>: 若为true，恢复时出现的所有<code>error</code>将被视为<code>fatal</code>，恢复中断；若为<code>false</code>，忽略所有<code>error</code>，以最大的可能去恢复；默认为<code>true</code>。</li>
+<li><code>recover</code>：若为<code>reconnect</code>，重连所有存活的<code>executor</code>；若为<code>cleanup</code>，kill所有存活的<code>executor</code>并退出；默认为<code>reconnect</code>。</li>
+<li><code>recovery_timeout</code>，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有<code>executor</code>没有连到，那么那些<code>executor</code>将会自动退出，默认时间为15分钟。</li>
+</ul></li>
+</ul>
+
+<h2 id="dealing-with-partitioned-or-failed-agents">Dealing with Partitioned or Failed Agents</h2>
+
+<h4 id="2-mechanisms-to-track-availability-and-health">2 mechanisms to track availability and health</h4>
+
+<p>Mesos master用两种方法来检测跟踪agent的可靠性：</p>
+
+<ul>
+<li>Master 与 agent之间<code>tcp</code>连接的状态</li>
+<li><code>Health check</code>：通过master间断性地给agent发<code>ping</code>来检测，如果agent连续几次都响应失败，就判定为失联。<code>health check</code>的时间可以通过这两个标签来控制：
+
+<ul>
+<li><code>--agent_ping_timeout（--slave_ping_timeout）</code>：agent响应<code>ping</code>的时间限制，超出时间还未响应则为失败，默认为15秒。</li>
+<li><code>--max_agent_ping_timeouts (--max_slave_ping_timeouts)</code>：master可容忍的响应失败次数，默认为5。</li>
+</ul></li>
+</ul>
+
+<p>所以默认的<code>health check</code> timeout为<code>15*5=75</code>秒。重启的agent需要在这个时间之内<code>re-register</code> master，不然master将<code>shutdown</code> 这个agent，而收到<code>shutdown</code>信号的agent会kill它管理的所有<code>executor</code>和<code>task</code>并退出。</p>
+
+<p>值的注意的是，这个时间设置需要大于<code>ZooKeeper session timeout</code>以避免无用的<code>re-register</code>尝试。</p>
+
+<h4 id="steps-to-remove-disconnected-agent">Steps to remove disconnected agent</h4>
+
+<p>当master检测到agent失联后，会采取步骤从列表中删掉失联的agent，这其中的步骤也会分有<code>checkpoint</code>和没有<code>checkpoint</code>，这在前面也有所提及。</p>
+
+<p>可以看以下图示：</p>
+
+<p><img src="/assets/mesos-checkpoint-master-agent-connection/mesos-master-agent.jpg" alt="" /></p>
+
+<p>若没有开启<code>checkpoint</code>，master会立即发送<code>TASK_LOST</code> message，只有如果重连成功，会kill掉这些task。</p>
+
+<p>如果在<code>health check timeout</code>时间内重连失败，master会从注册agent列表里移除这个agent，并且发送<code>SLAVE_LOST</code>的callback和相应的<code>TASK_LOST</code>的信息。</p>
+
+<p>而值得注意的是，不管<code>SLAVE_LOST callback</code>还是<code>TASK_LOST status update message</code>，mesos都不保证发送的信息是可靠的，即使因为网络原因中途丢失了，也只会发一次。</p>
+
+<p>被移除列表的agent依然会持续尝试重连master，它所管理的<code>executor</code>和<code>task</code>也会继续运行，如果重连成功了的话（比如网络问题修复了），master会要求agent <code>shutdown</code>，agent会<code>shutdown</code>所有task并退出。官方建议使用process supervisor（e.g. systemd）来自动启动mesos-slave。</p>
+
+<p>这个过程中有几个配置项值得考虑：</p>
+
+<ul>
+<li><code>--agent_removal_rate_limit(--slave_removal_rate_limit)</code>: 当agents <code>health check</code>失败后，从master注册列表中被移除的速度（如<code>1/10mins</code>，<code>2/3hrs</code>等），默认为立即移除。</li>
+<li><code>--recovery_agent_removal_limit(--recovery_slave_removal_limit)</code>: 限制agent被master从注册列表中移除的和<code>shutdown</code>的比例，如果超过这个比例，master将不会移除agent，而是自身<code>failover</code>，通过这个设置可能增加生产环境的安全性，默认为<code>100%</code>。</li>
+<li><code>agent_reregister_timeout(--slave_reregister_timeout)</code>: agent重连master的时间限制。agent与master断开连接或有新的master被选为leader时，会尝试<code>re-register</code>，默认设置时间10分钟，设置必须大于或等于10分钟。</li>
+</ul>
+
+<h2 id="dealing-with-partitioned-or-failed-masters">Dealing with Partitioned or Failed Masters</h2>
+
+<p>由于大部分的master state只存在内存中，当master <code>failover</code>，新的master被选出时，新master对集群的状态将一无所知，直到有agent <code>re-register</code>这个新的master。在这期间如果去询问某台agent的task状态，将没有任何回应。</p>
+
+<p>如果agent没有在<code>--agent_reregister_timeout</code>时间内重连新的master，master将标记这个agent为失败并执行前面提到过的步骤。唯一不同的是，agent被允许连接新的master即使已经超过了timeout。这表示framework可能会看到<code>TASK_LOST</code>状态更新，之后却发现task正在运行(因为agent被允许连入)。</p>
+
+
+        
+          <div class="blog-tags">
+            
+              <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
+            
+              <a href="https://wenfeng-gao.github.io//tags/mesos/">mesos</a>&nbsp;
+            
+          </div>
+        
+
+        
+
+        
+          
+          
+        
+      </article>
+
+      
+        <ul class="pager blog-pager">
+          
+          
+            <li class="next">
+              <a href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" data-toggle="tooltip" data-placement="top" title="Kubernetes源码分析之CPU Manager">Next Post &rarr;</a>
+            </li>
+          
+        </ul>
+      
+
+
+      
+        
+        
+      
+
+  
+  <div id="git-comments"></div>
+  <link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
+  <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
+  <script>
+    var gitment = new Gitment({
+      
+      owner: 'Wenfeng GAO',
+      repo: 'Wenfeng-GAO.github.io',
+      oauth: {
+        client_id: '485423e5dd1ab3dec3ec',
+        client_secret: 'cb3a39e4096e0be4e3539ed04759cee127ba0b66',
+      }
+    })
+    gitment.render('git-comments')
+  </script>
+  
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:elricfeng@gmail.com" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://plus.google.com/103999582027187063854" title="Google&#43;">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-google-plus fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/Wenfeng-GAO" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://stackoverflow.com/users/4262814/wenfeng" title="StackOverflow">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://paypal.me/elricfeng" title="PayPal">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-paypal fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            
+            <a href="https://wenfeng-gao.github.io/index.xml" title="RSS">
+            
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              Wenfeng Gao
+            
+          
+
+          &nbsp;&bull;&nbsp;&copy;
+          
+            2018
+          
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.54.0</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="https://wenfeng-gao.github.io/js/main.js"></script>
+<script src="https://wenfeng-gao.github.io/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script>
+<script> $(document).ready(function() {$("pre.chroma").css("padding","0");}); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.js" integrity="sha384-QELNnmcmU8IR9ZAykt67vGr9/rZJdHbiWi64V88fCPaOohUlHCqUD/unNN0BXSqy" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe-ui-default.min.js" integrity="sha384-m67o7SkQ1ALzKZIFh4CiTA8tmadaujiTa9Vu+nqPSwDOqHrDmxLezTdFln8077+q" crossorigin="anonymous"></script>
+<script src="https://wenfeng-gao.github.io/js/load-photoswipe.js"></script>
+
+
+
+
+
+
+
+
+  </body>
+</html>
+

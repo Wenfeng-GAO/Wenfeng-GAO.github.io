@@ -7,9 +7,12 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 
-  <title>Posts - Je pense donc je suis</title>
-  <meta property="og:title" content="Posts" />
-  <meta name="twitter:title" content="Posts" />
+  <title>Overview of all pages with the tag #Mesos - Je pense donc je suis</title>
+  <meta property="og:title" content="Overview of all pages with the tag #Mesos" />
+  <meta name="twitter:title" content="Overview of all pages with the tag #Mesos" />
+  <meta name="description" content="Overview of all pages with the tag #Mesos, such as: Mesos Checkpoint Feature &amp; Master Agent Connection">
+  <meta property="og:description" content="Overview of all pages with the tag #Mesos, such as: Mesos Checkpoint Feature &amp; Master Agent Connection">
+  <meta name="twitter:description" content="Overview of all pages with the tag #Mesos, such as: Mesos Checkpoint Feature &amp; Master Agent Connection">
   <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -31,19 +34,19 @@
 }
 </script>
 
-<meta property="og:title" content="Posts" />
+<meta property="og:title" content="Mesos" />
 <meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
-<meta property="og:url" content="https://wenfeng-gao.github.io/post/" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/tags/mesos/" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Je pense donc je suis" />
-  <meta name="twitter:title" content="Posts" />
+  <meta name="twitter:title" content="Mesos" />
   <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
   <meta name="twitter:card" content="summary" />
   <link href='https://wenfeng-gao.github.io/img/favicon.ico' rel='icon' type='image/x-icon'/>
   <meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
   <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
   <meta name="twitter:card" content="summary" />
-  <meta property="og:url" content="https://wenfeng-gao.github.io/post/" />
+  <meta property="og:url" content="https://wenfeng-gao.github.io/tags/mesos/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Je pense donc je suis" />
 
@@ -182,31 +185,14 @@
       <div class="container">
         <div class="row">
           <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-            <div class="post-heading">
+            <div class="tags-heading">
               
-                <h1>Posts</h1>
-              
-              
+                <h1>Mesos</h1>
               
               
-                <span class="post-meta">
-  
-  
-  <i class="fas fa-calendar"></i>&nbsp;Posted on November 28, 2018
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;0&nbsp;minutes
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;0&nbsp;words
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
-  
-  
-</span>
-
-
+                <hr class="small">
+              
+              
               
             </div>
           </div>
@@ -222,59 +208,6 @@
       <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
         
         <div class="posts-list">
-          
-            <article class="post-preview">
-              <a href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/">
-                <h2 class="post-title">Kubernetes源码分析之CPU Manager</h2>
-
-                
-              </a>
-
-              <p class="post-meta">
-                <span class="post-meta">
-  
-  
-  <i class="fas fa-calendar"></i>&nbsp;Posted on November 28, 2018
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;6&nbsp;minutes
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;1194&nbsp;words
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
-  
-  
-</span>
-
-
-              </p>
-              <div class="post-entry">
-                
-                  背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
-使用方式 v1.10版本前需要开启feature-gate。
---feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
---cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
---kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
-kubelet.go
-// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.
-                  <a href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" class="post-read-more">[Read More]</a>
-                
-              </div>
-
-              
-                <div class="blog-tags">
-                  
-                    <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
-                  
-                    <a href="https://wenfeng-gao.github.io//tags/k8s-kubelet/">k8s-kubelet</a>&nbsp;
-                  
-                </div>
-              
-
-            </article>
           
             <article class="post-preview">
               <a href="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/">
@@ -380,7 +313,7 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
           
           <li>
             
-            <a href="https://wenfeng-gao.github.io/post/index.xml" title="RSS">
+            <a href="https://wenfeng-gao.github.io/tags/mesos/index.xml" title="RSS">
             
               <span class="fa-stack fa-lg">
                 <i class="fas fa-circle fa-stack-2x"></i>
