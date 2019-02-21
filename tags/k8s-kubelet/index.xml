@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>K8s Kubelet on Je pense donc je suis</title>
-    <link>http://example.org/tags/k8s-kubelet/</link>
+    <link>https://wenfeng-gao.github.io/tags/k8s-kubelet/</link>
     <description>Recent content in K8s Kubelet on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
@@ -10,15 +10,15 @@
     <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
     <lastBuildDate>Wed, 28 Nov 2018 23:14:35 +0800</lastBuildDate>
     
-	<atom:link href="http://example.org/tags/k8s-kubelet/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://wenfeng-gao.github.io/tags/k8s-kubelet/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Kubernetes源码分析之CPU Manager</title>
-      <link>http://example.org/post/k8s_cpumanager_source_code/</link>
+      <link>https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/</link>
       <pubDate>Wed, 28 Nov 2018 23:14:35 +0800</pubDate>
       <author>elricfeng@gmail.com (Wenfeng Gao)</author>
-      <guid>http://example.org/post/k8s_cpumanager_source_code/</guid>
+      <guid>https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/</guid>
       <description>背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
 CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
 使用方式 v1.10版本前需要开启feature-gate。
