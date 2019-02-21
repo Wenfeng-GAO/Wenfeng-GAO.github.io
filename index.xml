@@ -8,10 +8,19 @@
     <language>en-us</language>
     <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
     <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
-    <lastBuildDate>Wed, 28 Nov 2018 23:14:35 +0800</lastBuildDate>
+    <lastBuildDate>Tue, 19 Feb 2019 23:07:32 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>About</title>
+      <link>https://wenfeng-gao.github.io/page/about/</link>
+      <pubDate>Tue, 19 Feb 2019 23:07:32 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/page/about/</guid>
+      <description> About me  Wenfeng Gao elricfeng@gmail.com  </description>
+    </item>
     
     <item>
       <title>Kubernetes源码分析之CPU Manager</title>

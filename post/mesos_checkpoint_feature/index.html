@@ -288,7 +288,7 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
     
 <div class="container" role="main">
   <div class="row">
-    <div class="col-lg-7 col-lg-offset-2 col-md-10 col-md-offset-1">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
       <article role="main" class="blog-post">
         
 
@@ -306,21 +306,21 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
 
 <p>Mesos的<code>checkpoint</code>功能主要能起到3个作用：</p>
 
-<h6 id="agent-disconnect-with-executor">Agent disconnect with executor</h6>
+<h5 id="agent-disconnect-with-executor">Agent disconnect with executor</h5>
 
 <ul>
 <li>当agent线程挂掉，或者与executor无法连接时，如果framework没有使用<code>checkpoint</code>，executor一旦发现与agent断开，立即自动退出。</li>
 <li>如果framework使用了<code>checkpoint</code>，executor将在一段时间内（<code>MESOS_RECOVERY_TIMEOUT</code>）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过<code>--recovery_timeout</code>标签来设置，默认15分钟。</li>
 </ul>
 
-<h6 id="agent-disconnect-with-master">Agent disconnect with master</h6>
+<h5 id="agent-disconnect-with-master">Agent disconnect with master</h5>
 
 <ul>
 <li>当agent线程挂掉，或者与master连接断开时，如果没有<code>checkpoint</code>，master会立即为此agent管理的所有task发送<code>TASK_LOST</code>状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos <code>health check</code>的时间，可以通过<code>--agent_ping_timeout</code> 和 <code>--max_agent_ping_timeouts</code>标签来设置），如果agent重连成功，master会kill掉之前发送<code>TASK_LOST</code>的所有task。</li>
 <li>如果使用了<code>checkpoint</code>，master不会发送<code>TASK_LOST</code>，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。</li>
 </ul>
 
-<h6 id="agent-recovery">Agent recovery</h6>
+<h5 id="agent-recovery">Agent recovery</h5>
 
 <ul>
 <li>当agent重启后，如果没有<code>checkpoint</code>，agent管理的还存活着的task会被立即重启。</li>
@@ -336,7 +336,7 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
 
 <h2 id="dealing-with-partitioned-or-failed-agents">Dealing with Partitioned or Failed Agents</h2>
 
-<h4 id="2-mechanisms-to-track-availability-and-health">2 mechanisms to track availability and health</h4>
+<h3 id="2-mechanisms-to-track-availability-and-health">2 mechanisms to track availability and health</h3>
 
 <p>Mesos master用两种方法来检测跟踪agent的可靠性：</p>
 
@@ -354,13 +354,13 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
 
 <p>值的注意的是，这个时间设置需要大于<code>ZooKeeper session timeout</code>以避免无用的<code>re-register</code>尝试。</p>
 
-<h4 id="steps-to-remove-disconnected-agent">Steps to remove disconnected agent</h4>
+<h3 id="steps-to-remove-disconnected-agent">Steps to remove disconnected agent</h3>
 
 <p>当master检测到agent失联后，会采取步骤从列表中删掉失联的agent，这其中的步骤也会分有<code>checkpoint</code>和没有<code>checkpoint</code>，这在前面也有所提及。</p>
 
 <p>可以看以下图示：</p>
 
-<p><img src="/assets/mesos-checkpoint-master-agent-connection/mesos-master-agent.jpg" alt="" /></p>
+<p><img src="/mesos-master-agent.jpg" alt="" /></p>
 
 <p>若没有开启<code>checkpoint</code>，master会立即发送<code>TASK_LOST</code> message，只有如果重连成功，会kill掉这些task。</p>
 
@@ -417,26 +417,23 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
 
       
         
+          
+          <div class="disqus-comments">                  
+            <button id="show-comments" class="btn btn-default" type="button">Show <span class="disqus-comment-count" data-disqus-url="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature">comments</span></button>
+            <div id="disqus_thread"></div>
+
+            <script type="text/javascript">
+              var disqus_config = function () {
+              this.page.url = 'https:\/\/wenfeng-gao.github.io\/post\/mesos_checkpoint_feature';
+            };
+
+          </script>
+          </div>
+          
+        
         
       
 
-  
-  <div id="git-comments"></div>
-  <link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
-  <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
-  <script>
-    var gitment = new Gitment({
-      
-      owner: 'Wenfeng GAO',
-      repo: 'blog-hugo',
-      oauth: {
-        client_id: '485423e5dd1ab3dec3ec',
-        client_secret: 'cb3a39e4096e0be4e3539ed04759cee127ba0b66',
-      }
-    })
-    gitment.render('git-comments')
-  </script>
-  
     </div>
   </div>
 </div>
@@ -509,7 +506,7 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
 
           &nbsp;&bull;&nbsp;&copy;
           
-            2018
+            2019
           
 
           
@@ -542,6 +539,28 @@ Agent disconnect with executor  当agent线程挂掉，或者与executor无法�
 
 
 
+
+
+
+<script type="text/javascript">
+$(function(){
+  $('#show-comments').on('click', function(){
+    var disqus_shortname = 'https-wenfeng-gao-github-io';
+      
+    (function() {
+      var disqus = document.createElement('script'); 
+      disqus.type = 'text/javascript'; 
+      disqus.async = true;
+      disqus.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(disqus);
+    })();
+      
+    $(this).hide(); 
+    });
+  });
+      
+</script>
+<script id="dsq-count-scr" src="//https-wenfeng-gao-github-io.disqus.com/count.js" async></script>
 
 
 

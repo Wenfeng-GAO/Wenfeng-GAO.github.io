@@ -302,7 +302,7 @@ CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作 …">
     
 <div class="container" role="main">
   <div class="row">
-    <div class="col-lg-7 col-lg-offset-2 col-md-10 col-md-offset-1">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
       <article role="main" class="blog-post">
         
 
@@ -811,26 +811,23 @@ func (i *internalContainerLifecycleImpl) PostStopContainer(containerID string) e
 
       
         
+          
+          <div class="disqus-comments">                  
+            <button id="show-comments" class="btn btn-default" type="button">Show <span class="disqus-comment-count" data-disqus-url="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code">comments</span></button>
+            <div id="disqus_thread"></div>
+
+            <script type="text/javascript">
+              var disqus_config = function () {
+              this.page.url = 'https:\/\/wenfeng-gao.github.io\/post\/k8s_cpumanager_source_code';
+            };
+
+          </script>
+          </div>
+          
+        
         
       
 
-  
-  <div id="git-comments"></div>
-  <link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
-  <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
-  <script>
-    var gitment = new Gitment({
-      
-      owner: 'Wenfeng GAO',
-      repo: 'blog-hugo',
-      oauth: {
-        client_id: '485423e5dd1ab3dec3ec',
-        client_secret: 'cb3a39e4096e0be4e3539ed04759cee127ba0b66',
-      }
-    })
-    gitment.render('git-comments')
-  </script>
-  
     </div>
   </div>
 </div>
@@ -903,7 +900,7 @@ func (i *internalContainerLifecycleImpl) PostStopContainer(containerID string) e
 
           &nbsp;&bull;&nbsp;&copy;
           
-            2018
+            2019
           
 
           
@@ -936,6 +933,28 @@ func (i *internalContainerLifecycleImpl) PostStopContainer(containerID string) e
 
 
 
+
+
+
+<script type="text/javascript">
+$(function(){
+  $('#show-comments').on('click', function(){
+    var disqus_shortname = 'https-wenfeng-gao-github-io';
+      
+    (function() {
+      var disqus = document.createElement('script'); 
+      disqus.type = 'text/javascript'; 
+      disqus.async = true;
+      disqus.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(disqus);
+    })();
+      
+    $(this).hide(); 
+    });
+  });
+      
+</script>
+<script id="dsq-count-scr" src="//https-wenfeng-gao-github-io.disqus.com/count.js" async></script>
 
 
 

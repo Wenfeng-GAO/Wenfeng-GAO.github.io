@@ -3,6 +3,11 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
+    <loc>https://wenfeng-gao.github.io/page/about/</loc>
+    <lastmod>2019-02-19T23:07:32+08:00</lastmod>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/</loc>
     <lastmod>2018-11-28T23:14:35+08:00</lastmod>
   </url>
@@ -25,7 +30,7 @@
   
   <url>
     <loc>https://wenfeng-gao.github.io/</loc>
-    <lastmod>2018-11-28T23:14:35+08:00</lastmod>
+    <lastmod>2019-02-19T23:07:32+08:00</lastmod>
     <priority>0</priority>
   </url>
   
@@ -44,6 +49,12 @@
   <url>
     <loc>https://wenfeng-gao.github.io/tags/mesos/</loc>
     <lastmod>2017-05-18T09:56:49+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/page/</loc>
+    <lastmod>2019-02-19T23:07:32+08:00</lastmod>
     <priority>0</priority>
   </url>
   
