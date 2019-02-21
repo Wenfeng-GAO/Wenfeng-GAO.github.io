@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en" itemscope itemtype="http://schema.org/WebPage">
+  <head>
+    
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Kubernetes源码分析之CPU Manager - Je pense donc je suis</title>
+  <meta property="og:title" content="Kubernetes源码分析之CPU Manager" />
+  <meta name="twitter:title" content="Kubernetes源码分析之CPU Manager" />
+  <meta name="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
+使用方式 v1.10版本前需要开启feature-gate。
+--feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
+--cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
+--kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
+kubelet.go
+// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.">
+  <meta property="og:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
+使用方式 v1.10版本前需要开启feature-gate。
+--feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
+--cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
+--kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
+kubelet.go
+// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.">
+  <meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作 …">
+  <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
+{
+    "@context": "http://schema.org",
+    "@type": "WebSite",
+    "name": "Je pense donc je suis",
+    
+    "url": "http://example.org/"
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Organization",
+  "name": "",
+  "url": "http://example.org/"
+  
+  
+  
+  
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@id": "http://example.org/",
+          "name": "home"
+        }
+    },{
+        "@type": "ListItem",
+        "position": 3,
+        "item": {
+          "@id": "http://example.org/post/k8s_cpumanager_source_code/",
+          "name": "Kubernetes源码分析之 c p u manager"
+        }
+    }]
+}
+</script><script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Article",
+  "author": {
+    "name" : "Wenfeng Gao"
+  },
+  "headline": "Kubernetes源码分析之CPU Manager",
+  "description" : "背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
+使用方式 v1.10版本前需要开启feature-gate。
+--feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
+--cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
+--kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
+kubelet.go
+// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.",
+  "inLanguage" : "en",
+  "wordCount": 1194,
+  "datePublished" : "2018-11-28T23:14:35",
+  "dateModified" : "2018-11-28T23:14:35",
+  "image" : "http://example.org/img/avatar-icon.png",
+  "keywords" : [ "k8s, k8s-kubelet" ],
+  "mainEntityOfPage" : "http://example.org/post/k8s_cpumanager_source_code/",
+  "publisher" : {
+    "@type": "Organization",
+    "name" : "http://example.org/",
+    "logo" : {
+        "@type" : "ImageObject",
+        "url" : "http://example.org/img/avatar-icon.png",
+        "height" :  60 ,
+        "width" :  60
+    }
+  }
+}
+</script>
+
+<meta property="og:title" content="Kubernetes源码分析之CPU Manager" />
+<meta property="og:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
+使用方式 v1.10版本前需要开启feature-gate。
+--feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
+--cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
+--kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
+kubelet.go
+// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.">
+<meta property="og:image" content="http://example.org/img/avatar-icon.png" />
+<meta property="og:url" content="http://example.org/post/k8s_cpumanager_source_code/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Je pense donc je suis" />
+  <meta name="twitter:title" content="Kubernetes源码分析之CPU Manager" />
+  <meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作 …">
+  <meta name="twitter:image" content="http://example.org/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <link href='http://example.org/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="http://example.org/img/avatar-icon.png" />
+  <meta name="twitter:image" content="http://example.org/img/avatar-icon.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta property="og:url" content="http://example.org/post/k8s_cpumanager_source_code/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Je pense donc je suis" />
+
+  <meta name="generator" content="Hugo 0.54.0" />
+  <link rel="alternate" href="http://example.org/index.xml" type="application/rss+xml" title="Je pense donc je suis">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="http://example.org/css/main.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="http://example.org/css/highlight.min.css" /><link rel="stylesheet" href="http://example.org/css/codeblock.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.css" integrity="sha384-h/L2W9KefUClHWaty3SLE5F/qvc4djlyR4qY3NUV5HGQBBW7stbcfff1+I/vmsHh" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/default-skin/default-skin.min.css" integrity="sha384-iD0dNku6PYSIQLyfTOpB06F2KCZJAKLOThS5HRe8b3ibhdEQ6eKsFf/EeFxdOt5R" crossorigin="anonymous">
+
+
+
+  </head>
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="http://example.org/">Je pense donc je suis</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    
+      <div class="avatar-container">
+        <div class="avatar-img-border">
+          <a title="Je pense donc je suis" href="http://example.org/">
+            <img class="avatar-img" src="http://example.org/img/avatar-icon.png" alt="Je pense donc je suis" />
+          </a>
+        </div>
+      </div>
+    
+
+  </div>
+</nav>
+
+
+
+
+    
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+
+  
+  
+  
+
+
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              
+                <h1>Kubernetes源码分析之CPU Manager</h1>
+              
+              
+              
+              
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on November 28, 2018
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;6&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;1194&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-7 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<h1 id="背景">背景</h1>
+
+<p>Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于<a href="https://www.kernel.org/doc/Documentation/cgroup-v1/cpusets.txt">cpuset</a>的支持，通过很长一段时间的讨论（<a href="https://github.com/kubernetes/kubernetes/issues/10570">[Issue] Determine if we should support cpuset-cpus and cpuset-mem</a>)后，最终通过<a href="https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/">CPU Manager</a>来实现。</p>
+
+<p>CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。</p>
+
+<h1 id="使用方式">使用方式</h1>
+
+<p>v1.10版本前需要开启<code>feature-gate</code>。</p>
+
+<pre><code class="language-bash"> --feature-gates=CPUManager=true
+</code></pre>
+
+<p>开启cpuset还需要一些cpumanager的参数设置</p>
+
+<pre><code class="language-bash">--cpu-manager-policy=static
+--cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`
+</code></pre>
+
+<p>还需要设置cpu reservation，可以通过</p>
+
+<pre><code class="language-bash">--kube-reserved
+// or
+--system-reserved
+</code></pre>
+
+<h1 id="源码分析">源码分析</h1>
+
+<h2 id="start-cpu-manager">Start CPU Manager</h2>
+
+<p>在kubelet启动之时，cpuManager会被生成，并<code>Start</code>。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔<code>reconcilePeriod</code>时间，对宿主机上所有的<code>activePods</code>做一次<code>reconcile</code>。</p>
+
+<p><code>kubelet.go</code></p>
+
+<pre><code class="language-go">// initializeModules will initialize internal modules that do not require the container runtime to be up.
+// Note that the modules here must not depend on modules that are not initialized here.
+func (kl *Kubelet) initializeModules() error {
+	...
+	if err := kl.containerManager.Start(node, kl.GetActivePods, kl.sourcesReady, kl.statusManager, kl.runtimeService); err != nil {
+		return fmt.Errorf(&quot;Failed to start ContainerManager %v&quot;, err)
+	}
+	...
+	return nil
+}
+</code></pre>
+
+<p><code>container_manager_linux.go</code></p>
+
+<pre><code class="language-go">func (cm *containerManagerImpl) Start(node *v1.Node,
+	activePods ActivePodsFunc,
+	sourcesReady config.SourcesReady,
+	podStatusProvider status.PodStatusProvider,
+	runtimeService internalapi.RuntimeService) error {
+
+	// Initialize CPU manager
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
+		cm.cpuManager.Start(cpumanager.ActivePodsFunc(activePods), podStatusProvider, runtimeService)
+	}
+
+	...
+	return nil
+}
+</code></pre>
+
+<p><code>cpu_manager.go</code></p>
+
+<pre><code class="language-go">func (m *manager) Start(activePods ActivePodsFunc, podStatusProvider status.PodStatusProvider, containerRuntime runtimeService) {
+	glog.Infof(&quot;[cpumanger] starting with %s policy&quot;, m.policy.Name())
+	glog.Infof(&quot;[cpumanger] reconciling every %v&quot;, m.reconcilePeriod)
+
+	m.activePods = activePods
+	m.podStatusProvider = podStatusProvider
+	m.containerRuntime = containerRuntime
+
+	m.policy.Start(m.state)
+	if m.policy.Name() == string(PolicyNone) {
+		return
+	}
+	go wait.Until(func() { m.reconcileState() }, m.reconcilePeriod, wait.NeverStop)
+}
+</code></pre>
+
+<p>可以看见，在kubelet启动之时会调用<code>kl.containerManager.Start</code>来启动<code>containerManager</code>，而<code>containerManager</code>一上来会先判断<code>cpuManager Feature Gate</code>是否开启了，如果是，则调用<code>cm.cpuManager.Start</code>。</p>
+
+<p>在<code>cpuManager.Start()</code>方法中，实际上只做了一件事情——如果<code>policy</code>为<code>static</code>，则每隔<code>reconcilePeriod</code>时间，执行一次<code>reconcileState()</code>方法。</p>
+
+<p>看到这里，也大概明白了参数设置<code>--cpu-manager-policy=static</code>，<code>--cpu-manager-reconcile-period</code>的用意了。</p>
+
+<h2 id="reconcile">Reconcile</h2>
+
+<h3 id="reconcile方法做了什么事情">Reconcile方法做了什么事情？</h3>
+
+<p><code>Reconcile</code>循环处理宿主机上的<code>activePods</code>，主要做了3件事：
+1. 找到<code>containerID</code>
+2. 获取这个container需要绑定的cpuset
+3. 更新这个container</p>
+
+<h3 id="为什么要做">为什么要做</h3>
+
+<p>实际上，在cpuManager创建之时，便得到了host的cpu拓扑，这时cpuManager维护一个cpu资源池，每当有新的pod需要使用cpuset，便从这个资源池中调走一些cpu来给其使用，使用cpuset的pod绑定并独占这些cpu核，而原本可以使用整个资源池资源的其他非cpuset的pod，现在都需要更新一把，使其使用最新的（缩小了的）cpu资源池。</p>
+
+<p>这就是<code>go wait.Until(func() { m.reconcileState() }, m.reconcilePeriod, wait.NeverStop)</code>的用意所在。</p>
+
+<blockquote>
+<p>所以理论上来说，刚刚使用cpuset的pod最长要等到<code>reconcilePeriod</code>之后，才能完全独占其CPU。</p>
+</blockquote>
+
+<p><code>cpu_manager.go</code></p>
+
+<pre><code class="language-go">func (m *manager) reconcileState() (success []reconciledContainer, failure []reconciledContainer) {
+	success = []reconciledContainer{}
+	failure = []reconciledContainer{}
+
+	for _, pod := range m.activePods() {
+		allContainers := pod.Spec.InitContainers
+		allContainers = append(allContainers, pod.Spec.Containers...)
+		for _, container := range allContainers {
+			status, ok := m.podStatusProvider.GetPodStatus(pod.UID)
+			if !ok {
+				glog.Warningf(&quot;[cpumanager] reconcileState: skipping pod; status not found (pod: %s, container: %s)&quot;, pod.Name, container.Name)
+				failure = append(failure, reconciledContainer{pod.Name, container.Name, &quot;&quot;})
+				break
+			}
+
+			containerID, err := findContainerIDByName(&amp;status, container.Name)
+			if err != nil {
+				glog.Warningf(&quot;[cpumanager] reconcileState: skipping container; ID not found in status (pod: %s, container: %s, error: %v)&quot;, pod.Name, container.Name, err)
+				failure = append(failure, reconciledContainer{pod.Name, container.Name, &quot;&quot;})
+				continue
+			}
+
+			cset := m.state.GetCPUSetOrDefault(containerID)
+			if cset.IsEmpty() {
+				// NOTE: This should not happen outside of tests.
+				glog.Infof(&quot;[cpumanager] reconcileState: skipping container; assigned cpuset is empty (pod: %s, container: %s)&quot;, pod.Name, container.Name)
+				failure = append(failure, reconciledContainer{pod.Name, container.Name, containerID})
+				continue
+			}
+
+			glog.V(4).Infof(&quot;[cpumanager] reconcileState: updating container (pod: %s, container: %s, container id: %s, cpuset: \&quot;%v\&quot;)&quot;, pod.Name, container.Name, containerID, cset)
+			err = m.updateContainerCPUSet(containerID, cset)
+			if err != nil {
+				glog.Errorf(&quot;[cpumanager] reconcileState: failed to update container (pod: %s, container: %s, container id: %s, cpuset: \&quot;%v\&quot;, error: %v)&quot;, pod.Name, container.Name, containerID, cset, err)
+				failure = append(failure, reconciledContainer{pod.Name, container.Name, containerID})
+				continue
+			}
+			success = append(success, reconciledContainer{pod.Name, container.Name, containerID})
+		}
+	}
+	return success, failure
+}
+</code></pre>
+
+<p>从以上代码，我们知道通过调用<code>cset := m.state.GetCPUSetOrDefault(containerID)</code>，来获取container需要绑定的cpuset。那么它具体是如何获取的呢？</p>
+
+<pre><code class="language-go">// NewManager creates new cpu manager based on provided policy
+func NewManager(
+	cpuPolicyName string,
+	reconcilePeriod time.Duration,
+	machineInfo *cadvisorapi.MachineInfo,
+	nodeAllocatableReservation v1.ResourceList,
+	stateFileDirecory string,
+) (Manager, error) {
+...
+	stateImpl := state.NewFileState(
+		path.Join(stateFileDirecory, CPUManagerStateFileName),
+		policy.Name())
+
+	manager := &amp;manager{
+		policy:                     policy,
+		reconcilePeriod:            reconcilePeriod,
+		state:                      stateImpl,
+		machineInfo:                machineInfo,
+		nodeAllocatableReservation: nodeAllocatableReservation,
+	}
+	return manager, nil
+}
+</code></pre>
+
+<p><code>state_file.go</code></p>
+
+<pre><code class="language-go">// NewFileState creates new State for keeping track of cpu/pod assignment with file backend
+func NewFileState(filePath string, policyName string) State {
+	stateFile := &amp;stateFile{
+		stateFilePath: filePath,
+		cache:         NewMemoryState(),
+		policyName:    policyName,
+	}
+
+	if err := stateFile.tryRestoreState(); err != nil {
+		// could not restore state, init new state file
+		glog.Infof(&quot;[cpumanager] state file: initializing empty state file - reason: \&quot;%s\&quot;&quot;, err)
+		stateFile.cache.ClearState()
+		stateFile.storeState()
+	}
+
+	return stateFile
+}
+</code></pre>
+
+<p>从以上代码，我们知道cpuManager实际上将<code>state</code>(也就是cpu资源池情况)写进了文件与内存cache中。<code>m.state.GetCPUSetOrDefault(containerID)</code>实际上是从内存中查找对应<code>containerID</code>的cpuset情况。
+<code>state_file.go</code></p>
+
+<pre><code class="language-go">func (sf *stateFile) GetCPUSetOrDefault(containerID string) cpuset.CPUSet {
+	sf.RLock()
+	defer sf.RUnlock()
+
+	return sf.cache.GetCPUSetOrDefault(containerID)
+}
+</code></pre>
+
+<p><code>state_mem.go</code></p>
+
+<pre><code class="language-go">type stateMemory struct {
+	sync.RWMutex
+	assignments   ContainerCPUAssignments
+	defaultCPUSet cpuset.CPUSet
+}
+
+// NewMemoryState creates new State for keeping track of cpu/pod assignment
+func NewMemoryState() State {
+	glog.Infof(&quot;[cpumanager] initializing new in-memory state store&quot;)
+	return &amp;stateMemory{
+		assignments:   ContainerCPUAssignments{},
+		defaultCPUSet: cpuset.NewCPUSet(),
+	}
+}
+
+func (s *stateMemory) GetCPUSet(containerID string) (cpuset.CPUSet, bool) {
+	s.RLock()
+	defer s.RUnlock()
+
+	res, ok := s.assignments[containerID]
+	return res.Clone(), ok
+}
+
+func (s *stateMemory) GetCPUSetOrDefault(containerID string) cpuset.CPUSet {
+	if res, ok := s.GetCPUSet(containerID); ok {
+		return res
+	}
+	return s.GetDefaultCPUSet()
+}
+</code></pre>
+
+<p>最终cpuset是从<code>s.assignments[containerID]</code>中获取的，而<code>s.assignments</code>实际上只是一个映射了<code>containerID</code>与cpuset的map。
+<code>state.go</code></p>
+
+<pre><code class="language-go">// ContainerCPUAssignments type used in cpu manger state
+type ContainerCPUAssignments map[string]cpuset.CPUSet
+</code></pre>
+
+<p>那么问题来了，这个<code>ContainerCPUAssignments</code>是何时添加，何时删除的呢？</p>
+
+<h2 id="addcontainer-removecontainer">AddContainer/RemoveContainer</h2>
+
+<p>在<code>cpu_manager.go</code>中，我们还看到两个方法：<code>AddContainer</code>和<code>RemoveContainer</code>，它们的作用之一便是变更<code>ContainerCPUAssignments</code>。我们接下来看看它们是如何被使用的。</p>
+
+<h3 id="addcontainer">AddContainer</h3>
+
+<p>kubelet给container添加cpuset信息的地方比较隐蔽。在<code>kuberuntime.startContainer</code>中创建container之后，start container之前的<code>PreStartContainer</code>中。</p>
+
+<p><code>kuberuntime_container.go</code></p>
+
+<pre><code class="language-go">func (m *kubeGenericRuntimeManager) startContainer(podSandboxID string, podSandboxConfig *runtimeapi.PodSandboxConfig, container *v1.Container, pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, podIP string) (string, error) {
+	// Step 1: pull the image.
+...
+	// Step 2: create the container.
+...
+	err = m.internalLifecycle.PreStartContainer(pod, container, containerID)
+	if err != nil {
+		m.recorder.Eventf(ref, v1.EventTypeWarning, events.FailedToStartContainer, &quot;Internal PreStartContainer hook failed: %v&quot;, err)
+		return &quot;Internal PreStartContainer hook failed&quot;, err
+	}
+...
+	// Step 3: start the container.
+...
+	// Step 4: execute the post start hook.
+...
+	return &quot;&quot;, nil
+}
+</code></pre>
+
+<p><code>internal_container_lifecycle.go</code></p>
+
+<pre><code class="language-go">func (i *internalContainerLifecycleImpl) PreStartContainer(pod *v1.Pod, container *v1.Container, containerID string) error {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
+		return i.cpuManager.AddContainer(pod, container, containerID)
+	}
+	return nil
+}
+</code></pre>
+
+<p>最终，我们还是回到了cpuManager，看到了<code>cpuManager.AddContainer</code>。</p>
+
+<p><code>cpu_manager.go</code></p>
+
+<pre><code class="language-go">func (m *manager) AddContainer(p *v1.Pod, c *v1.Container, containerID string) error {
+	m.Lock()
+	err := m.policy.AddContainer(m.state, p, c, containerID)
+	if err != nil {
+		glog.Errorf(&quot;[cpumanager] AddContainer error: %v&quot;, err)
+		m.Unlock()
+		return err
+	}
+	cpus := m.state.GetCPUSetOrDefault(containerID)
+	m.Unlock()
+
+	if !cpus.IsEmpty() {
+		err = m.updateContainerCPUSet(containerID, cpus)
+		if err != nil {
+			glog.Errorf(&quot;[cpumanager] AddContainer error: %v&quot;, err)
+			return err
+		}
+	} else {
+		glog.V(5).Infof(&quot;[cpumanager] update container resources is skipped due to cpu set is empty&quot;)
+	}
+
+	return nil
+}
+</code></pre>
+
+<p>我们可以看到<code>AddContainer</code>主要做了2件事：
+1. 将containerID对应的cpuset信息写到<code>state</code>中
+2. 更新container的cpuset配置</p>
+
+<p><code>policy_static.go</code></p>
+
+<pre><code class="language-go">func (p *staticPolicy) AddContainer(s state.State, pod *v1.Pod, container *v1.Container, containerID string) error {
+	glog.Infof(&quot;[cpumanager] static policy: AddContainer (pod: %s, container: %s, container id: %s)&quot;, pod.Name, container.Name, containerID)
+	if numCPUs := guaranteedCPUs(pod, container); numCPUs != 0 {
+		// container belongs in an exclusively allocated pool
+		cpuset, err := p.allocateCPUs(s, numCPUs)
+		if err != nil {
+			glog.Errorf(&quot;[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)&quot;, numCPUs, containerID, err)
+			return err
+		}
+		s.SetCPUSet(containerID, cpuset)
+	}
+	// container belongs in the shared pool (nothing to do; use default cpuset)
+	return nil
+}
+
+func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int) (cpuset.CPUSet, error) {
+	glog.Infof(&quot;[cpumanager] allocateCpus: (numCPUs: %d)&quot;, numCPUs)
+	result, err := takeByTopology(p.topology, p.assignableCPUs(s), numCPUs)
+	if err != nil {
+		return cpuset.NewCPUSet(), err
+	}
+	// Remove allocated CPUs from the shared CPUSet.
+	s.SetDefaultCPUSet(s.GetDefaultCPUSet().Difference(result))
+
+	glog.Infof(&quot;[cpumanager] allocateCPUs: returning \&quot;%v\&quot;&quot;, result)
+	return result, nil
+}
+</code></pre>
+
+<p><code>state_file.go</code></p>
+
+<pre><code class="language-go">func (sf *stateFile) SetCPUSet(containerID string, cset cpuset.CPUSet) {
+	sf.Lock()
+	defer sf.Unlock()
+	sf.cache.SetCPUSet(containerID, cset)
+	sf.storeState()
+}
+</code></pre>
+
+<p>做第一件事——将cpuset信息写到<code>state</code>中时，不但要将<code>containerID</code>对应的cpuset信息写入，同时也要将这部分cpu从共享池子中拿走，这样<code>reconcile</code>的时候其他pod便也update了。同时，这部分信息不但跟新到内存cache中，同时也会写到本地磁盘。
+&gt;如果不写入磁盘，kubelet重启后变失去了当前cpu的使用情况拓扑。</p>
+
+<h3 id="removecontainer">RemoveContainer</h3>
+
+<p>与<code>AddContainer</code>类似，cpuManager的<code>RemoveContainer</code>方法不需要去<code>updateContainer</code>，而只是需要将container使用的这部分cpu资源还回资源池；而<code>RemoveContainer</code>在<code>PreStopContainer</code>和<code>PostStopContainer</code>中都会被调用到。</p>
+
+<p><code>kuberuntime_container.go</code></p>
+
+<pre><code class="language-go">func (m *kubeGenericRuntimeManager) killContainer(pod *v1.Pod, containerID kubecontainer.ContainerID, containerName string, reason string, gracePeriodOverride *int64) error {
+...
+	// Run internal pre-stop lifecycle hook
+	if err := m.internalLifecycle.PreStopContainer(containerID.ID); err != nil {
+		return err
+	}
+...
+	err := m.runtimeService.StopContainer(containerID.ID, gracePeriod)
+	if err != nil {
+		glog.Errorf(&quot;Container %q termination failed with gracePeriod %d: %v&quot;, containerID.String(), gracePeriod, err)
+	} else {
+		glog.V(3).Infof(&quot;Container %q exited normally&quot;, containerID.String())
+	}
+...
+	return err
+}
+</code></pre>
+
+<p><code>internal_container_lifecycle.go</code></p>
+
+<pre><code class="language-go">func (i *internalContainerLifecycleImpl) PreStopContainer(containerID string) error {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
+		return i.cpuManager.RemoveContainer(containerID)
+	}
+	return nil
+}
+
+func (i *internalContainerLifecycleImpl) PostStopContainer(containerID string) error {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
+		return i.cpuManager.RemoveContainer(containerID)
+	}
+	return nil
+}
+</code></pre>
+
+<p><code>cpu_manager.go</code></p>
+
+<pre><code class="language-go">func (m *manager) RemoveContainer(containerID string) error {
+	m.Lock()
+	defer m.Unlock()
+
+	err := m.policy.RemoveContainer(m.state, containerID)
+	if err != nil {
+		glog.Errorf(&quot;[cpumanager] RemoveContainer error: %v&quot;, err)
+		return err
+	}
+	return nil
+}
+</code></pre>
+
+<p><code>policy_static.go</code></p>
+
+<pre><code class="language-go">func (p *staticPolicy) RemoveContainer(s state.State, containerID string) error {
+	glog.Infof(&quot;[cpumanager] static policy: RemoveContainer (container id: %s)&quot;, containerID)
+	if toRelease, ok := s.GetCPUSet(containerID); ok {
+		s.Delete(containerID)
+		// Mutate the shared pool, adding released cpus.
+		s.SetDefaultCPUSet(s.GetDefaultCPUSet().Union(toRelease))
+	}
+	return nil
+}
+</code></pre>
+
+<h1 id="问题思考">问题思考</h1>
+
+<p><strong>Q</strong>： Kubelet重启后cpuManager如何继续工作？</p>
+
+<p><strong>A</strong>：cpuManager会先从本地文件(<code>/var/lib/k8s/kubelet/cpu_manager_state</code>)中<code>restore</code>，并写入内存cache。</p>
+
+<hr />
+
+<p><strong>Q</strong>： 如果手动修改container的cpuset会如何？</p>
+
+<p><strong>A</strong>： Kubelet会将其重新修改回来，因为会<code>reconcile</code>。</p>
+
+<hr />
+
+<p><strong>Q</strong>：如果手动修改CFS Quota/Share呢？</p>
+
+<p><strong>A</strong>： 修改会保留，因为<code>reconcile</code>只会更新<code>cpuset</code>。</p>
+
+<h1 id="总结">总结</h1>
+
+<p>以上，大致梳理了kubelet的cpuManager大致工作流程，以及设计的目的和意图，限于篇幅不能面面俱到或是过于详尽，读者可以在阅读代码时细细思考与品位。</p>
+
+<p>本文代码分析使用的是v1.9.11版本，在最新版本可能稍有出入。</p>
+
+<h1 id="reference">Reference</h1>
+
+<ul>
+<li><a href="https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/">https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/</a></li>
+<li><a href="https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/">Control CPU Management Policies on the Node</a></li>
+<li><a href="https://stupefied-goodall-e282f7.netlify.com/contributors/design-proposals/node/cpu-manager/">Propasal CPU Manager</a></li>
+<li><a href="https://github.com/kubernetes/kubernetes/pull/49186">CPU Manager Phase1 PR</a></li>
+<li><a href="https://github.com/kubernetes/community/pull/654">CPU Manager Propasal PR</a></li>
+</ul>
+
+
+        
+          <div class="blog-tags">
+            
+              <a href="http://example.org//tags/k8s/">k8s</a>&nbsp;
+            
+              <a href="http://example.org//tags/k8s-kubelet/">k8s-kubelet</a>&nbsp;
+            
+          </div>
+        
+
+        
+
+        
+          
+          
+        
+      </article>
+
+      
+        <ul class="pager blog-pager">
+          
+          
+        </ul>
+      
+
+
+      
+        
+        
+      
+
+  
+  <div id="git-comments"></div>
+  <link rel="stylesheet" href="https://imsun.github.io/gitment/style/default.css">
+  <script src="https://imsun.github.io/gitment/dist/gitment.browser.js"></script>
+  <script>
+    var gitment = new Gitment({
+      
+      owner: 'Wenfeng GAO',
+      repo: 'Wenfeng-GAO.github.io',
+      oauth: {
+        client_id: '485423e5dd1ab3dec3ec',
+        client_secret: 'cb3a39e4096e0be4e3539ed04759cee127ba0b66',
+      }
+    })
+    gitment.render('git-comments')
+  </script>
+  
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:elricfeng@gmail.com" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://plus.google.com/103999582027187063854" title="Google&#43;">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-google-plus fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/Wenfeng-GAO" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://stackoverflow.com/users/4262814/wenfeng" title="StackOverflow">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://paypal.me/elricfeng" title="PayPal">
+                  <span class="fa-stack fa-lg">
+                    <i class="fas fa-circle fa-stack-2x"></i>
+                    <i class="fab fa-paypal fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            
+            <a href="http://example.org/index.xml" title="RSS">
+            
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              Wenfeng Gao
+            
+          
+
+          &nbsp;&bull;&nbsp;&copy;
+          
+            2018
+          
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="http://example.org/">Je pense donc je suis</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.54.0</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="http://example.org/js/main.js"></script>
+<script src="http://example.org/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script>
+<script> $(document).ready(function() {$("pre.chroma").css("padding","0");}); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.js" integrity="sha384-QELNnmcmU8IR9ZAykt67vGr9/rZJdHbiWi64V88fCPaOohUlHCqUD/unNN0BXSqy" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe-ui-default.min.js" integrity="sha384-m67o7SkQ1ALzKZIFh4CiTA8tmadaujiTa9Vu+nqPSwDOqHrDmxLezTdFln8077+q" crossorigin="anonymous"></script>
+<script src="http://example.org/js/load-photoswipe.js"></script>
+
+
+
+
+
+
+
+
+  </body>
+</html>
+

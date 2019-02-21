@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>K8s on Je pense donc je suis</title>
+    <link>http://example.org/tags/k8s/</link>
+    <description>Recent content in K8s on Je pense donc je suis</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
+    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <lastBuildDate>Wed, 28 Nov 2018 23:14:35 +0800</lastBuildDate>
+    
+	<atom:link href="http://example.org/tags/k8s/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Kubernetes源码分析之CPU Manager</title>
+      <link>http://example.org/post/k8s_cpumanager_source_code/</link>
+      <pubDate>Wed, 28 Nov 2018 23:14:35 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>http://example.org/post/k8s_cpumanager_source_code/</guid>
+      <description>背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
+CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
+使用方式 v1.10版本前需要开启feature-gate。
+--feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
+--cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
+--kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
+kubelet.go
+// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.</description>
+    </item>
+    
+  </channel>
+</rss>
