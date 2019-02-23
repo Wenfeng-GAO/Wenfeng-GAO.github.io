@@ -8,10 +8,23 @@
     <language>en-us</language>
     <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
     <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
-    <lastBuildDate>Tue, 19 Feb 2019 23:07:32 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 22 Feb 2019 10:55:09 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kubernetes源码分析之PLEG</title>
+      <link>https://wenfeng-gao.github.io/post/k8s-pleg-source-code-analysis/</link>
+      <pubDate>Fri, 22 Feb 2019 10:55:09 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/k8s-pleg-source-code-analysis/</guid>
+      <description>PLEG(Pod Lifecycle Event Generator)是kubelet的核心模块，理解pleg对理解kubelet的运行机制很有帮助。本文的源码分析基于v1.13.2版本。
+ pleg的创建 和很多其他manager相同，pleg会在NewMainKubelet中创建。
+func RunKubelet(kubeServer *options.KubeletServer, kubeDeps *kubelet.Dependencies, runOnce bool) error { ... k, err := CreateAndInitKubelet(...) if err != nil { return fmt.Errorf(&amp;quot;failed to create kubelet: %v&amp;quot;, err) } ... }  cmd/kubelet/app/server.go
+func CreateAndInitKubelet(...) (k kubelet.Bootstrap, err error) { ... k, err = kubelet.NewMainKubelet(...) if err != nil { return nil, err } k.BirthCry() k.StartGarbageCollection() return k, nil }  pkg/kubelet/kubelet.go
+// NewMainKubelet instantiates a new Kubelet object along with all the required internal modules.</description>
+    </item>
     
     <item>
       <title>About</title>
