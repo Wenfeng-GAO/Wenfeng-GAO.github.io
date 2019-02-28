@@ -10,9 +10,9 @@
   <title>Overview of all pages with the tag #K8s - Je pense donc je suis</title>
   <meta property="og:title" content="Overview of all pages with the tag #K8s" />
   <meta name="twitter:title" content="Overview of all pages with the tag #K8s" />
-  <meta name="description" content="Overview of all pages with the tag #K8s, such as: Kubernetes源码分析之PLEG">
-  <meta property="og:description" content="Overview of all pages with the tag #K8s, such as: Kubernetes源码分析之PLEG">
-  <meta name="twitter:description" content="Overview of all pages with the tag #K8s, such as: Kubernetes源码分析之PLEG">
+  <meta name="description" content="Overview of all pages with the tag #K8s, such as: Kubernetes源码分析之VolumeManager">
+  <meta property="og:description" content="Overview of all pages with the tag #K8s, such as: Kubernetes源码分析之VolumeManager">
+  <meta name="twitter:description" content="Overview of all pages with the tag #K8s, such as: Kubernetes源码分析之VolumeManager">
   <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -228,6 +228,54 @@ var _hmt = _hmt || [];
       <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
         
         <div class="posts-list">
+          
+            <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/">
+                <h2 class="post-title">Kubernetes源码分析之VolumeManager</h2>
+
+                
+              </a>
+
+              <p class="post-meta">
+                <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on February 28, 2019
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;6&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;1274&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              </p>
+              <div class="post-entry">
+                
+                  前言 VolumeManager是kubernetes负责管理pod存储相关的重要组件，理解VolumeManager是理解pod生命周期的重要环节。 本文的分析基于v1.13.2版本。
+正文 通很多其他manager一样，volumeManager在NewMainKubelet方法中生成。
+pkg/kubelet/kubelet.go: 329 // NewMainKubelet instantiates a new Kubelet object along with all the required internal modules. // No initialization of Kubelet and its modules should happen here. func NewMainKubelet(...) (*Kubelet, error) { ... // setup volumeManager klet.volumeManager = volumemanager.NewVolumeManager( kubeCfg.EnableControllerAttachDetach, nodeName, klet.podManager, klet.statusManager, klet.kubeClient, klet.volumePluginMgr, klet.containerRuntime, kubeDeps.Mounter, klet.getPodsDir(), kubeDeps.Recorder, experimentalCheckNodeCapabilitiesBeforeMount, keepTerminatedPodVolumes) ... return klet, nil }  /pkg/kubelet/volumemanager/volume_manager.go: 149 // NewVolumeManager returns a new concrete instance implementing the // VolumeManager interface.
+                  <a href="https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/kubelet/">kubelet</a>&nbsp;
+                  
+                </div>
+              
+
+            </article>
           
             <article class="post-preview">
               <a href="https://wenfeng-gao.github.io/post/k8s-pleg-source-code-analysis/">

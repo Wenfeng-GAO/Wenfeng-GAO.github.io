@@ -229,6 +229,51 @@ var _hmt = _hmt || [];
           
           
             <article class="post-preview">
+              <a href="https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/">
+                <h2 class="post-title">Kubernetes源码分析之VolumeManager</h2>
+                
+                
+              </a>
+
+              <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Posted on February 28, 2019
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;6&nbsp;minutes
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;1274&nbsp;words
+  
+  
+    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
+  
+  
+</span>
+
+
+              <div class="post-entry">
+                
+                  前言 VolumeManager是kubernetes负责管理pod存储相关的重要组件，理解VolumeManager是理解pod生命周期的重要环节。 本文的分析基于v1.13.2版本。
+正文 通很多其他manager一样，volumeManager在NewMainKubelet方法中生成。
+pkg/kubelet/kubelet.go: 329 // NewMainKubelet instantiates a new Kubelet object along with all the required internal modules. // No initialization of Kubelet and its modules should happen here. func NewMainKubelet(...) (*Kubelet, error) { ... // setup volumeManager klet.volumeManager = volumemanager.NewVolumeManager( kubeCfg.EnableControllerAttachDetach, nodeName, klet.podManager, klet.statusManager, klet.kubeClient, klet.volumePluginMgr, klet.containerRuntime, kubeDeps.Mounter, klet.getPodsDir(), kubeDeps.Recorder, experimentalCheckNodeCapabilitiesBeforeMount, keepTerminatedPodVolumes) ... return klet, nil }  /pkg/kubelet/volumemanager/volume_manager.go: 149 // NewVolumeManager returns a new concrete instance implementing the // VolumeManager interface.
+                  <a href="https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/" class="post-read-more">[Read More]</a>
+                
+              </div>
+
+              
+                <div class="blog-tags">
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
+                  
+                    <a href="https://wenfeng-gao.github.io//tags/kubelet/">kubelet</a>&nbsp;
+                  
+                </div>
+              
+            </article>
+          
+            <article class="post-preview">
               <a href="https://wenfeng-gao.github.io/post/k8s-pleg-source-code-analysis/">
                 <h2 class="post-title">Kubernetes源码分析之PLEG</h2>
                 
@@ -677,54 +722,6 @@ If we look at the routing table of Host B, we&rsquo;ll find something like
                 <div class="blog-tags">
                   
                     <a href="https://wenfeng-gao.github.io//tags/network/">network</a>&nbsp;
-                  
-                </div>
-              
-            </article>
-          
-            <article class="post-preview">
-              <a href="https://wenfeng-gao.github.io/post/kubernetes-on-coreos/">
-                <h2 class="post-title">Kubernetes on Coreos</h2>
-                
-                
-              </a>
-
-              <span class="post-meta">
-  
-  
-  <i class="fas fa-calendar"></i>&nbsp;Posted on June 13, 2017
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;2&nbsp;minutes
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;260&nbsp;words
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
-  
-  
-</span>
-
-
-              <div class="post-entry">
-                
-                  Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
- I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
-Although this guide is detailed, there&rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
-First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.
-                  <a href="https://wenfeng-gao.github.io/post/kubernetes-on-coreos/" class="post-read-more">[Read More]</a>
-                
-              </div>
-
-              
-                <div class="blog-tags">
-                  
-                    <a href="https://wenfeng-gao.github.io//tags/coreos/">coreos</a>&nbsp;
-                  
-                    <a href="https://wenfeng-gao.github.io//tags/docker/">docker</a>&nbsp;
-                  
-                    <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
                   
                 </div>
               

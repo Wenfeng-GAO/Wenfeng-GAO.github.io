@@ -8,10 +8,21 @@
     <language>en-us</language>
     <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
     <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
-    <lastBuildDate>Fri, 22 Feb 2019 10:55:09 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 28 Feb 2019 23:07:20 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Kubernetes源码分析之VolumeManager</title>
+      <link>https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/</link>
+      <pubDate>Thu, 28 Feb 2019 23:07:20 +0800</pubDate>
+      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      <guid>https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/</guid>
+      <description>前言 VolumeManager是kubernetes负责管理pod存储相关的重要组件，理解VolumeManager是理解pod生命周期的重要环节。 本文的分析基于v1.13.2版本。
+正文 通很多其他manager一样，volumeManager在NewMainKubelet方法中生成。
+pkg/kubelet/kubelet.go: 329 // NewMainKubelet instantiates a new Kubelet object along with all the required internal modules. // No initialization of Kubelet and its modules should happen here. func NewMainKubelet(...) (*Kubelet, error) { ... // setup volumeManager klet.volumeManager = volumemanager.NewVolumeManager( kubeCfg.EnableControllerAttachDetach, nodeName, klet.podManager, klet.statusManager, klet.kubeClient, klet.volumePluginMgr, klet.containerRuntime, kubeDeps.Mounter, klet.getPodsDir(), kubeDeps.Recorder, experimentalCheckNodeCapabilitiesBeforeMount, keepTerminatedPodVolumes) ... return klet, nil }  /pkg/kubelet/volumemanager/volume_manager.go: 149 // NewVolumeManager returns a new concrete instance implementing the // VolumeManager interface.</description>
+    </item>
     
     <item>
       <title>Kubernetes源码分析之PLEG</title>
