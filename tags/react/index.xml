@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>React on Je pense donc je suis</title>
+    <title>react on Je pense donc je suis</title>
     <link>https://wenfeng-gao.github.io/tags/react/</link>
-    <description>Recent content in React on Je pense donc je suis</description>
+    <description>Recent content in react on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
-    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <language>en</language>
     <lastBuildDate>Wed, 06 Dec 2017 18:23:43 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/react/index.xml" rel="self" type="application/rss+xml" />
@@ -17,7 +15,7 @@
       <title>A Little Taste on React</title>
       <link>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</link>
       <pubDate>Wed, 06 Dec 2017 18:23:43 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</guid>
       <description>I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:
  So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.

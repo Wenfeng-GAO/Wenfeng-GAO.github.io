@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Network on Je pense donc je suis</title>
+    <title>network on Je pense donc je suis</title>
     <link>https://wenfeng-gao.github.io/tags/network/</link>
-    <description>Recent content in Network on Je pense donc je suis</description>
+    <description>Recent content in network on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
-    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <language>en</language>
     <lastBuildDate>Tue, 04 Jul 2017 18:22:56 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/network/index.xml" rel="self" type="application/rss+xml" />
@@ -17,7 +15,7 @@
       <title>A Ping Question</title>
       <link>https://wenfeng-gao.github.io/post/a-ping-question/</link>
       <pubDate>Tue, 04 Jul 2017 18:22:56 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/a-ping-question/</guid>
       <description>Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
 To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
@@ -28,12 +26,9 @@ If we look at the routing table of Host B, we&amp;rsquo;ll find something like</
       <title>浅谈Docker Bridge网络模式</title>
       <link>https://wenfeng-gao.github.io/post/docker-bridge-network/</link>
       <pubDate>Fri, 20 May 2016 18:21:36 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/docker-bridge-network/</guid>
-      <description>本文将简单介绍一下Docker的3中网络模式，然后着重介绍bridge模式的数据传输过程，浅谈Docker容器与宿主机 之间，以及与外部世界的数据传输过程。
-Docker的3种网络模式 我们知道，当Docker Daemon启动时，会创建3种网络模式供Docker容器使用：bridge, host 和none模式。 可以通过 docker network ls 看到如下结果
-docker@master:~$ docker network ls NETWORK ID NAME DRIVER 9b7805f760e7 bridge bridge 77a7c8decdc1 host host 8a9285d7055e none null  其中none 将容器加入到一个没有网络接口的特殊网络栈，进入使用none网络的容器执行ifconfig会看到
-root@0cb243cd1293:/# ifconfig lo Link encap:Local Loopback inet addr:127.0.0.1 Mask:255.0.0.0 inet6 addr: ::1/128 Scope:Host UP LOOPBACK RUNNING MTU:65536 Metric:1 RX packets:0 errors:0 dropped:0 overruns:0 frame:0 TX packets:0 errors:0 dropped:0 overruns:0 carrier:0 collisions:0 txqueuelen:0 RX bytes:0 (0.0 B) TX bytes:0 (0.</description>
+      <description>本文将简单介绍一下Docker的3中网络模式，然后着重介绍bridge模式的数据传输过程，浅谈Docker容器与宿主机 之间，以及与外部世界的</description>
     </item>
     
   </channel>

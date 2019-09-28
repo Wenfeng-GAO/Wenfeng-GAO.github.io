@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Unit Test on Je pense donc je suis</title>
+    <title>unit-test on Je pense donc je suis</title>
     <link>https://wenfeng-gao.github.io/tags/unit-test/</link>
-    <description>Recent content in Unit Test on Je pense donc je suis</description>
+    <description>Recent content in unit-test on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
-    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <language>en</language>
     <lastBuildDate>Fri, 13 May 2016 18:21:19 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/unit-test/index.xml" rel="self" type="application/rss+xml" />
@@ -17,7 +15,7 @@
       <title>Mock With Mockito</title>
       <link>https://wenfeng-gao.github.io/post/mock-with-mockito/</link>
       <pubDate>Fri, 13 May 2016 18:21:19 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/mock-with-mockito/</guid>
       <description>Unit test takes an important role in software development, which ensures the code quality. Mockito is an open-source mocking framework for unit tests in Java. After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito to you.
 Why mock? Mock means using a fake thing instead of the original one to help us test, but why do we need that?

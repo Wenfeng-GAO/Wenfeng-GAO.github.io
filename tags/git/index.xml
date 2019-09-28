@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Git on Je pense donc je suis</title>
+    <title>git on Je pense donc je suis</title>
     <link>https://wenfeng-gao.github.io/tags/git/</link>
-    <description>Recent content in Git on Je pense donc je suis</description>
+    <description>Recent content in git on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
-    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <language>en</language>
     <lastBuildDate>Thu, 28 Sep 2017 18:23:26 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/git/index.xml" rel="self" type="application/rss+xml" />
@@ -17,11 +15,11 @@
       <title>Simple Commit-Msg for Git Hook</title>
       <link>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</link>
       <pubDate>Thu, 28 Sep 2017 18:23:26 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</guid>
       <description>Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
 I wish all the commit messages will follow the pattern like:
-[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.</description>
+1 2 3 4  [Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.   However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed.</description>
     </item>
     
   </channel>

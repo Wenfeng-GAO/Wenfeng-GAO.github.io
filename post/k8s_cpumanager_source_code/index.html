@@ -1,330 +1,164 @@
 <!DOCTYPE html>
-<html lang="en" itemscope itemtype="http://schema.org/WebPage">
-  <head>
-    
-
-  <meta charset="utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <title>Kubernetes源码分析之CPU Manager - Je pense donc je suis</title>
-  <meta property="og:title" content="Kubernetes源码分析之CPU Manager" />
-  <meta name="twitter:title" content="Kubernetes源码分析之CPU Manager" />
-  <meta name="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
-使用方式 v1.10版本前需要开启feature-gate。
---feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
---cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
---kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
-kubelet.go
-// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.">
-  <meta property="og:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
-使用方式 v1.10版本前需要开启feature-gate。
---feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
---cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
---kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
-kubelet.go
-// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.">
-  <meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作 …">
-  <meta name="author" content="Wenfeng Gao"/><script type="application/ld+json">
-{
-    "@context": "http://schema.org",
-    "@type": "WebSite",
-    "name": "Je pense donc je suis",
-    
-    "url": "https://wenfeng-gao.github.io/"
-}
-</script><script type="application/ld+json">
-{
-  "@context": "http://schema.org",
-  "@type": "Organization",
-  "name": "",
-  "url": "https://wenfeng-gao.github.io/"
-  
-  
-  
-  
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "http://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [{
-        "@type": "ListItem",
-        "position": 1,
-        "item": {
-          "@id": "https://wenfeng-gao.github.io/",
-          "name": "home"
-        }
-    },{
-        "@type": "ListItem",
-        "position": 3,
-        "item": {
-          "@id": "https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/",
-          "name": "Kubernetes源码分析之 c p u manager"
-        }
-    }]
-}
-</script><script type="application/ld+json">
-{
-  "@context": "http://schema.org",
-  "@type": "Article",
-  "author": {
-    "name" : "Wenfeng Gao"
-  },
-  "headline": "Kubernetes源码分析之CPU Manager",
-  "description" : "背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
-使用方式 v1.10版本前需要开启feature-gate。
---feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
---cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
---kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
-kubelet.go
-// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.",
-  "inLanguage" : "en",
-  "wordCount": 1194,
-  "datePublished" : "2018-11-28T23:14:35",
-  "dateModified" : "2018-11-28T23:14:35",
-  "image" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
-  "keywords" : [ "k8s, kubelet" ],
-  "mainEntityOfPage" : "https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/",
-  "publisher" : {
-    "@type": "Organization",
-    "name" : "https://wenfeng-gao.github.io/",
-    "logo" : {
-        "@type" : "ImageObject",
-        "url" : "https://wenfeng-gao.github.io/img/avatar-icon.png",
-        "height" :  60 ,
-        "width" :  60
-    }
-  }
-}
-</script>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（" /><meta name="keywords" content="Hugo, blog, tech" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.58.3 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
 
 <meta property="og:title" content="Kubernetes源码分析之CPU Manager" />
-<meta property="og:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。
-使用方式 v1.10版本前需要开启feature-gate。
---feature-gates=CPUManager=true  开启cpuset还需要一些cpumanager的参数设置
---cpu-manager-policy=static --cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`  还需要设置cpu reservation，可以通过
---kube-reserved // or --system-reserved  源码分析 Start CPU Manager 在kubelet启动之时，cpuManager会被生成，并Start。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔reconcilePeriod时间，对宿主机上所有的activePods做一次reconcile。
-kubelet.go
-// initializeModules will initialize internal modules that do not require the container runtime to be up. // Note that the modules here must not depend on modules that are not initialized here.">
-<meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
+<meta property="og:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（" />
+<meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" />
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="Je pense donc je suis" />
-  <meta name="twitter:title" content="Kubernetes源码分析之CPU Manager" />
-  <meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（[Issue] Determine if we should support cpuset-cpus and cpuset-mem)后，最终通过CPU Manager来实现。
-CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作 …">
-  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
-  <meta name="twitter:card" content="summary" />
-  <link href='https://wenfeng-gao.github.io/img/favicon.ico' rel='icon' type='image/x-icon'/>
-  <meta property="og:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
-  <meta name="twitter:image" content="https://wenfeng-gao.github.io/img/avatar-icon.png" />
-  <meta name="twitter:card" content="summary" />
-  <meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Je pense donc je suis" />
+<meta property="article:published_time" content="2018-11-28T23:14:35+08:00" />
+<meta property="article:modified_time" content="2018-11-28T23:14:35+08:00" />
+<meta itemprop="name" content="Kubernetes源码分析之CPU Manager">
+<meta itemprop="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（">
 
-  <meta name="generator" content="Hugo 0.54.0" />
-  <link rel="alternate" href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" title="Je pense donc je suis">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css" integrity="sha384-9eLZqc9ds8eNjO3TmqPeYcDj8n+Qfa4nuSiGYa6DjLNcv9BtN69ZIulL9+8CqC9Y" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/main.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
-  <link rel="stylesheet" href="https://wenfeng-gao.github.io/css/highlight.min.css" /><link rel="stylesheet" href="https://wenfeng-gao.github.io/css/codeblock.css" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.css" integrity="sha384-h/L2W9KefUClHWaty3SLE5F/qvc4djlyR4qY3NUV5HGQBBW7stbcfff1+I/vmsHh" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/default-skin/default-skin.min.css" integrity="sha384-iD0dNku6PYSIQLyfTOpB06F2KCZJAKLOThS5HRe8b3ibhdEQ6eKsFf/EeFxdOt5R" crossorigin="anonymous">
+
+<meta itemprop="datePublished" content="2018-11-28T23:14:35&#43;08:00" />
+<meta itemprop="dateModified" content="2018-11-28T23:14:35&#43;08:00" />
+<meta itemprop="wordCount" content="3853">
 
 
 
-    <script type="text/javascript">
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+<meta itemprop="keywords" content="k8s,kubelet," />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Kubernetes源码分析之CPU Manager"/>
+<meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（"/>
 
-  ga('create', 'UA-92434611-1', 'auto');
-  ga('send', 'pageview');
-</script>
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
 
-<script>
-var _hmt = _hmt || [];
-(function() {
-  var hm = document.createElement("script");
-  hm.src = "https://hm.baidu.com/hm.js?2394a408cca2a9e611801f76b5dc0267";
-  var s = document.getElementsByTagName("script")[0];
-  s.parentNode.insertBefore(hm, s);
-})();
-</script>
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
 
-  </head>
-  <body>
-    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
-  <div class="container-fluid">
-    <div class="navbar-header">
-      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
-        <span class="sr-only">Toggle navigation</span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-        <span class="icon-bar"></span>
-      </button>
-      <a class="navbar-brand" href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
-    </div>
-
-    <div class="collapse navbar-collapse" id="main-navbar">
-      <ul class="nav navbar-nav navbar-right">
-        
-          
-            <li>
-              <a title="Blog" href="/">Blog</a>
-            </li>
-          
-        
-          
-            <li>
-              <a title="About" href="/page/about/">About</a>
-            </li>
-          
-        
-          
-            <li>
-              <a title="Tags" href="/tags">Tags</a>
-            </li>
-          
-        
-
-        
-
-        
-      </ul>
-    </div>
-
-    
-      <div class="avatar-container">
-        <div class="avatar-img-border">
-          <a title="Je pense donc je suis" href="https://wenfeng-gao.github.io/">
-            <img class="avatar-img" src="https://wenfeng-gao.github.io/img/avatar-icon.png" alt="Je pense donc je suis" />
-          </a>
-        </div>
-      </div>
-    
-
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
   </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
 </nav>
-
-
-
-
-    
-
-
-<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
-
-<div class="pswp__bg"></div>
-
-<div class="pswp__scroll-wrap">
-    
-    <div class="pswp__container">
-      <div class="pswp__item"></div>
-      <div class="pswp__item"></div>
-      <div class="pswp__item"></div>
-    </div>
-    
-    <div class="pswp__ui pswp__ui--hidden">
-    <div class="pswp__top-bar">
-      
-      <div class="pswp__counter"></div>
-      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
-      <button class="pswp__button pswp__button--share" title="Share"></button>
-      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
-      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
-      
-      
-      <div class="pswp__preloader">
-        <div class="pswp__preloader__icn">
-          <div class="pswp__preloader__cut">
-            <div class="pswp__preloader__donut"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
-      <div class="pswp__share-tooltip"></div>
-    </div>
-    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
-    </button>
-    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
-    </button>
-    <div class="pswp__caption">
-      <div class="pswp__caption__center"></div>
-    </div>
-    </div>
-    </div>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
 </div>
 
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
 
-  
-  
-  
-
-
-
-
-
-
-  
-
-  <header class="header-section ">
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
     
-    <div class="intro-header no-img">
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-            <div class="post-heading">
-              
-                <h1>Kubernetes源码分析之CPU Manager</h1>
-              
-              
-              
-              
-                <span class="post-meta">
-  
-  
-  <i class="fas fa-calendar"></i>&nbsp;Posted on November 28, 2018
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-clock"></i>&nbsp;6&nbsp;minutes
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-book"></i>&nbsp;1194&nbsp;words
-  
-  
-    &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Wenfeng Gao
-  
-  
-</span>
+    <header class="post-header">
+      <h1 class="post-title">Kubernetes源码分析之CPU Manager</h1>
 
-
-              
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-
-    
-<div class="container" role="main">
-  <div class="row">
-    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-      <article role="main" class="blog-post">
+      <div class="post-meta">
+        <span class="post-time"> 2018-11-28 </span>
         
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+<ul>
+<li><a href="#背景">背景</a></li>
+<li><a href="#使用方式">使用方式</a></li>
+<li><a href="#源码分析">源码分析</a>
+<ul>
+<li><a href="#start-cpu-manager">Start CPU Manager</a></li>
+<li><a href="#reconcile">Reconcile</a>
+<ul>
+<li><a href="#reconcile方法做了什么事情">Reconcile方法做了什么事情？</a></li>
+<li><a href="#为什么要做">为什么要做</a></li>
+</ul></li>
+<li><a href="#addcontainer-removecontainer">AddContainer/RemoveContainer</a>
+<ul>
+<li><a href="#addcontainer">AddContainer</a></li>
+<li><a href="#removecontainer">RemoveContainer</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#问题思考">问题思考</a></li>
+<li><a href="#总结">总结</a></li>
+<li><a href="#reference">Reference</a></li>
+</ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      
 
 <h1 id="背景">背景</h1>
 
@@ -335,23 +169,38 @@ var _hmt = _hmt || [];
 <h1 id="使用方式">使用方式</h1>
 
 <p>v1.10版本前需要开启<code>feature-gate</code>。</p>
-
-<pre><code class="language-bash"> --feature-gates=CPUManager=true
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"> --feature-gates<span class="o">=</span><span class="nv">CPUManager</span><span class="o">=</span>true</code></pre></td></tr></table>
+</div>
+</div>
 <p>开启cpuset还需要一些cpumanager的参数设置</p>
-
-<pre><code class="language-bash">--cpu-manager-policy=static
---cpu-manager-reconcile-period=10s / Optional, default same as `--node-status-update-frequency`
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">--cpu-manager-policy<span class="o">=</span>static
+--cpu-manager-reconcile-period<span class="o">=</span>10s / Optional, default same as <span class="sb">`</span>--node-status-update-frequency<span class="sb">`</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>还需要设置cpu reservation，可以通过</p>
-
-<pre><code class="language-bash">--kube-reserved
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">--kube-reserved
 // or
---system-reserved
-</code></pre>
-
+--system-reserved</code></pre></td></tr></table>
+</div>
+</div>
 <h1 id="源码分析">源码分析</h1>
 
 <h2 id="start-cpu-manager">Start CPU Manager</h2>
@@ -359,55 +208,102 @@ var _hmt = _hmt || [];
 <p>在kubelet启动之时，cpuManager会被生成，并<code>Start</code>。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔<code>reconcilePeriod</code>时间，对宿主机上所有的<code>activePods</code>做一次<code>reconcile</code>。</p>
 
 <p><code>kubelet.go</code></p>
-
-<pre><code class="language-go">// initializeModules will initialize internal modules that do not require the container runtime to be up.
-// Note that the modules here must not depend on modules that are not initialized here.
-func (kl *Kubelet) initializeModules() error {
-	...
-	if err := kl.containerManager.Start(node, kl.GetActivePods, kl.sourcesReady, kl.statusManager, kl.runtimeService); err != nil {
-		return fmt.Errorf(&quot;Failed to start ContainerManager %v&quot;, err)
-	}
-	...
-	return nil
-}
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// initializeModules will initialize internal modules that do not require the container runtime to be up.
+</span><span class="c1">// Note that the modules here must not depend on modules that are not initialized here.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">initializeModules</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="o">...</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">containerManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">GetActivePods</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">sourcesReady</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">statusManager</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Failed to start ContainerManager %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="o">...</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>container_manager_linux.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">cm</span> <span class="o">*</span><span class="nx">containerManagerImpl</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">node</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Node</span><span class="p">,</span>
+	<span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span>
+	<span class="nx">sourcesReady</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span><span class="p">,</span>
+	<span class="nx">podStatusProvider</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span>
+	<span class="nx">runtimeService</span> <span class="nx">internalapi</span><span class="p">.</span><span class="nx">RuntimeService</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
 
-<pre><code class="language-go">func (cm *containerManagerImpl) Start(node *v1.Node,
-	activePods ActivePodsFunc,
-	sourcesReady config.SourcesReady,
-	podStatusProvider status.PodStatusProvider,
-	runtimeService internalapi.RuntimeService) error {
+	<span class="c1">// Initialize CPU manager
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">cm</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">cpumanager</span><span class="p">.</span><span class="nf">ActivePodsFunc</span><span class="p">(</span><span class="nx">activePods</span><span class="p">),</span> <span class="nx">podStatusProvider</span><span class="p">,</span> <span class="nx">runtimeService</span><span class="p">)</span>
+	<span class="p">}</span>
 
-	// Initialize CPU manager
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
-		cm.cpuManager.Start(cpumanager.ActivePodsFunc(activePods), podStatusProvider, runtimeService)
-	}
-
-	...
-	return nil
-}
-</code></pre>
-
+	<span class="o">...</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>cpu_manager.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span> <span class="nx">podStatusProvider</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span> <span class="nx">containerRuntime</span> <span class="nx">runtimeService</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanger] starting with %s policy&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanger] reconciling every %v&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">)</span>
 
-<pre><code class="language-go">func (m *manager) Start(activePods ActivePodsFunc, podStatusProvider status.PodStatusProvider, containerRuntime runtimeService) {
-	glog.Infof(&quot;[cpumanger] starting with %s policy&quot;, m.policy.Name())
-	glog.Infof(&quot;[cpumanger] reconciling every %v&quot;, m.reconcilePeriod)
+	<span class="nx">m</span><span class="p">.</span><span class="nx">activePods</span> <span class="p">=</span> <span class="nx">activePods</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nx">podStatusProvider</span> <span class="p">=</span> <span class="nx">podStatusProvider</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nx">containerRuntime</span> <span class="p">=</span> <span class="nx">containerRuntime</span>
 
-	m.activePods = activePods
-	m.podStatusProvider = podStatusProvider
-	m.containerRuntime = containerRuntime
-
-	m.policy.Start(m.state)
-	if m.policy.Name() == string(PolicyNone) {
-		return
-	}
-	go wait.Until(func() { m.reconcileState() }, m.reconcilePeriod, wait.NeverStop)
-}
-</code></pre>
-
+	<span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">()</span> <span class="o">==</span> <span class="nb">string</span><span class="p">(</span><span class="nx">PolicyNone</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span> <span class="nx">m</span><span class="p">.</span><span class="nf">reconcileState</span><span class="p">()</span> <span class="p">},</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">,</span> <span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>可以看见，在kubelet启动之时会调用<code>kl.containerManager.Start</code>来启动<code>containerManager</code>，而<code>containerManager</code>一上来会先判断<code>cpuManager Feature Gate</code>是否开启了，如果是，则调用<code>cm.cpuManager.Start</code>。</p>
 
 <p>在<code>cpuManager.Start()</code>方法中，实际上只做了一件事情——如果<code>policy</code>为<code>static</code>，则每隔<code>reconcilePeriod</code>时间，执行一次<code>reconcileState()</code>方法。</p>
@@ -434,149 +330,285 @@ func (kl *Kubelet) initializeModules() error {
 </blockquote>
 
 <p><code>cpu_manager.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">reconcileState</span><span class="p">()</span> <span class="p">(</span><span class="nx">success</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">,</span> <span class="nx">failure</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">success</span> <span class="p">=</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">{}</span>
+	<span class="nx">failure</span> <span class="p">=</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">{}</span>
 
-<pre><code class="language-go">func (m *manager) reconcileState() (success []reconciledContainer, failure []reconciledContainer) {
-	success = []reconciledContainer{}
-	failure = []reconciledContainer{}
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">m</span><span class="p">.</span><span class="nf">activePods</span><span class="p">()</span> <span class="p">{</span>
+		<span class="nx">allContainers</span> <span class="o">:=</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Spec</span><span class="p">.</span><span class="nx">InitContainers</span>
+		<span class="nx">allContainers</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">allContainers</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Spec</span><span class="p">.</span><span class="nx">Containers</span><span class="o">...</span><span class="p">)</span>
+		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">container</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">allContainers</span> <span class="p">{</span>
+			<span class="nx">status</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">podStatusProvider</span><span class="p">.</span><span class="nf">GetPodStatus</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">UID</span><span class="p">)</span>
+			<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+				<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping pod; status not found (pod: %s, container: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">})</span>
+				<span class="k">break</span>
+			<span class="p">}</span>
 
-	for _, pod := range m.activePods() {
-		allContainers := pod.Spec.InitContainers
-		allContainers = append(allContainers, pod.Spec.Containers...)
-		for _, container := range allContainers {
-			status, ok := m.podStatusProvider.GetPodStatus(pod.UID)
-			if !ok {
-				glog.Warningf(&quot;[cpumanager] reconcileState: skipping pod; status not found (pod: %s, container: %s)&quot;, pod.Name, container.Name)
-				failure = append(failure, reconciledContainer{pod.Name, container.Name, &quot;&quot;})
-				break
-			}
+			<span class="nx">containerID</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">findContainerIDByName</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">status</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+				<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping container; ID not found in status (pod: %s, container: %s, error: %v)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">})</span>
+				<span class="k">continue</span>
+			<span class="p">}</span>
 
-			containerID, err := findContainerIDByName(&amp;status, container.Name)
-			if err != nil {
-				glog.Warningf(&quot;[cpumanager] reconcileState: skipping container; ID not found in status (pod: %s, container: %s, error: %v)&quot;, pod.Name, container.Name, err)
-				failure = append(failure, reconciledContainer{pod.Name, container.Name, &quot;&quot;})
-				continue
-			}
+			<span class="nx">cset</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+			<span class="k">if</span> <span class="nx">cset</span><span class="p">.</span><span class="nf">IsEmpty</span><span class="p">()</span> <span class="p">{</span>
+				<span class="c1">// NOTE: This should not happen outside of tests.
+</span><span class="c1"></span>				<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping container; assigned cpuset is empty (pod: %s, container: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
+				<span class="k">continue</span>
+			<span class="p">}</span>
 
-			cset := m.state.GetCPUSetOrDefault(containerID)
-			if cset.IsEmpty() {
-				// NOTE: This should not happen outside of tests.
-				glog.Infof(&quot;[cpumanager] reconcileState: skipping container; assigned cpuset is empty (pod: %s, container: %s)&quot;, pod.Name, container.Name)
-				failure = append(failure, reconciledContainer{pod.Name, container.Name, containerID})
-				continue
-			}
-
-			glog.V(4).Infof(&quot;[cpumanager] reconcileState: updating container (pod: %s, container: %s, container id: %s, cpuset: \&quot;%v\&quot;)&quot;, pod.Name, container.Name, containerID, cset)
-			err = m.updateContainerCPUSet(containerID, cset)
-			if err != nil {
-				glog.Errorf(&quot;[cpumanager] reconcileState: failed to update container (pod: %s, container: %s, container id: %s, cpuset: \&quot;%v\&quot;, error: %v)&quot;, pod.Name, container.Name, containerID, cset, err)
-				failure = append(failure, reconciledContainer{pod.Name, container.Name, containerID})
-				continue
-			}
-			success = append(success, reconciledContainer{pod.Name, container.Name, containerID})
-		}
-	}
-	return success, failure
-}
-</code></pre>
-
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: updating container (pod: %s, container: %s, container id: %s, cpuset: \&#34;%v\&#34;)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">updateContainerCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
+			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+				<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: failed to update container (pod: %s, container: %s, container id: %s, cpuset: \&#34;%v\&#34;, error: %v)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
+				<span class="k">continue</span>
+			<span class="p">}</span>
+			<span class="nx">success</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">success</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">success</span><span class="p">,</span> <span class="nx">failure</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>从以上代码，我们知道通过调用<code>cset := m.state.GetCPUSetOrDefault(containerID)</code>，来获取container需要绑定的cpuset。那么它具体是如何获取的呢？</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewManager creates new cpu manager based on provided policy
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewManager</span><span class="p">(</span>
+	<span class="nx">cpuPolicyName</span> <span class="kt">string</span><span class="p">,</span>
+	<span class="nx">reconcilePeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">,</span>
+	<span class="nx">machineInfo</span> <span class="o">*</span><span class="nx">cadvisorapi</span><span class="p">.</span><span class="nx">MachineInfo</span><span class="p">,</span>
+	<span class="nx">nodeAllocatableReservation</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span>
+	<span class="nx">stateFileDirecory</span> <span class="kt">string</span><span class="p">,</span>
+<span class="p">)</span> <span class="p">(</span><span class="nx">Manager</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+<span class="o">...</span>
+	<span class="nx">stateImpl</span> <span class="o">:=</span> <span class="nx">state</span><span class="p">.</span><span class="nf">NewFileState</span><span class="p">(</span>
+		<span class="nx">path</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">stateFileDirecory</span><span class="p">,</span> <span class="nx">CPUManagerStateFileName</span><span class="p">),</span>
+		<span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
 
-<pre><code class="language-go">// NewManager creates new cpu manager based on provided policy
-func NewManager(
-	cpuPolicyName string,
-	reconcilePeriod time.Duration,
-	machineInfo *cadvisorapi.MachineInfo,
-	nodeAllocatableReservation v1.ResourceList,
-	stateFileDirecory string,
-) (Manager, error) {
-...
-	stateImpl := state.NewFileState(
-		path.Join(stateFileDirecory, CPUManagerStateFileName),
-		policy.Name())
-
-	manager := &amp;manager{
-		policy:                     policy,
-		reconcilePeriod:            reconcilePeriod,
-		state:                      stateImpl,
-		machineInfo:                machineInfo,
-		nodeAllocatableReservation: nodeAllocatableReservation,
-	}
-	return manager, nil
-}
-</code></pre>
-
+	<span class="nx">manager</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">manager</span><span class="p">{</span>
+		<span class="nx">policy</span><span class="p">:</span>                     <span class="nx">policy</span><span class="p">,</span>
+		<span class="nx">reconcilePeriod</span><span class="p">:</span>            <span class="nx">reconcilePeriod</span><span class="p">,</span>
+		<span class="nx">state</span><span class="p">:</span>                      <span class="nx">stateImpl</span><span class="p">,</span>
+		<span class="nx">machineInfo</span><span class="p">:</span>                <span class="nx">machineInfo</span><span class="p">,</span>
+		<span class="nx">nodeAllocatableReservation</span><span class="p">:</span> <span class="nx">nodeAllocatableReservation</span><span class="p">,</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">manager</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>state_file.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewFileState creates new State for keeping track of cpu/pod assignment with file backend
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewFileState</span><span class="p">(</span><span class="nx">filePath</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">policyName</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">State</span> <span class="p">{</span>
+	<span class="nx">stateFile</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">stateFile</span><span class="p">{</span>
+		<span class="nx">stateFilePath</span><span class="p">:</span> <span class="nx">filePath</span><span class="p">,</span>
+		<span class="nx">cache</span><span class="p">:</span>         <span class="nf">NewMemoryState</span><span class="p">(),</span>
+		<span class="nx">policyName</span><span class="p">:</span>    <span class="nx">policyName</span><span class="p">,</span>
+	<span class="p">}</span>
 
-<pre><code class="language-go">// NewFileState creates new State for keeping track of cpu/pod assignment with file backend
-func NewFileState(filePath string, policyName string) State {
-	stateFile := &amp;stateFile{
-		stateFilePath: filePath,
-		cache:         NewMemoryState(),
-		policyName:    policyName,
-	}
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">stateFile</span><span class="p">.</span><span class="nf">tryRestoreState</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="c1">// could not restore state, init new state file
+</span><span class="c1"></span>		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] state file: initializing empty state file - reason: \&#34;%s\&#34;&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="nx">stateFile</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">ClearState</span><span class="p">()</span>
+		<span class="nx">stateFile</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
+	<span class="p">}</span>
 
-	if err := stateFile.tryRestoreState(); err != nil {
-		// could not restore state, init new state file
-		glog.Infof(&quot;[cpumanager] state file: initializing empty state file - reason: \&quot;%s\&quot;&quot;, err)
-		stateFile.cache.ClearState()
-		stateFile.storeState()
-	}
-
-	return stateFile
-}
-</code></pre>
-
+	<span class="k">return</span> <span class="nx">stateFile</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>从以上代码，我们知道cpuManager实际上将<code>state</code>(也就是cpu资源池情况)写进了文件与内存cache中。<code>m.state.GetCPUSetOrDefault(containerID)</code>实际上是从内存中查找对应<code>containerID</code>的cpuset情况。
 <code>state_file.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">sf</span> <span class="o">*</span><span class="nx">stateFile</span><span class="p">)</span> <span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span> <span class="p">{</span>
+	<span class="nx">sf</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
 
-<pre><code class="language-go">func (sf *stateFile) GetCPUSetOrDefault(containerID string) cpuset.CPUSet {
-	sf.RLock()
-	defer sf.RUnlock()
-
-	return sf.cache.GetCPUSetOrDefault(containerID)
-}
-</code></pre>
-
+	<span class="k">return</span> <span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>state_mem.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">stateMemory</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
+	<span class="nx">assignments</span>   <span class="nx">ContainerCPUAssignments</span>
+	<span class="nx">defaultCPUSet</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span>
+<span class="p">}</span>
 
-<pre><code class="language-go">type stateMemory struct {
-	sync.RWMutex
-	assignments   ContainerCPUAssignments
-	defaultCPUSet cpuset.CPUSet
-}
+<span class="c1">// NewMemoryState creates new State for keeping track of cpu/pod assignment
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewMemoryState</span><span class="p">()</span> <span class="nx">State</span> <span class="p">{</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] initializing new in-memory state store&#34;</span><span class="p">)</span>
+	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">stateMemory</span><span class="p">{</span>
+		<span class="nx">assignments</span><span class="p">:</span>   <span class="nx">ContainerCPUAssignments</span><span class="p">{},</span>
+		<span class="nx">defaultCPUSet</span><span class="p">:</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nf">NewCPUSet</span><span class="p">(),</span>
+	<span class="p">}</span>
+<span class="p">}</span>
 
-// NewMemoryState creates new State for keeping track of cpu/pod assignment
-func NewMemoryState() State {
-	glog.Infof(&quot;[cpumanager] initializing new in-memory state store&quot;)
-	return &amp;stateMemory{
-		assignments:   ContainerCPUAssignments{},
-		defaultCPUSet: cpuset.NewCPUSet(),
-	}
-}
+<span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">stateMemory</span><span class="p">)</span> <span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">,</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">s</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">s</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
 
-func (s *stateMemory) GetCPUSet(containerID string) (cpuset.CPUSet, bool) {
-	s.RLock()
-	defer s.RUnlock()
+	<span class="nx">res</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nx">assignments</span><span class="p">[</span><span class="nx">containerID</span><span class="p">]</span>
+	<span class="k">return</span> <span class="nx">res</span><span class="p">.</span><span class="nf">Clone</span><span class="p">(),</span> <span class="nx">ok</span>
+<span class="p">}</span>
 
-	res, ok := s.assignments[containerID]
-	return res.Clone(), ok
-}
-
-func (s *stateMemory) GetCPUSetOrDefault(containerID string) cpuset.CPUSet {
-	if res, ok := s.GetCPUSet(containerID); ok {
-		return res
-	}
-	return s.GetDefaultCPUSet()
-}
-</code></pre>
-
+<span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">stateMemory</span><span class="p">)</span> <span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">res</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">()</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>最终cpuset是从<code>s.assignments[containerID]</code>中获取的，而<code>s.assignments</code>实际上只是一个映射了<code>containerID</code>与cpuset的map。
 <code>state.go</code></p>
-
-<pre><code class="language-go">// ContainerCPUAssignments type used in cpu manger state
-type ContainerCPUAssignments map[string]cpuset.CPUSet
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ContainerCPUAssignments type used in cpu manger state
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ContainerCPUAssignments</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>那么问题来了，这个<code>ContainerCPUAssignments</code>是何时添加，何时删除的呢？</p>
 
 <h2 id="addcontainer-removecontainer">AddContainer/RemoveContainer</h2>
@@ -588,110 +620,204 @@ type ContainerCPUAssignments map[string]cpuset.CPUSet
 <p>kubelet给container添加cpuset信息的地方比较隐蔽。在<code>kuberuntime.startContainer</code>中创建container之后，start container之前的<code>PreStartContainer</code>中。</p>
 
 <p><code>kuberuntime_container.go</code></p>
-
-<pre><code class="language-go">func (m *kubeGenericRuntimeManager) startContainer(podSandboxID string, podSandboxConfig *runtimeapi.PodSandboxConfig, container *v1.Container, pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, podIP string) (string, error) {
-	// Step 1: pull the image.
-...
-	// Step 2: create the container.
-...
-	err = m.internalLifecycle.PreStartContainer(pod, container, containerID)
-	if err != nil {
-		m.recorder.Eventf(ref, v1.EventTypeWarning, events.FailedToStartContainer, &quot;Internal PreStartContainer hook failed: %v&quot;, err)
-		return &quot;Internal PreStartContainer hook failed&quot;, err
-	}
-...
-	// Step 3: start the container.
-...
-	// Step 4: execute the post start hook.
-...
-	return &quot;&quot;, nil
-}
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">)</span> <span class="nf">startContainer</span><span class="p">(</span><span class="nx">podSandboxID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">podSandboxConfig</span> <span class="o">*</span><span class="nx">runtimeapi</span><span class="p">.</span><span class="nx">PodSandboxConfig</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">podStatus</span> <span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">PodStatus</span><span class="p">,</span> <span class="nx">pullSecrets</span> <span class="p">[]</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Secret</span><span class="p">,</span> <span class="nx">podIP</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c1">// Step 1: pull the image.
+</span><span class="c1"></span><span class="o">...</span>
+	<span class="c1">// Step 2: create the container.
+</span><span class="c1"></span><span class="o">...</span>
+	<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">internalLifecycle</span><span class="p">.</span><span class="nf">PreStartContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">m</span><span class="p">.</span><span class="nx">recorder</span><span class="p">.</span><span class="nf">Eventf</span><span class="p">(</span><span class="nx">ref</span><span class="p">,</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">EventTypeWarning</span><span class="p">,</span> <span class="nx">events</span><span class="p">.</span><span class="nx">FailedToStartContainer</span><span class="p">,</span> <span class="s">&#34;Internal PreStartContainer hook failed: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="s">&#34;Internal PreStartContainer hook failed&#34;</span><span class="p">,</span> <span class="nx">err</span>
+	<span class="p">}</span>
+<span class="o">...</span>
+	<span class="c1">// Step 3: start the container.
+</span><span class="c1"></span><span class="o">...</span>
+	<span class="c1">// Step 4: execute the post start hook.
+</span><span class="c1"></span><span class="o">...</span>
+	<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>internal_container_lifecycle.go</code></p>
-
-<pre><code class="language-go">func (i *internalContainerLifecycleImpl) PreStartContainer(pod *v1.Pod, container *v1.Container, containerID string) error {
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
-		return i.cpuManager.AddContainer(pod, container, containerID)
-	}
-	return nil
-}
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PreStartContainer</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>最终，我们还是回到了cpuManager，看到了<code>cpuManager.AddContainer</code>。</p>
 
 <p><code>cpu_manager.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">AddContainer</span><span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">c</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">,</span> <span class="nx">p</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] AddContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="nx">cpus</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
 
-<pre><code class="language-go">func (m *manager) AddContainer(p *v1.Pod, c *v1.Container, containerID string) error {
-	m.Lock()
-	err := m.policy.AddContainer(m.state, p, c, containerID)
-	if err != nil {
-		glog.Errorf(&quot;[cpumanager] AddContainer error: %v&quot;, err)
-		m.Unlock()
-		return err
-	}
-	cpus := m.state.GetCPUSetOrDefault(containerID)
-	m.Unlock()
+	<span class="k">if</span> <span class="p">!</span><span class="nx">cpus</span><span class="p">.</span><span class="nf">IsEmpty</span><span class="p">()</span> <span class="p">{</span>
+		<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">updateContainerCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cpus</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] AddContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] update container resources is skipped due to cpu set is empty&#34;</span><span class="p">)</span>
+	<span class="p">}</span>
 
-	if !cpus.IsEmpty() {
-		err = m.updateContainerCPUSet(containerID, cpus)
-		if err != nil {
-			glog.Errorf(&quot;[cpumanager] AddContainer error: %v&quot;, err)
-			return err
-		}
-	} else {
-		glog.V(5).Infof(&quot;[cpumanager] update container resources is skipped due to cpu set is empty&quot;)
-	}
-
-	return nil
-}
-</code></pre>
-
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>我们可以看到<code>AddContainer</code>主要做了2件事：
 1. 将containerID对应的cpuset信息写到<code>state</code>中
 2. 更新container的cpuset配置</p>
 
 <p><code>policy_static.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">AddContainer</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] static policy: AddContainer (pod: %s, container: %s, container id: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">numCPUs</span> <span class="o">:=</span> <span class="nf">guaranteedCPUs</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">);</span> <span class="nx">numCPUs</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="c1">// container belongs in an exclusively allocated pool
+</span><span class="c1"></span>		<span class="nx">cpuset</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">p</span><span class="p">.</span><span class="nf">allocateCPUs</span><span class="p">(</span><span class="nx">s</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)&#34;</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+		<span class="nx">s</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cpuset</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="c1">// container belongs in the shared pool (nothing to do; use default cpuset)
+</span><span class="c1"></span>	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
 
-<pre><code class="language-go">func (p *staticPolicy) AddContainer(s state.State, pod *v1.Pod, container *v1.Container, containerID string) error {
-	glog.Infof(&quot;[cpumanager] static policy: AddContainer (pod: %s, container: %s, container id: %s)&quot;, pod.Name, container.Name, containerID)
-	if numCPUs := guaranteedCPUs(pod, container); numCPUs != 0 {
-		// container belongs in an exclusively allocated pool
-		cpuset, err := p.allocateCPUs(s, numCPUs)
-		if err != nil {
-			glog.Errorf(&quot;[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)&quot;, numCPUs, containerID, err)
-			return err
-		}
-		s.SetCPUSet(containerID, cpuset)
-	}
-	// container belongs in the shared pool (nothing to do; use default cpuset)
-	return nil
-}
+<span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">allocateCPUs</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">numCPUs</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCpus: (numCPUs: %d)&#34;</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">)</span>
+	<span class="nx">result</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">takeByTopology</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">topology</span><span class="p">,</span> <span class="nx">p</span><span class="p">.</span><span class="nf">assignableCPUs</span><span class="p">(</span><span class="nx">s</span><span class="p">),</span> <span class="nx">numCPUs</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nf">NewCPUSet</span><span class="p">(),</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="c1">// Remove allocated CPUs from the shared CPUSet.
+</span><span class="c1"></span>	<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Difference</span><span class="p">(</span><span class="nx">result</span><span class="p">))</span>
 
-func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int) (cpuset.CPUSet, error) {
-	glog.Infof(&quot;[cpumanager] allocateCpus: (numCPUs: %d)&quot;, numCPUs)
-	result, err := takeByTopology(p.topology, p.assignableCPUs(s), numCPUs)
-	if err != nil {
-		return cpuset.NewCPUSet(), err
-	}
-	// Remove allocated CPUs from the shared CPUSet.
-	s.SetDefaultCPUSet(s.GetDefaultCPUSet().Difference(result))
-
-	glog.Infof(&quot;[cpumanager] allocateCPUs: returning \&quot;%v\&quot;&quot;, result)
-	return result, nil
-}
-</code></pre>
-
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCPUs: returning \&#34;%v\&#34;&#34;</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">result</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>state_file.go</code></p>
-
-<pre><code class="language-go">func (sf *stateFile) SetCPUSet(containerID string, cset cpuset.CPUSet) {
-	sf.Lock()
-	defer sf.Unlock()
-	sf.cache.SetCPUSet(containerID, cset)
-	sf.storeState()
-}
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">sf</span> <span class="o">*</span><span class="nx">stateFile</span><span class="p">)</span> <span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">cset</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">sf</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
+	<span class="nx">sf</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p>做第一件事——将cpuset信息写到<code>state</code>中时，不但要将<code>containerID</code>对应的cpuset信息写入，同时也要将这部分cpu从共享池子中拿走，这样<code>reconcile</code>的时候其他pod便也update了。同时，这部分信息不但跟新到内存cache中，同时也会写到本地磁盘。
 &gt;如果不写入磁盘，kubelet重启后变失去了当前cpu的使用情况拓扑。</p>
 
@@ -700,70 +826,131 @@ func (p *staticPolicy) allocateCPUs(s state.State, numCPUs int) (cpuset.CPUSet, 
 <p>与<code>AddContainer</code>类似，cpuManager的<code>RemoveContainer</code>方法不需要去<code>updateContainer</code>，而只是需要将container使用的这部分cpu资源还回资源池；而<code>RemoveContainer</code>在<code>PreStopContainer</code>和<code>PostStopContainer</code>中都会被调用到。</p>
 
 <p><code>kuberuntime_container.go</code></p>
-
-<pre><code class="language-go">func (m *kubeGenericRuntimeManager) killContainer(pod *v1.Pod, containerID kubecontainer.ContainerID, containerName string, reason string, gracePeriodOverride *int64) error {
-...
-	// Run internal pre-stop lifecycle hook
-	if err := m.internalLifecycle.PreStopContainer(containerID.ID); err != nil {
-		return err
-	}
-...
-	err := m.runtimeService.StopContainer(containerID.ID, gracePeriod)
-	if err != nil {
-		glog.Errorf(&quot;Container %q termination failed with gracePeriod %d: %v&quot;, containerID.String(), gracePeriod, err)
-	} else {
-		glog.V(3).Infof(&quot;Container %q exited normally&quot;, containerID.String())
-	}
-...
-	return err
-}
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">)</span> <span class="nf">killContainer</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">containerID</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">ContainerID</span><span class="p">,</span> <span class="nx">containerName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">reason</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">gracePeriodOverride</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+<span class="o">...</span>
+	<span class="c1">// Run internal pre-stop lifecycle hook
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">internalLifecycle</span><span class="p">.</span><span class="nf">PreStopContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">.</span><span class="nx">ID</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+<span class="o">...</span>
+	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">.</span><span class="nf">StopContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span> <span class="nx">gracePeriod</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Container %q termination failed with gracePeriod %d: %v&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">.</span><span class="nf">String</span><span class="p">(),</span> <span class="nx">gracePeriod</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Container %q exited normally&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">.</span><span class="nf">String</span><span class="p">())</span>
+	<span class="p">}</span>
+<span class="o">...</span>
+	<span class="k">return</span> <span class="nx">err</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>internal_container_lifecycle.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PreStopContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
 
-<pre><code class="language-go">func (i *internalContainerLifecycleImpl) PreStopContainer(containerID string) error {
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
-		return i.cpuManager.RemoveContainer(containerID)
-	}
-	return nil
-}
-
-func (i *internalContainerLifecycleImpl) PostStopContainer(containerID string) error {
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.CPUManager) {
-		return i.cpuManager.RemoveContainer(containerID)
-	}
-	return nil
-}
-</code></pre>
-
+<span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PostStopContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>cpu_manager.go</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
 
-<pre><code class="language-go">func (m *manager) RemoveContainer(containerID string) error {
-	m.Lock()
-	defer m.Unlock()
-
-	err := m.policy.RemoveContainer(m.state, containerID)
-	if err != nil {
-		glog.Errorf(&quot;[cpumanager] RemoveContainer error: %v&quot;, err)
-		return err
-	}
-	return nil
-}
-</code></pre>
-
+	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] RemoveContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <p><code>policy_static.go</code></p>
-
-<pre><code class="language-go">func (p *staticPolicy) RemoveContainer(s state.State, containerID string) error {
-	glog.Infof(&quot;[cpumanager] static policy: RemoveContainer (container id: %s)&quot;, containerID)
-	if toRelease, ok := s.GetCPUSet(containerID); ok {
-		s.Delete(containerID)
-		// Mutate the shared pool, adding released cpus.
-		s.SetDefaultCPUSet(s.GetDefaultCPUSet().Union(toRelease))
-	}
-	return nil
-}
-</code></pre>
-
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] static policy: RemoveContainer (container id: %s)&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">toRelease</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+		<span class="nx">s</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+		<span class="c1">// Mutate the shared pool, adding released cpus.
+</span><span class="c1"></span>		<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Union</span><span class="p">(</span><span class="nx">toRelease</span><span class="p">))</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span></code></pre></td></tr></table>
+</div>
+</div>
 <h1 id="问题思考">问题思考</h1>
 
 <p><strong>Q</strong>： Kubelet重启后cpuManager如何继续工作？</p>
@@ -798,198 +985,129 @@ func (i *internalContainerLifecycleImpl) PostStopContainer(containerID string) e
 <li><a href="https://github.com/kubernetes/community/pull/654">CPU Manager Propasal PR</a></li>
 </ul>
 
-
-        
-          <div class="blog-tags">
-            
-              <a href="https://wenfeng-gao.github.io//tags/k8s/">k8s</a>&nbsp;
-            
-              <a href="https://wenfeng-gao.github.io//tags/kubelet/">kubelet</a>&nbsp;
-            
-          </div>
-        
-
-        
-
-        
-          
-          
-          <h4 class="see-also">See also</h4>
-          <ul>
-          
-            <li><a href="/post/kubernetes-on-coreos/">Kubernetes on Coreos</a></li>
-          
-          </ul>
-          
-        
-      </article>
-
-      
-        <ul class="pager blog-pager">
-          
-            <li class="previous">
-              <a href="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" data-toggle="tooltip" data-placement="top" title="Core Dump File Size Limit in Docker">&larr; Previous Post</a>
-            </li>
-          
-          
-            <li class="next">
-              <a href="https://wenfeng-gao.github.io/post/k8s-pleg-source-code-analysis/" data-toggle="tooltip" data-placement="top" title="Kubernetes源码分析之PLEG">Next Post &rarr;</a>
-            </li>
-          
-        </ul>
-      
-
-
-      
-        
-          
-          <div class="disqus-comments">                  
-            <button id="show-comments" class="btn btn-default" type="button">Show <span class="disqus-comment-count" data-disqus-url="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code">comments</span></button>
-            <div id="disqus_thread"></div>
-
-            <script type="text/javascript">
-              var disqus_config = function () {
-              this.page.url = 'https:\/\/wenfeng-gao.github.io\/post\/k8s_cpumanager_source_code';
-            };
-
-          </script>
-          </div>
-          
-        
-        
-      
-
     </div>
-  </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2018-11-28
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/k8s/">k8s</a>
+          <a href="/tags/kubelet/">kubelet</a>
+          </div>
+      <nav class="post-nav">
+        <a class="prev" href="/post/k8s-pleg-source-code-analysis/">
+            <i class="iconfont icon-left"></i>
+            <span class="prev-text nav-default">Kubernetes源码分析之PLEG</span>
+            <span class="prev-text nav-mobile">Prev</span>
+          </a>
+        <a class="next" href="/post/core-dump-file-size-limit-in-docker/">
+            <span class="next-text nav-default">Core Dump File Size Limit in Docker</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
 </div>
 
-    <footer>
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
-        <ul class="list-inline text-center footer-links">
-          
-              <li>
-                <a href="mailto:elricfeng@gmail.com" title="Email me">
-                  <span class="fa-stack fa-lg">
-                    <i class="fas fa-circle fa-stack-2x"></i>
-                    <i class="fas fa-envelope fa-stack-1x fa-inverse"></i>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a href="https://plus.google.com/103999582027187063854" title="Google&#43;">
-                  <span class="fa-stack fa-lg">
-                    <i class="fas fa-circle fa-stack-2x"></i>
-                    <i class="fab fa-google-plus fa-stack-1x fa-inverse"></i>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a href="https://github.com/Wenfeng-GAO" title="GitHub">
-                  <span class="fa-stack fa-lg">
-                    <i class="fas fa-circle fa-stack-2x"></i>
-                    <i class="fab fa-github fa-stack-1x fa-inverse"></i>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a href="https://stackoverflow.com/users/4262814/wenfeng" title="StackOverflow">
-                  <span class="fa-stack fa-lg">
-                    <i class="fas fa-circle fa-stack-2x"></i>
-                    <i class="fab fa-stack-overflow fa-stack-1x fa-inverse"></i>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a href="https://paypal.me/elricfeng" title="PayPal">
-                  <span class="fa-stack fa-lg">
-                    <i class="fas fa-circle fa-stack-2x"></i>
-                    <i class="fab fa-paypal fa-stack-1x fa-inverse"></i>
-                  </span>
-                </a>
-              </li>
-          
-          <li>
-            
-            <a href="https://wenfeng-gao.github.io/index.xml" title="RSS">
-            
-              <span class="fa-stack fa-lg">
-                <i class="fas fa-circle fa-stack-2x"></i>
-                <i class="fas fa-rss fa-stack-1x fa-inverse"></i>
-              </span>
-            </a>
-          </li>
-          
-        </ul>
-        <p class="credits copyright text-muted">
-          
-            
-              Wenfeng Gao
-            
-          
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
 
-          &nbsp;&bull;&nbsp;&copy;
-          
-            2019
-          
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
 
-          
-            &nbsp;&bull;&nbsp;
-            <a href="https://wenfeng-gao.github.io/">Je pense donc je suis</a>
-          
-        </p>
-        
-        <p class="credits theme-by text-muted">
-          <a href="http://gohugo.io">Hugo v0.54.0</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
-          
-        </p>
-      </div>
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2019
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Wenfeng</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
     </div>
   </div>
-</footer>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.js" integrity="sha384-K3vbOmF2BtaVai+Qk37uypf7VrgBubhQreNQe9aGsz9lB63dIFiQVlJbr92dw2Lx" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/contrib/auto-render.min.js" integrity="sha384-kmZOZB5ObwgQnS/DuDg6TScgOiWWBiVt0plIRkZCmE6rDZGrEOQeHM5PcHi+nyqe" crossorigin="anonymous"></script>
-<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-<script src="https://wenfeng-gao.github.io/js/main.js"></script>
-<script src="https://wenfeng-gao.github.io/js/highlight.min.js"></script>
-<script> hljs.initHighlightingOnLoad(); </script>
-<script> $(document).ready(function() {$("pre.chroma").css("padding","0");}); </script><script> renderMathInElement(document.body); </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe.min.js" integrity="sha384-QELNnmcmU8IR9ZAykt67vGr9/rZJdHbiWi64V88fCPaOohUlHCqUD/unNN0BXSqy" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.2/photoswipe-ui-default.min.js" integrity="sha384-m67o7SkQ1ALzKZIFh4CiTA8tmadaujiTa9Vu+nqPSwDOqHrDmxLezTdFln8077+q" crossorigin="anonymous"></script>
-<script src="https://wenfeng-gao.github.io/js/load-photoswipe.js"></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
 
 
-
-
-
-
-
-<script type="text/javascript">
-$(function(){
-  $('#show-comments').on('click', function(){
-    var disqus_shortname = 'https-wenfeng-gao-github-io';
-      
-    (function() {
-      var disqus = document.createElement('script'); 
-      disqus.type = 'text/javascript'; 
-      disqus.async = true;
-      disqus.src = '//' + disqus_shortname + '.disqus.com/embed.js';
-      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(disqus);
-    })();
-      
-    $(this).hide(); 
-    });
-  });
-      
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	ga('set', 'anonymizeIp', true);
+	ga('send', 'pageview');
+}
 </script>
-<script id="dsq-count-scr" src="//https-wenfeng-gao-github-io.disqus.com/count.js" async></script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
 
 
 
 
-  </body>
+
+
+
+</body>
 </html>
-

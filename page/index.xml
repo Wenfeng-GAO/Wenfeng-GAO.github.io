@@ -5,9 +5,7 @@
     <link>https://wenfeng-gao.github.io/page/</link>
     <description>Recent content in Pages on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
-    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <language>en</language>
     <lastBuildDate>Tue, 19 Feb 2019 23:07:32 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/page/index.xml" rel="self" type="application/rss+xml" />
@@ -17,7 +15,7 @@
       <title>About</title>
       <link>https://wenfeng-gao.github.io/page/about/</link>
       <pubDate>Tue, 19 Feb 2019 23:07:32 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/page/about/</guid>
       <description> About me  Wenfeng Gao elricfeng@gmail.com  </description>
     </item>

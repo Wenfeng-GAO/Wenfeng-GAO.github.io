@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Coreos on Je pense donc je suis</title>
+    <title>coreos on Je pense donc je suis</title>
     <link>https://wenfeng-gao.github.io/tags/coreos/</link>
-    <description>Recent content in Coreos on Je pense donc je suis</description>
+    <description>Recent content in coreos on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <managingEditor>elricfeng@gmail.com (Wenfeng Gao)</managingEditor>
-    <webMaster>elricfeng@gmail.com (Wenfeng Gao)</webMaster>
+    <language>en</language>
     <lastBuildDate>Tue, 13 Jun 2017 18:22:48 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/coreos/index.xml" rel="self" type="application/rss+xml" />
@@ -17,7 +15,7 @@
       <title>Kubernetes on Coreos</title>
       <link>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</link>
       <pubDate>Tue, 13 Jun 2017 18:22:48 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</guid>
       <description>Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
  I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
@@ -29,7 +27,7 @@ First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes
       <title>Setup Coreos Cluster With Static Ip</title>
       <link>https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/</link>
       <pubDate>Thu, 08 Jun 2017 18:22:33 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/</guid>
       <description>We have talked about how to setup a CoreOS cluster in my previous post: Setup CoreOS Cluster Manually with VirtualBox. However, as we setup the cluster in VirtualBox, which uses DHCP as default, the etcd2 may not work when VM&amp;rsquo;s IP changed.
 So in this article I&amp;rsquo;ll tell you how to upgrade your cluster and enable the VMs use static IPs instead of DHCP.
@@ -40,19 +38,19 @@ Setup Static IP First of all, make sure your cluster node VM uses the bridge con
       <title>Deploy Worldpress in Coreos Cluster Using Fleet</title>
       <link>https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/</link>
       <pubDate>Fri, 03 Jun 2016 18:22:13 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/</guid>
       <description>In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&amp;rsquo;t have one.
 Ok, ssh to one of your cluster node, let&amp;rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-[Unit] Description=MySQL DataBase After=etcd.service After=docker.service [Service] TimeoutStartSec=0 ExecStartPre=-/usr/bin/docker kill mysql ExecStartPre=-/usr/bin/docker rm mysql ExecStartPre=/usr/bin/docker pull mysql:5.</description>
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd.</description>
     </item>
     
     <item>
       <title>Setup Coreos Cluster Manually with Virtualbox</title>
       <link>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</link>
       <pubDate>Mon, 30 May 2016 18:21:53 +0800</pubDate>
-      <author>elricfeng@gmail.com (Wenfeng Gao)</author>
+      
       <guid>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</guid>
       <description>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.</description>
     </item>
