@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>kubelet on Je pense donc je suis</title>
-    <link>https://wenfeng-gao.github.io/tags/kubelet/</link>
-    <description>Recent content in kubelet on Je pense donc je suis</description>
+    <title>kubernetes on Je pense donc je suis</title>
+    <link>https://wenfeng-gao.github.io/tags/kubernetes/</link>
+    <description>Recent content in kubernetes on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
     <lastBuildDate>Sun, 29 Sep 2019 16:06:44 +0800</lastBuildDate>
     
-	<atom:link href="https://wenfeng-gao.github.io/tags/kubelet/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://wenfeng-gao.github.io/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -45,6 +45,18 @@
       
       <guid>https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/</guid>
       <description>背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（</description>
+    </item>
+    
+    <item>
+      <title>Kubernetes on Coreos</title>
+      <link>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</link>
+      <pubDate>Tue, 13 Jun 2017 18:22:48 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/kubernetes-on-coreos/</guid>
+      <description>Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
+ I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
+Although this guide is detailed, there&amp;rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
+First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.</description>
     </item>
     
   </channel>

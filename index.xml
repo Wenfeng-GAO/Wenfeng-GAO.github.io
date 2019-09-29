@@ -6,10 +6,19 @@
     <description>Recent content on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 28 Feb 2019 23:07:20 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 29 Sep 2019 16:06:44 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Why Does Kubelet Modify File Permissions</title>
+      <link>https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/</link>
+      <pubDate>Sun, 29 Sep 2019 16:06:44 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/</guid>
+      <description>Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are &lt;em&gt;Running&lt;/em&gt;, I&amp;rsquo;ll put some &lt;strong&gt;readOnly&lt;/strong&gt; files in this volume directory. The intersting part is that these files will become &lt;strong&gt;writable&lt;/strong&gt; every time after kubelet being restarted.</description>
+    </item>
     
     <item>
       <title>Kubernetes源码分析之VolumeManager</title>
