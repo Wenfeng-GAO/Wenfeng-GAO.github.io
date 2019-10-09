@@ -6,10 +6,46 @@
     <description>Recent content in Tags on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 29 Sep 2019 16:06:44 +0800</lastBuildDate>
+    <lastBuildDate>Wed, 09 Oct 2019 20:39:11 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>bcc</title>
+      <link>https://wenfeng-gao.github.io/tags/bcc/</link>
+      <pubDate>Wed, 09 Oct 2019 20:39:11 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/tags/bcc/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>eBPF</title>
+      <link>https://wenfeng-gao.github.io/tags/ebpf/</link>
+      <pubDate>Wed, 09 Oct 2019 20:39:11 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/tags/ebpf/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>flamegraph</title>
+      <link>https://wenfeng-gao.github.io/tags/flamegraph/</link>
+      <pubDate>Wed, 09 Oct 2019 20:39:11 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/tags/flamegraph/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>perf</title>
+      <link>https://wenfeng-gao.github.io/tags/perf/</link>
+      <pubDate>Wed, 09 Oct 2019 20:39:11 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/tags/perf/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>kubelet</title>

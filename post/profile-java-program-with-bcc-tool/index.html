@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>How To Profile Java Program With eBPF/bcc Tool - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="In this article, I&amp;rsquo;ll share you how to profile Java programs by using eBPF/bcc tools, and generate flame graphs for better understanding." /><meta name="keywords" content="eBPF, bcc, flamegraph" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.58.3 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/profile-java-program-with-bcc-tool/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="How To Profile Java Program With eBPF/bcc Tool" />
+<meta property="og:description" content="In this article, I&rsquo;ll share you how to profile Java programs by using eBPF/bcc tools, and generate flame graphs for better understanding." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/profile-java-program-with-bcc-tool/" />
+<meta property="article:published_time" content="2019-10-09T20:39:11+08:00" />
+<meta property="article:modified_time" content="2019-10-09T20:39:11+08:00" />
+<meta itemprop="name" content="How To Profile Java Program With eBPF/bcc Tool">
+<meta itemprop="description" content="In this article, I&rsquo;ll share you how to profile Java programs by using eBPF/bcc tools, and generate flame graphs for better understanding.">
+
+
+<meta itemprop="datePublished" content="2019-10-09T20:39:11&#43;08:00" />
+<meta itemprop="dateModified" content="2019-10-09T20:39:11&#43;08:00" />
+<meta itemprop="wordCount" content="771">
+
+
+
+<meta itemprop="keywords" content="eBPF,bcc,flamegraph,perf," />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="How To Profile Java Program With eBPF/bcc Tool"/>
+<meta name="twitter:description" content="In this article, I&rsquo;ll share you how to profile Java programs by using eBPF/bcc tools, and generate flame graphs for better understanding."/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">How To Profile Java Program With eBPF/bcc Tool</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2019-10-09 </span>
+        <div class="post-category">
+            <a href="/categories/performance/"> performance </a>
+            </div>
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#background">Background</a></li>
+<li><a href="#prerequisites">Prerequisites</a>
+<ul>
+<li><a href="#step-1-populate-symbol-table-map">Step 1. Populate symbol table map</a></li>
+<li><a href="#step-2-profile">Step 2. Profile</a></li>
+<li><a href="#step-3-draw-a-flame-graph">Step 3. Draw a flame graph</a></li>
+</ul></li>
+<li><a href="#routines">Routines</a>
+<ul>
+<li><a href="#setup-perf-agent-container">Setup perf-agent container</a></li>
+<li><a href="#do-profiling-job">Do profiling job</a></li>
+</ul></li>
+<li><a href="#references">References</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      
+
+<h2 id="background">Background</h2>
+
+<p>Till now, we use <a href="http://www.brendangregg.com/perf.html">perf/perf_event</a> to profile our
+Java programs in production, but recently people talk more and more about
+<a href="http://www.brendangregg.com/blog/2019-01-01/learn-ebpf-tracing.html">eBPF</a>, which
+seems more efficient. So I tried how to profile our Java program by using eBPF,
+more specifically, by using <a href="https://github.com/iovisor/bcc">iovisor/bcc</a>.</p>
+
+<p>I&rsquo;ll share you how to do this in this post.</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>In general, there&rsquo;re 3 steps to achive a cpu profiling flame graph.</p>
+
+<h3 id="step-1-populate-symbol-table-map">Step 1. Populate symbol table map</h3>
+
+<p>This is only needed when comes up to JIT compilers, languages which don&rsquo;t
+have a JIT compiler won&rsquo;t need this step, unfortunately, Java does need
+this.</p>
+
+<p><a href="https://github.com/jvm-profiling-tools/perf-map-agent">perf-map-agent</a> must be
+ready for this step. To be more precise, we need <code>libperfmap.so</code> and <code>attach-main.jar</code> files
+which is generated after a <code>make</code> command in this repo.</p>
+
+<p>I&rsquo;ll make a Docker image to deal with the profiling process, so I <code>ADD</code> these two generated files in my <em>Dockerfile</em>.</p>
+
+<h3 id="step-2-profile">Step 2. Profile</h3>
+
+<p>It&rsquo;s obvious that we need bcc tools in this step.</p>
+
+<p>If you use <em>CentOS</em> like me, you can</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">yum install -y bcc-tools</code></pre></td></tr></table>
+</div>
+</div>
+<p>to get bcc installed, and the executable scritp we&rsquo;ll use: <code>profile</code> locates at
+<code>/usr/share/bcc/tool/profile</code>.</p>
+
+<h3 id="step-3-draw-a-flame-graph">Step 3. Draw a flame graph</h3>
+
+<p>We&rsquo;ll draw a <a href="http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html">flame graph</a> to help
+us better understand the output, so <a href="https://github.com/brendangregg/FlameGraph">FlameGraph by Brendan Gregg</a>
+is needed.</p>
+
+<h2 id="routines">Routines</h2>
+
+<h3 id="setup-perf-agent-container">Setup perf-agent container</h3>
+
+<p>As I said, I&rsquo;ll do this in a container, you&rsquo;re welcome to do the same thing on
+the host directly.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">docker run -it --rm --pid<span class="o">=</span>host --network<span class="o">=</span>host --privileged<span class="o">=</span><span class="nb">true</span> -v /var/run/docker.sock:/var/run/docker.sock perf-agent:base bash</code></pre></td></tr></table>
+</div>
+</div>
+<p>This is the Dockerfile to make <code>perf-agent:base</code> image:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-dockerfile" data-lang="dockerfile"><span class="k">FROM</span><span class="s"> centos</span><span class="err">
+</span><span class="err">
+</span><span class="err"></span><span class="k">ADD</span><span class="s"> libperfmap.so /root/perf-map-agent/</span><span class="err">
+</span><span class="err"></span><span class="k">ADD</span><span class="s"> attach-main.jar /root/perf-map-agent/</span><span class="err">
+</span><span class="err"></span><span class="k">RUN</span> yum upgrade -y <span class="o">&amp;&amp;</span> yum install -y docker bcc-tools<span class="err">
+</span><span class="err"></span><span class="k">RUN</span> <span class="nb">cd</span> /root <span class="o">&amp;&amp;</span> git clone --depth<span class="o">=</span><span class="m">1</span> https://github.com/brendangregg/FlameGraph <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    mkdir -p /lib/modules/4.14.67-2dev917.el7.x86_64 <span class="o">&amp;&amp;</span> <span class="se">\
+</span><span class="se"></span>    ln -s /usr/src/kernels/4.14.67-2dev917.el7.x86_64 /lib/modules/4.14.67-2dev917.el7.x86_64/build</code></pre></td></tr></table>
+</div>
+</div>
+<p>As you can see I make a soft link to kernel packages, it&rsquo;s important to make
+these packages exist if you need to use bcc.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">ln -s /usr/src/kernels/4.14.67-2dev917.el7.x86_64 /lib/modules/4.14.67-2dev917.el7.x86_64/build</code></pre></td></tr></table>
+</div>
+</div>
+<h3 id="do-profiling-job">Do profiling job</h3>
+
+<p>As our Java programs are running in containers, so first of all we need to get
+the container id and the pid of the program which is not a big deal. So suppose
+we have:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">export</span> <span class="nv">PID</span><span class="o">=</span><span class="m">66598</span>
+<span class="nb">export</span> <span class="nv">CTN_ID</span><span class="o">=</span>bc8ea729e674</code></pre></td></tr></table>
+</div>
+</div>
+<ol>
+<li><p>Populate symbol table for Java</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">export</span> <span class="nv">JAVA_HOME</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> java -XshowSettings:properties -version <span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span> &gt; /dev/null <span class="p">|</span> grep <span class="s1">&#39;java.home&#39;</span> <span class="p">|</span>cut -d<span class="s1">&#39;=&#39;</span> -f2<span class="p">|</span>sed -e <span class="s1">&#39;s/\/jre//&#39;</span> <span class="p">|</span> xargs<span class="sb">`</span>
+<span class="nb">export</span> <span class="nv">JAVA_BIN</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -ef <span class="p">|</span> grep /bin/jav<span class="o">[</span>a<span class="o">]</span> <span class="p">|</span> awk <span class="s1">&#39;{print \$8}&#39;</span><span class="sb">`</span>
+<span class="nb">export</span> <span class="nv">JAVA_PID</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -ef <span class="p">|</span> grep <span class="si">${</span><span class="nv">JAVA_BIN</span><span class="si">}</span> <span class="p">|</span> awk <span class="s1">&#39;{ print \$2 }&#39;</span><span class="sb">`</span>
+<span class="nb">export</span> <span class="nv">JAVA_UID</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -e -o pid,uid,gid,command <span class="p">|</span> grep <span class="si">${</span><span class="nv">JAVA_BIN</span><span class="si">}</span> <span class="p">|</span> awk <span class="s1">&#39;{ print \$2 }&#39;</span><span class="sb">`</span>
+<span class="nb">export</span> <span class="nv">JAVA_GID</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -e -o pid,uid,gid,command <span class="p">|</span> grep <span class="si">${</span><span class="nv">JAVA_BIN</span><span class="si">}</span> <span class="p">|</span> awk <span class="s1">&#39;{ print \$3 }&#39;</span><span class="sb">`</span>
+
+<span class="c1"># We copy libperfmap.so and attach-main.jar to target container</span>
+docker cp /root/perf-map-agent <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span>:/tmp/perf-map-agent
+
+<span class="c1"># Command to populate a /tmp/perf-PID.map file with the symbols</span>
+docker <span class="nb">exec</span> --user <span class="s2">&#34;</span><span class="si">${</span><span class="nv">JAVA_UID</span><span class="si">}</span><span class="s2">&#34;</span>:<span class="s2">&#34;</span><span class="si">${</span><span class="nv">JAVA_GID</span><span class="si">}</span><span class="s2">&#34;</span> <span class="s2">&#34;</span><span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span><span class="s2">&#34;</span> bash -c <span class="s2">&#34;cd /tmp/perf-map-agent &amp;&amp; java -cp /tmp/perf-map-agent/attach-main.jar:</span><span class="si">${</span><span class="nv">JAVA_HOME</span><span class="si">}</span><span class="s2">/lib/tools.jar net.virtualvoid.perf.AttachOnce </span><span class="si">${</span><span class="nv">JAVA_PID</span><span class="si">}</span><span class="s2">&#34;</span>
+
+<span class="c1"># Copy back to our perf container</span>
+docker cp <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span>:/tmp/perf-<span class="si">${</span><span class="nv">JAVA_PID</span><span class="si">}</span>.map /tmp/perf-<span class="si">${</span><span class="nv">PID</span><span class="si">}</span>.map</code></pre></td></tr></table>
+</div>
+</div></li>
+
+<li><p>Proflile</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># We profile 15 seconds</span>
+/usr/share/bcc/tools/profile -adf -p <span class="nv">$PID</span> <span class="m">15</span> &gt; <span class="nv">$PID</span>.profile</code></pre></td></tr></table>
+</div>
+</div></li>
+
+<li><p>Generate flame graph</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">/root/FlameGraph/flamegraph.pl &lt; <span class="nv">$PID</span>.profile --colors java --hash &gt; <span class="nv">$PID</span>.svg</code></pre></td></tr></table>
+</div>
+</div></li>
+</ol>
+
+<p>By now, you can see a flame graph like:</p>
+
+<p><img src="/post/profile-java-program-with-bcc-tool/flamegraph.png" alt="flame graph sample" /></p>
+
+<p>I put out a bash script here as a conclusion to all above steps.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="cp">#!/bin/sh
+</span><span class="cp"></span>
+<span class="nb">set</span> -ex
+
+<span class="nv">PID</span><span class="o">=</span><span class="m">66598</span>
+<span class="nv">CTN_ID</span><span class="o">=</span>bc8ea729e674
+<span class="nv">JAVA_HOME</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> java -XshowSettings:properties -version <span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span> &gt; /dev/null <span class="p">|</span> grep <span class="s1">&#39;java.home&#39;</span> <span class="p">|</span>cut -d<span class="s1">&#39;=&#39;</span> -f2<span class="p">|</span>sed -e <span class="s1">&#39;s/\/jre//&#39;</span> <span class="p">|</span> xargs<span class="sb">`</span>
+<span class="nv">JAVA_BIN</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -ef <span class="p">|</span> grep /bin/jav<span class="o">[</span>a<span class="o">]</span> <span class="p">|</span> awk <span class="s1">&#39;{print \$8}&#39;</span><span class="sb">`</span>
+<span class="nv">JAVA_PID</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -ef <span class="p">|</span> grep <span class="si">${</span><span class="nv">JAVA_BIN</span><span class="si">}</span> <span class="p">|</span> awk <span class="s1">&#39;{ print \$2 }&#39;</span><span class="sb">`</span>
+<span class="nv">JAVA_UID</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -e -o pid,uid,gid,command <span class="p">|</span> grep <span class="si">${</span><span class="nv">JAVA_BIN</span><span class="si">}</span> <span class="p">|</span> awk <span class="s1">&#39;{ print \$2 }&#39;</span><span class="sb">`</span>
+<span class="nv">JAVA_GID</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span> ps -e -o pid,uid,gid,command <span class="p">|</span> grep <span class="si">${</span><span class="nv">JAVA_BIN</span><span class="si">}</span> <span class="p">|</span> awk <span class="s1">&#39;{ print \$3 }&#39;</span><span class="sb">`</span>
+
+
+<span class="c1"># We copy libperfmap.so and attach-main.jar to target container</span>
+docker cp /root/perf-map-agent <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span>:/tmp/perf-map-agent
+
+<span class="c1"># Command to populate a /tmp/perf-PID.map file with the symbols</span>
+docker <span class="nb">exec</span> --user <span class="s2">&#34;</span><span class="si">${</span><span class="nv">JAVA_UID</span><span class="si">}</span><span class="s2">&#34;</span>:<span class="s2">&#34;</span><span class="si">${</span><span class="nv">JAVA_GID</span><span class="si">}</span><span class="s2">&#34;</span> <span class="s2">&#34;</span><span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span><span class="s2">&#34;</span> bash -c <span class="s2">&#34;cd /tmp/perf-map-agent &amp;&amp; java -cp /tmp/perf-map-agent/attach-main.jar:</span><span class="si">${</span><span class="nv">JAVA_HOME</span><span class="si">}</span><span class="s2">/lib/tools.jar net.virtualvoid.perf.AttachOnce </span><span class="si">${</span><span class="nv">JAVA_PID</span><span class="si">}</span><span class="s2">&#34;</span>
+
+<span class="c1"># Copy back to our perf container</span>
+docker cp <span class="si">${</span><span class="nv">CTN_ID</span><span class="si">}</span>:/tmp/perf-<span class="si">${</span><span class="nv">JAVA_PID</span><span class="si">}</span>.map /tmp/perf-<span class="si">${</span><span class="nv">PID</span><span class="si">}</span>.map
+
+<span class="c1"># We profile 15 seconds</span>
+/usr/share/bcc/tools/profile -adf -p <span class="nv">$PID</span> <span class="m">30</span> &gt; <span class="nv">$PID</span>.profile
+
+<span class="c1"># Draw flamegraph</span>
+/root/FlameGraph/flamegraph.pl &lt; <span class="nv">$PID</span>.profile --colors java --hash &gt; <span class="nv">$PID</span>.svg</code></pre></td></tr></table>
+</div>
+</div>
+<h2 id="references">References</h2>
+
+<p>Great expects and thanks to Brendan Gregg for his marvelous work about
+FlameGraph, bcc and so on.</p>
+
+<ul>
+<li><a href="https://github.com/jvm-profiling-tools/perf-map-agent">perf-map-agent</a></li>
+<li><a href="https://github.com/brendangregg/FlameGraph">FlameGraph</a></li>
+<li><a href="https://github.com/iovisor/bcc/blob/master/tools/profile.py">bcc profile tool</a></li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2019-10-09
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/ebpf/">eBPF</a>
+          <a href="/tags/bcc/">bcc</a>
+          <a href="/tags/flamegraph/">flamegraph</a>
+          <a href="/tags/perf/">perf</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/why-kubelet-modify-file-permissions/">
+            <span class="next-text nav-default">Why Does Kubelet Modify File Permissions</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2019
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Wenfeng</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	ga('set', 'anonymizeIp', true);
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+
+
+
+
+
+
+</body>
+</html>

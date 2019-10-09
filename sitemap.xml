@@ -2,15 +2,71 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://wenfeng-gao.github.io/tags/bcc/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
     <loc>https://wenfeng-gao.github.io/categories/</loc>
-    <lastmod>2019-09-29T16:06:44+08:00</lastmod>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/ebpf/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/flamegraph/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/profile-java-program-with-bcc-tool/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://wenfeng-gao.github.io/</loc>
-    <lastmod>2019-09-29T16:06:44+08:00</lastmod>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/perf/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/categories/performance/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/</loc>
+    <lastmod>2019-10-09T20:39:11+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -24,20 +80,6 @@
   
   <url>
     <loc>https://wenfeng-gao.github.io/tags/kubernetes/</loc>
-    <lastmod>2019-09-29T16:06:44+08:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://wenfeng-gao.github.io/post/</loc>
-    <lastmod>2019-09-29T16:06:44+08:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://wenfeng-gao.github.io/tags/</loc>
     <lastmod>2019-09-29T16:06:44+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
