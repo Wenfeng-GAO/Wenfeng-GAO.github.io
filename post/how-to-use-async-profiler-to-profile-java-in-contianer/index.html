@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>How to Use async-profiler to Profile Non-root Java Process in Contianer - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&amp;rsquo;ll present the process and the difficulties I met while using this tool." /><meta name="keywords" content="async-profiler, docker, perf, flamegraph" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.58.3 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/how-to-use-async-profiler-to-profile-java-in-contianer/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="How to Use async-profiler to Profile Non-root Java Process in Contianer" />
+<meta property="og:description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/how-to-use-async-profiler-to-profile-java-in-contianer/" />
+<meta property="article:published_time" content="2019-10-14T15:53:55+08:00" />
+<meta property="article:modified_time" content="2019-10-14T15:53:55+08:00" />
+<meta itemprop="name" content="How to Use async-profiler to Profile Non-root Java Process in Contianer">
+<meta itemprop="description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool.">
+
+
+<meta itemprop="datePublished" content="2019-10-14T15:53:55&#43;08:00" />
+<meta itemprop="dateModified" content="2019-10-14T15:53:55&#43;08:00" />
+<meta itemprop="wordCount" content="585">
+
+
+
+<meta itemprop="keywords" content="async-profiler,perf,flamegraph,docker," />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="How to Use async-profiler to Profile Non-root Java Process in Contianer"/>
+<meta name="twitter:description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool."/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">How to Use async-profiler to Profile Non-root Java Process in Contianer</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2019-10-14 </span>
+        <div class="post-category">
+            <a href="/categories/performance/"> performance </a>
+            <a href="/categories/trouble-shooting/"> trouble shooting </a>
+            </div>
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+<ul>
+<li><a href="#ways-for-java-cpu-profiling">Ways for Java CPU Profiling</a></li>
+<li><a href="#getting-started">Getting started</a>
+<ul>
+<li><a href="#easy-to-use">Easy to Use</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a>
+<ul>
+<li><a href="#for-privileged-user">For privileged user</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#references">References</a></li>
+</ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      
+
+<h1 id="ways-for-java-cpu-profiling">Ways for Java CPU Profiling</h1>
+
+<p>In order to profile Java processes and get cpu usage hot points(better shown
+with flame graph), there&rsquo;re 3 popular ways:</p>
+
+<ol>
+<li><p>perf + perf-map-agent + FlameGraph</p>
+
+<p>Linux perf tool and Gregg&rsquo;s <a href="https://github.com/brendangregg/FlameGraph">FlameGraph</a>
+can do the job well, but as Java has a
+JVM virtual machine and JIT in-line feature, perf can&rsquo;t get Java&rsquo;s stack trace
+directly, here <a href="https://github.com/jvm-profiling-tools/perf-map-agent">perf-map-agent</a>
+comes to help.</p>
+
+<p><em>perf-map-agent</em> aims to provide a map file for symbols of in-line code.
+<code>XX:+PreserveFramePointer</code> should be added when launce jvm as well.</p>
+
+<p>There&rsquo;re already many good tutorials and blogs about this method, so we won&rsquo;t go
+deeper here.</p></li>
+
+<li><p>eBPF + perf-map-agent + FlameGraph</p>
+
+<p>Use eBPF instead of perf tool can alse work well, and it cost lower overhead
+theoretically. I&rsquo;ve written another blog to share the detail about this
+(<a href="https://wenfeng-gao.github.io/post/profile-java-program-with-bcc-tool/">How To Profile Java Program With eBPF/bcc Tool</a>).</p></li>
+
+<li><p>async-profiler</p>
+
+<p><a href="https://github.com/jvm-profiling-tools/async-profiler">jvm-profiling-tools/async-profiler</a> is
+an open-source low overhead sampling profiler for Java.</p>
+
+<p>For CPU profiling, it uses perf with <code>AsyncGetCallTrace</code>, for visualization it
+has flame graph support out of box.</p></li>
+</ol>
+
+<p>async-profiler already support <a href="https://github.com/jvm-profiling-tools/async-profiler#profiling-java-in-a-container">profiling Java in a container</a>,
+but I still met some obstacles while trying to use it.</p>
+
+<h1 id="getting-started">Getting started</h1>
+
+<p>It&rsquo;s possible to profile both within the Docker container or from the host
+system, I tried both and both works well. Here I introduce profile within the
+container.</p>
+
+<h2 id="easy-to-use">Easy to Use</h2>
+
+<p>Just download the async-profiler in place, it&rsquo;s quite easy to use:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">./profiler.sh start PID
+./profiler.sh stop PID
+
+<span class="c1"># flame graph output</span>
+./profiler.sh -d DURATION -f /path/to/output.svg PID</code></pre></td></tr></table>
+</div>
+</div>
+<p>For CPU profiling, you may get some flame graphs like this.
+<img src="/post/how-to-use-async-profiler-to-profile-java-in-container/flame_graph.svg" alt="flame graph" /></p>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<p>When I use async-profiler the first time inside the contianer, I got some
+permission errors.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ ./profiler.sh start PID
+
+Perf events unavailable. See stderr of the target process.</code></pre></td></tr></table>
+</div>
+</div>
+<p>And in my error logs, I found this:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">perf_event_open failed: Permission denied
+Try with --all-user option, or <span class="s1">&#39;echo 1 &gt; /proc/sys/kernel/perf_event_paranoid&#39;</span>
+perf_event_open failed: Permission denied
+perf_event_open failed: Permission denied
+...</code></pre></td></tr></table>
+</div>
+</div>
+<p>What is <code>perf_event_paranoid</code>? It&rsquo;s a <code>sysctl</code> file used to control the
+permission of unprivileged user to use perf_event.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">perf_event_paranoid:
+
+Controls use of the performance events system by unprivileged
+users <span class="o">(</span>without CAP_SYS_ADMIN<span class="o">)</span>.  The default value is <span class="m">2</span>.
+
+ -1: Allow use of <span class="o">(</span>almost<span class="o">)</span> all events by all users
+     Ignore mlock limit after perf_event_mlock_kb without CAP_IPC_LOCK
+&gt;<span class="o">=</span><span class="m">0</span>: Disallow ftrace <span class="k">function</span> tracepoint by users without CAP_SYS_ADMIN
+     Disallow raw tracepoint access by users without CAP_SYS_ADMIN
+&gt;<span class="o">=</span><span class="m">1</span>: Disallow CPU event access by users without CAP_SYS_ADMIN
+&gt;<span class="o">=</span><span class="m">2</span>: Disallow kernel profiling by users without CAP_SYS_ADMIN</code></pre></td></tr></table>
+</div>
+</div>
+<p>And you can&rsquo;t modify the file directly in the container, because it&rsquo;s read-only:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nb">echo</span> <span class="m">0</span> &gt; /proc/sys/kernel/perf_event_paranoid
+bash: /proc/sys/kernel/perf_event_paranoid: Read-only file system</code></pre></td></tr></table>
+</div>
+</div>
+<p>You have to do this command on the host system, in which case will definitly
+affect all containers on this host, which leverages some kind of security risks.</p>
+
+<p>In addition, you may need to modify <a href="https://docs.docker.com/engine/security/seccomp/">seccomp profile</a>
+or disable it altogether with <code>--security-opt=seccomp:unconfined</code> option.
+As my containers are running in Kubernetes cluster, which disables <code>seccomp</code> by
+default, I no longer need to do this.</p>
+
+<h3 id="for-privileged-user">For privileged user</h3>
+
+<p>As my Java process runs as unprivileged, I have to deal with the
+<code>perf_event_paranoid</code> issue, however, if you run Java process as root user or
+init process, you only need to add <code>SYS_ADMIN</code> capabilities to your container.
+(<a href="https://blog.alicegoldfuss.com/enabling-perf-in-kubernetes/">This blog</a> may
+help in this case.)</p>
+
+<h1 id="references">References</h1>
+
+<ul>
+<li><a href="https://www.kernel.org/doc/Documentation/sysctl/kernel.txt">sysctl doc</a></li>
+<li><a href="https://stackoverflow.com/questions/51911368/what-restriction-is-perf-event-paranoid-1-actually-putting-on-x86-perf">stackoverflow perf_event_paranoid</a></li>
+<li><a href="https://hackernoon.com/profiling-java-applications-with-async-profiler-049s2790">Profiling Java Applications with Async
+Profiler</a></li>
+<li><a href="http://blogs.microsoft.co.il/sasha/2017/07/07/profiling-the-jvm-on-linux-a-hybrid-approach/">Profiling the JVM on Linux: A Hybrid Approach</a></li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2019-10-14
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/async-profiler/">async-profiler</a>
+          <a href="/tags/perf/">perf</a>
+          <a href="/tags/flamegraph/">flamegraph</a>
+          <a href="/tags/docker/">docker</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/profile-java-program-with-bcc-tool/">
+            <span class="next-text nav-default">How To Profile Java Program With eBPF/bcc Tool</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2019
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Wenfeng</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	ga('set', 'anonymizeIp', true);
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+
+
+
+
+
+
+</body>
+</html>

@@ -6,7 +6,7 @@
     <description>Recent content in Categories on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 09 Oct 2019 20:39:11 +0800</lastBuildDate>
+    <lastBuildDate>Mon, 14 Oct 2019 15:53:55 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
     
@@ -14,9 +14,18 @@
     <item>
       <title>performance</title>
       <link>https://wenfeng-gao.github.io/categories/performance/</link>
-      <pubDate>Wed, 09 Oct 2019 20:39:11 +0800</pubDate>
+      <pubDate>Mon, 14 Oct 2019 15:53:55 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/categories/performance/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>trouble shooting</title>
+      <link>https://wenfeng-gao.github.io/categories/trouble-shooting/</link>
+      <pubDate>Mon, 14 Oct 2019 15:53:55 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/categories/trouble-shooting/</guid>
       <description></description>
     </item>
     
@@ -26,15 +35,6 @@
       <pubDate>Sun, 29 Sep 2019 23:17:50 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/categories/algorithms/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>trouble shooting</title>
-      <link>https://wenfeng-gao.github.io/categories/trouble-shooting/</link>
-      <pubDate>Sun, 29 Sep 2019 16:06:44 +0800</pubDate>
-      
-      <guid>https://wenfeng-gao.github.io/categories/trouble-shooting/</guid>
       <description></description>
     </item>
     
