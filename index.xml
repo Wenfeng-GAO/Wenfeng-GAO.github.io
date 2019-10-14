@@ -21,6 +21,15 @@
     </item>
     
     <item>
+      <title>8 Classical Sorting Algorithms</title>
+      <link>https://wenfeng-gao.github.io/post/8-classical-sorting-algorithms/</link>
+      <pubDate>Sun, 29 Sep 2019 23:17:50 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/8-classical-sorting-algorithms/</guid>
+      <description>In this article, I&amp;rsquo;ll review the following 8 classical sorting algorithms, and implement them in Go.</description>
+    </item>
+    
+    <item>
       <title>Why Does Kubelet Modify File Permissions</title>
       <link>https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/</link>
       <pubDate>Sun, 29 Sep 2019 16:06:44 +0800</pubDate>
