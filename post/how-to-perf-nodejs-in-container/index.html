@@ -50,7 +50,7 @@
 
 <meta itemprop="datePublished" content="2019-10-24T09:50:45&#43;08:00" />
 <meta itemprop="dateModified" content="2019-10-24T09:50:45&#43;08:00" />
-<meta itemprop="wordCount" content="651">
+<meta itemprop="wordCount" content="668">
 
 
 
@@ -151,6 +151,7 @@
 <li><a href="#prepare-tmp-perf-65875-map-file">Prepare <code>/tmp/perf-65875.map</code> file</a></li>
 <li><a href="#generate-flame-graph">Generate Flame Graph</a></li>
 <li><a href="#overall-script">Overall script</a></li>
+<li><a href="#references">References</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -403,6 +404,15 @@ perf record -F <span class="m">99</span> -p <span class="nv">$HOST_PIDs</span> -
 perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span class="p">|</span> FlameGraph/flamegraph.pl --color<span class="o">=</span>js &gt; <span class="nv">$CTN_ID</span>.<span class="k">$(</span>date +%s<span class="k">)</span>.svg</code></pre></td></tr></table>
 </div>
 </div>
+<h2 id="references">References</h2>
+
+<ul>
+<li><a href="http://www.brendangregg.com/blog/2014-09-17/node-flame-graphs-on-linux.html">gregg&rsquo;s blog about nodejs perf</a></li>
+<li><a href="http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html">gregg&rsquo;s flame graphs blog</a></li>
+<li><a href="https://shuheikagawa.com/blog/2018/09/16/node-js-under-a-microscope/">similar good blog</a></li>
+<li><a href="https://medium.com/yld-blog/cpu-and-i-o-performance-diagnostics-in-node-js-c85ea71738eb">nodejs perf with flamescope</a></li>
+</ul>
+
     </div>
 
     <div class="post-copyright">
