@@ -6,10 +6,19 @@
     <description>Recent content in flamegraph on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 14 Oct 2019 15:53:55 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 24 Oct 2019 09:50:45 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/flamegraph/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>How to Perf Nodejs Apps in Container</title>
+      <link>https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/</link>
+      <pubDate>Thu, 24 Oct 2019 09:50:45 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/</guid>
+      <description>In my previous blogs, I&amp;rsquo;ve shared about how to profile Java applications in various of methods, now I&amp;rsquo;ll show you how to profile Nodejs apps with perf&amp;hellip;</description>
+    </item>
     
     <item>
       <title>How to Use async-profiler to Profile Non-root Java Process in Contianer</title>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>How to Perf Nodejs Apps in Container - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="In my previous blogs, I&amp;rsquo;ve shared about how to profile Java applications in various of methods, now I&amp;rsquo;ll show you how to profile Nodejs apps with perf&amp;hellip;" /><meta name="keywords" content="perf, flamegraph, nodejs" />
+
+
+
+
+
+
+<meta name="generator" content="Hugo 0.58.3 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="How to Perf Nodejs Apps in Container" />
+<meta property="og:description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/" />
+<meta property="article:published_time" content="2019-10-24T09:50:45+08:00" />
+<meta property="article:modified_time" content="2019-10-24T09:50:45+08:00" />
+<meta itemprop="name" content="How to Perf Nodejs Apps in Container">
+<meta itemprop="description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;">
+
+
+<meta itemprop="datePublished" content="2019-10-24T09:50:45&#43;08:00" />
+<meta itemprop="dateModified" content="2019-10-24T09:50:45&#43;08:00" />
+<meta itemprop="wordCount" content="651">
+
+
+
+<meta itemprop="keywords" content="perf,flamegraph,nodejs," />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="How to Perf Nodejs Apps in Container"/>
+<meta name="twitter:description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">How to Perf Nodejs Apps in Container</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2019-10-24 </span>
+        <div class="post-category">
+            <a href="/categories/performance/"> performance </a>
+            </div>
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#run-app-with-perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</a>
+<ul>
+<li><a href="#linux-perf-events-jit-support">Linux perf_events JIT support</a></li>
+<li><a href="#v8-perf-basic-prof-support">v8 &ndash;perf-basic-prof support</a></li>
+</ul></li>
+<li><a href="#perf-outside-of-container">Perf outside of container</a></li>
+<li><a href="#prepare-tmp-perf-65875-map-file">Prepare <code>/tmp/perf-65875.map</code> file</a></li>
+<li><a href="#generate-flame-graph">Generate Flame Graph</a></li>
+<li><a href="#overall-script">Overall script</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      
+
+<p>In my previous blogs, I&rsquo;ve shared about how to profile Java applications in
+various of methods, now I&rsquo;ll show you how to profile Nodejs apps with
+<a href="http://www.brendangregg.com/perf.html">perf</a>.</p>
+
+<p>Let&rsquo;s get started.</p>
+
+<h2 id="run-app-with-perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</h2>
+
+<p>First of all, as Nodejs application has a V8 virtual machine and <a href="https://en.wikipedia.org/wiki/Just-in-time_compilation">JIT</a> process,
+<em>perf</em> can&rsquo;t get the stack traces directly, so we need a solution to achieve
+this.</p>
+
+<h3 id="linux-perf-events-jit-support">Linux perf_events JIT support</h3>
+
+<p>In 2009, Linux perf_events added JIT symbol support, so that symbols from
+language virtual machines like the JVM/V8 could be inspected.  It works in the
+following amazingly simple way:</p>
+
+<ol>
+<li>Your JIT application must be modified to create a <code>/tmp/perf-PID.map</code> file,
+which is a simple text database containing symbol addresses (in hex), sizes,
+and symbol names.</li>
+<li>That&rsquo;s it.</li>
+</ol>
+
+<p>perf already looks for the <code>/tmp/perf-PID.map</code> file, and if it finds it, it uses
+it for symbol translations. So only v8 needed to be modified.</p>
+
+<h3 id="v8-perf-basic-prof-support">v8 &ndash;perf-basic-prof support</h3>
+
+<p>In November 2013, v8 added perf_events support, enabled using the <code>--perf-basic-prof</code> option. This made it into node v0.11.13. It works like this:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># ~/node-v0.11.13-linux-x64/bin/node --perf-basic-prof hello.js &amp;</span>
+<span class="o">[</span><span class="m">1</span><span class="o">]</span> <span class="m">31441</span>
+<span class="c1"># ls -l /tmp/perf-31441.map</span>
+-rw-r--r-- <span class="m">1</span> root root <span class="m">81920</span> Sep <span class="m">17</span> <span class="m">20</span>:41 /tmp/perf-31441.map
+<span class="c1"># tail /tmp/perf-31441.map</span>
+14cec4db98a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Generic-&gt;String<span class="o">)</span>
+14cec4db9920 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*String-&gt;String<span class="o">)</span>
+14cec4db99a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Smi-&gt;String<span class="o">)</span>
+14cec4db9a20 22c LazyCompile:~nextTick node.js:389
+14cec4db9cc0 <span class="m">156</span> Stub:KeyedLoadElementStub
+14cec4db9e80 <span class="m">22</span> KeyedLoadIC:
+14cec4db9f20 <span class="m">22</span> KeyedLoadIC:
+14cec4db9fc0 <span class="m">56</span> Stub:DoubleToIStub
+14cec4dba080 10c Stub:KeyedStoreElementStub</code></pre></td></tr></table>
+</div>
+</div>
+<p>This text file is what perf_events reads.</p>
+
+<p>As I run Nodejs applications with <a href="http://pm2.keymetrics.io/">pm2</a> in Docker
+container, I&rsquo;ll <code>--perf-basic-prof</code> argument like this:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">pm2 start index.js <span class="se">\
+</span><span class="se"></span>          --node-args --perf-basic-prof</code></pre></td></tr></table>
+</div>
+</div>
+<h2 id="perf-outside-of-container">Perf outside of container</h2>
+
+<p>I decide to perf out side of container mainly because of the following 2
+reasons:</p>
+
+<ul>
+<li>additional previlege permissions should be added to container in order to
+support perf_event_open syscall</li>
+<li>perf inside container may increase a bit of overhead to application
+namespace</li>
+</ul>
+
+<p>Because we perf outside of container, we need get application&rsquo;s host PID to
+perf.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">$ docker top a3115
+UID     PID      PPID     STIME    TIME       CMD
+<span class="m">1004</span>    <span class="m">65462</span>    <span class="m">14902</span>    <span class="m">10</span>:43    <span class="m">00</span>:00:01   PM2 v2.9.1: God Daemon <span class="o">(</span>/home/deploy/.pm2<span class="o">)</span>
+<span class="m">1004</span>    <span class="m">65700</span>    <span class="m">65462</span>    <span class="m">10</span>:43    <span class="m">00</span>:00:01   node /opt/app/node/lib/node_modules/pm2/lib/HttpInterface.js
+<span class="m">1004</span>    <span class="m">65875</span>    <span class="m">65462</span>    <span class="m">10</span>:43    <span class="m">00</span>:00:03   node /opt/nodeapp/index.js</code></pre></td></tr></table>
+</div>
+</div>
+<p>Here <code>65875</code> is our target PID to perf.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">perf record -F <span class="m">99</span> -p <span class="m">65875</span> -g -- sleep <span class="m">30</span></code></pre></td></tr></table>
+</div>
+</div>
+<h2 id="prepare-tmp-perf-65875-map-file">Prepare <code>/tmp/perf-65875.map</code> file</h2>
+
+<p>As we perf outside of container, <code>/tmp/perf-PID.map</code> file was generated inside
+container, we have to copy it out before next process.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># find file in container</span>
+$ docker <span class="nb">exec</span> a3115 sh -c <span class="s2">&#34;ls -l /tmp/perf*.map&#34;</span>
+-rw-rw-r-- <span class="m">1</span> deploy deploy <span class="m">686639</span> Oct <span class="m">24</span> <span class="m">11</span>:51 /tmp/perf-384.map
+
+<span class="c1"># copy out, don&#39;t forget to change file name with host pid</span>
+$ docker cp a3115:/tmp/perf-384.map /tmp/perf-65875.map</code></pre></td></tr></table>
+</div>
+</div>
+<h2 id="generate-flame-graph">Generate Flame Graph</h2>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">perf script -f &gt; out.nodestacks01</code></pre></td></tr></table>
+</div>
+</div>
+<p>We need Gregg&rsquo;s <a href="http://github.com/brendangregg/FlameGraph">FlameGraph</a> to generate flame graph.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">git clone --depth <span class="m">1</span> http://github.com/brendangregg/FlameGraph</code></pre></td></tr></table>
+</div>
+</div>
+<p>Generate</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">cd</span> FlameGraph
+./stackcollapse-perf.pl &lt; ../out.nodestacks01 <span class="p">|</span> ./flamegraph.pl --color<span class="o">=</span>js &gt; ../out.nodestacks01.svg</code></pre></td></tr></table>
+</div>
+</div>
+<p>Now we can get a flame graph like this:</p>
+
+<p><img src="/post/how-to-profile-nodejs-in-container/nodejs_perf_flamegraph.svg" alt="nodejs perf
+flamegraph" /></p>
+
+<h2 id="overall-script">Overall script</h2>
+
+<p>You can download <code>FlameGraph</code> then use this script to get the svg file outside
+the container.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="cp">#!/bin/bash
+</span><span class="cp"></span>
+<span class="nb">set</span> -e
+<span class="nb">set</span> -x
+
+<span class="nv">CTN_ID</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span>
+<span class="nv">PROFILING_DURATION</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span>
+<span class="nv">PIDs</span><span class="o">=</span><span class="sb">`</span>docker top <span class="nv">$CTN_ID</span> <span class="p">|</span> grep /opt/nodeapp <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span><span class="sb">`</span>
+<span class="nv">CTN_PIDs</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="nv">$CTN_ID</span> ps aux <span class="p">|</span> grep /opt/nodeapp <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span><span class="sb">`</span>
+
+
+<span class="c1"># check /tmp/perf-PID.map files exist</span>
+<span class="k">for</span> ctn_pid in <span class="nv">$CTN_PIDs</span>
+<span class="k">do</span>
+  <span class="k">if</span> ! docker <span class="nb">exec</span> <span class="nv">$CTN_ID</span> stat /tmp/perf-<span class="nv">$ctn_pid</span>.map<span class="p">;</span> <span class="k">then</span>
+    <span class="nb">exit</span> <span class="m">111</span>
+  <span class="k">fi</span>
+<span class="k">done</span>
+
+<span class="c1"># copy /tmp/perf-PID.map files out of container</span>
+<span class="k">for</span> host_pid in <span class="nv">$PIDs</span>
+<span class="k">do</span>
+  <span class="nv">ctn_pid</span><span class="o">=</span><span class="sb">`</span>awk <span class="s1">&#39;/NSpid/ {print $NF}&#39;</span> /proc/<span class="nv">$host_pid</span>/status<span class="sb">`</span>
+  docker cp <span class="nv">$CTN_ID</span>:/tmp/perf-<span class="nv">$ctn_pid</span>.map /tmp/perf-<span class="nv">$host_pid</span>.map
+<span class="k">done</span>
+
+<span class="c1"># perf</span>
+<span class="nv">HOST_PIDs</span><span class="o">=</span><span class="sb">`</span><span class="nb">echo</span> <span class="nv">$PIDs</span><span class="p">|</span>tr <span class="s1">&#39; &#39;</span> <span class="s1">&#39;,&#39;</span><span class="sb">`</span>
+perf record -F <span class="m">99</span> -p <span class="nv">$HOST_PIDs</span> -g -- sleep <span class="nv">$PROFILING_DURATION</span>
+perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span class="p">|</span> FlameGraph/flamegraph.pl --color<span class="o">=</span>js &gt; <span class="nv">$CTN_ID</span>.<span class="k">$(</span>date +%s<span class="k">)</span>.svg</code></pre></td></tr></table>
+</div>
+</div>
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2019-10-24
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/perf/">perf</a>
+          <a href="/tags/flamegraph/">flamegraph</a>
+          <a href="/tags/nodejs/">nodejs</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/implemetation-of-min-heap/">
+            <span class="next-text nav-default">Implemetation of Min Heap</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2019
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Wenfeng</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	ga('set', 'anonymizeIp', true);
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+
+
+
+
+
+
+</body>
+</html>
