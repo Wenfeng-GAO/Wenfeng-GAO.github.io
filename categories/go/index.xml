@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>go on Je pense donc je suis</title>
+    <link>https://wenfeng-gao.github.io/categories/go/</link>
+    <description>Recent content in go on Je pense donc je suis</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Tue, 05 Nov 2019 21:24:24 +0800</lastBuildDate>
+    
+	<atom:link href="https://wenfeng-gao.github.io/categories/go/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>New() vs Make()</title>
+      <link>https://wenfeng-gao.github.io/post/new-vs-make/</link>
+      <pubDate>Tue, 05 Nov 2019 21:24:24 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/new-vs-make/</guid>
+      <description>This blog will briefly describe the differences between the built-in &lt;code&gt;new()&lt;/code&gt; and &lt;code&gt;make()&lt;/code&gt; functions in Go.</description>
+    </item>
+    
+  </channel>
+</rss>
