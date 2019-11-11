@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Java Attach Mechanism - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="Today, we’ll uncover the mystery of an important mechanism provided by JVM: Attach Mechanism, which is used to enable communication between processes in and out of JVM." /><meta name="keywords" content="java, attach" />
+
+
+
+<meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-92434611-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-92434611-1');
+</script>
+
+
+
+<meta name="generator" content="Hugo 0.58.3 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/java-attach-mechanism/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Java Attach Mechanism" />
+<meta property="og:description" content="Today, we’ll uncover the mystery of an important mechanism provided by JVM: Attach Mechanism, which is used to enable communication between processes in and out of JVM." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/java-attach-mechanism/" />
+<meta property="article:published_time" content="2019-11-11T15:26:07+08:00" />
+<meta property="article:modified_time" content="2019-11-11T15:26:07+08:00" />
+<meta itemprop="name" content="Java Attach Mechanism">
+<meta itemprop="description" content="Today, we’ll uncover the mystery of an important mechanism provided by JVM: Attach Mechanism, which is used to enable communication between processes in and out of JVM.">
+
+
+<meta itemprop="datePublished" content="2019-11-11T15:26:07&#43;08:00" />
+<meta itemprop="dateModified" content="2019-11-11T15:26:07&#43;08:00" />
+<meta itemprop="wordCount" content="2451">
+
+
+
+<meta itemprop="keywords" content="java," />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Java Attach Mechanism"/>
+<meta name="twitter:description" content="Today, we’ll uncover the mystery of an important mechanism provided by JVM: Attach Mechanism, which is used to enable communication between processes in and out of JVM."/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Java Attach Mechanism</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2019-11-11 </span>
+        
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+<ul>
+<li>
+<ul>
+<li><a href="#what-is-java-attach">What is Java attach</a></li>
+<li><a href="#how-does-attach-work">How does attach work</a></li>
+<li><a href="#source-code-walk-through">Source code walk through</a>
+<ul>
+<li><a href="#how-does-attach-listener-thread-start">How does &ldquo;Attach Listener&rdquo; thread start</a></li>
+<li><a href="#what-will-attach-listener-thread-do">What will &ldquo;Attach Listener&rdquo; thread do</a></li>
+<li><a href="#ipc-protocal-during-communication">IPC protocal during communication</a></li>
+</ul></li>
+<li><a href="#conclusion">Conclusion</a></li>
+<li><a href="#references">References</a></li>
+</ul></li>
+</ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      
+
+<p>We often use tools like <em>JStack</em> to dump threads of our java programs, or use
+profiling tools like <em>Async-Profiler</em> to profile java processes. You may
+wonder how these tools work, or specifically how these tools communicate with
+target Java processes.</p>
+
+<p>Today, we&rsquo;ll uncover the mystery and talk about an important mechanism provided
+by JVM: <strong>Attach
+Mechanism</strong>, which is used to enable communication between processes in and out
+of JVM.</p>
+
+<h2 id="what-is-java-attach">What is Java attach</h2>
+
+<p>When we use <em>JStack</em> to dump out threads, we may find <code>Attach Listener</code> and <code>Signal Dispatcher</code>, these 2 threads are the key threads we&rsquo;ll talk about today.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># jstack output snippets...</span>
+
+<span class="s2">&#34;Attach Listener&#34;</span> <span class="c1">#39054 daemon prio=9 os_prio=0 tid=0x00007f2aa8002000 nid=0x15188 waiting on condition [0x0000000000000000]</span>
+   java.lang.Thread.State: RUNNABLE
+
+<span class="s2">&#34;Signal Dispatcher&#34;</span> <span class="c1">#5 daemon prio=9 os_prio=0 tid=0x00007f2ae021f000 nid=0x51 runnable [0x0000000000000000]</span>
+   java.lang.Thread.State: RUNNABLE
+
+<span class="s2">&#34;Surrogate Locker Thread (Concurrent GC)&#34;</span> <span class="c1">#4 daemon prio=9 os_prio=0 tid=0x00007f2ae021d800 nid=0x50 waiting on condition [0x0000000000000000]</span>
+   java.lang.Thread.State: RUNNABLE
+
+<span class="s2">&#34;Finalizer&#34;</span> <span class="c1">#3 daemon prio=8 os_prio=0 tid=0x00007f2ae01ea800 nid=0x4f in Object.wait() [0x00007f2ad0099000]</span>
+   java.lang.Thread.State: WAITING <span class="o">(</span>on object monitor<span class="o">)</span>
+	at java.lang.Object.wait<span class="o">(</span>Native Method<span class="o">)</span>
+	at java.lang.ref.ReferenceQueue.remove<span class="o">(</span>ReferenceQueue.java:144<span class="o">)</span>
+	- locked &lt;0x00000000d7974750&gt; <span class="o">(</span>a java.lang.ref.ReferenceQueue<span class="nv">$Lock</span><span class="o">)</span>
+	at java.lang.ref.ReferenceQueue.remove<span class="o">(</span>ReferenceQueue.java:165<span class="o">)</span>
+	at java.lang.ref.Finalizer<span class="nv">$FinalizerThread</span>.run<span class="o">(</span>Finalizer.java:216<span class="o">)</span>
+
+<span class="s2">&#34;main&#34;</span> <span class="c1">#1 prio=5 os_prio=0 tid=0x00007f2ae000c000 nid=0x47 runnable [0x00007f2ae787f000]</span>
+   java.lang.Thread.State: RUNNABLE
+	at java.net.PlainSocketImpl.socketAccept<span class="o">(</span>Native Method<span class="o">)</span>
+	at java.net.AbstractPlainSocketImpl.accept<span class="o">(</span>AbstractPlainSocketImpl.java:409<span class="o">)</span>
+	at java.net.ServerSocket.implAccept<span class="o">(</span>ServerSocket.java:545<span class="o">)</span>
+	...</code></pre></td></tr></table>
+</div>
+</div>
+<p>Through <em>Java Attach Mechanism</em>, we could launch a process to communicate with
+target Java process, to let it dump threads, dump heaps, print flags or many
+other options. Registered functions that JVM supported after attaching are as
+following.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">static</span> <span class="n">AttachOperationFunctionInfo</span> <span class="n">funcs</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="p">{</span> <span class="s">&#34;agentProperties&#34;</span><span class="p">,</span>  <span class="n">get_agent_properties</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;datadump&#34;</span><span class="p">,</span>         <span class="n">data_dump</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;dumpheap&#34;</span><span class="p">,</span>         <span class="n">dump_heap</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;load&#34;</span><span class="p">,</span>             <span class="n">load_agent</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;properties&#34;</span><span class="p">,</span>       <span class="n">get_system_properties</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;threaddump&#34;</span><span class="p">,</span>       <span class="n">thread_dump</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;inspectheap&#34;</span><span class="p">,</span>      <span class="n">heap_inspection</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;setflag&#34;</span><span class="p">,</span>          <span class="n">set_flag</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;printflag&#34;</span><span class="p">,</span>        <span class="n">print_flag</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;jcmd&#34;</span><span class="p">,</span>             <span class="n">jcmd</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nb">NULL</span><span class="p">,</span>               <span class="nb">NULL</span> <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<h2 id="how-does-attach-work">How does attach work</h2>
+
+<p>Basically, there&rsquo;re only a few fixed method to enable IPC(inter-process
+communication) in linux, such as <em>Pipe</em>, <em>Shared Memory</em>, <em>Unix Domain Socket</em>,
+etc, here JVM implementation uses <strong>UDS(Unix Domain Socket)</strong>.</p>
+
+<p>So there have to be a UDS server launched by JVM, which listens a socket. In
+fact, <strong>Attach Listener</strong> thread is responsible for this job, as showed in the
+thread-dump output before.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="s2">&#34;Attach Listener&#34;</span> <span class="c1">#39054 daemon prio=9 os_prio=0 tid=0x00007f2aa8002000 nid=0x15188 waiting on condition [0x0000000000000000]</span>
+   java.lang.Thread.State: RUNNABLE</code></pre></td></tr></table>
+</div>
+</div>
+<p>However, <strong>Attach Listener</strong> thread may not exist when JVM starts, which means
+JVM won&rsquo;t start an UDS server as soon as it starts. It won&rsquo;t launch the server
+until a <code>SIGQUIT</code> signal is recieved, which indicates an UDS server is needed.</p>
+
+<p>And that&rsquo;s why a <strong>Signal Dispatcher</strong> thread is created as soon as JVM starts, which can also
+be found in the thread-dump output before.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="s2">&#34;Signal Dispatcher&#34;</span> <span class="c1">#5 daemon prio=9 os_prio=0 tid=0x00007f2ae021f000 nid=0x51 runnable [0x0000000000000000]</span>
+   java.lang.Thread.State: RUNNABLE</code></pre></td></tr></table>
+</div>
+</div>
+<p>After UDS server being ready, JVM could communicate with other process in some
+simple protocol. Let&rsquo;s see some details in the source code.</p>
+
+<h2 id="source-code-walk-through">Source code walk through</h2>
+
+<h3 id="how-does-attach-listener-thread-start">How does &ldquo;Attach Listener&rdquo; thread start</h3>
+
+<p>JVM will start <strong>Signal Dispatcher</strong> thread to listen and handle
+<code>SIGBREAK(SIGQUIT)</code> signal.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// runtime/os.cpp
+</span><span class="c1"></span><span class="kt">void</span> <span class="n">os</span><span class="o">::</span><span class="n">initialize_jdk_signal_support</span><span class="p">(</span><span class="n">TRAPS</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ReduceSignalUsage</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Setup JavaThread for processing signals
+</span><span class="c1"></span>    <span class="k">const</span> <span class="kt">char</span> <span class="n">thread_name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;Signal Dispatcher&#34;</span><span class="p">;</span>
+    <span class="n">Handle</span> <span class="n">string</span> <span class="o">=</span> <span class="n">java_lang_String</span><span class="o">::</span><span class="n">create_from_str</span><span class="p">(</span><span class="n">thread_name</span><span class="p">,</span> <span class="n">CHECK</span><span class="p">);</span>
+
+    <span class="p">...</span>
+
+    <span class="p">{</span> <span class="n">MutexLocker</span> <span class="n">mu</span><span class="p">(</span><span class="n">Threads_lock</span><span class="p">);</span>
+      <span class="n">JavaThread</span><span class="o">*</span> <span class="n">signal_thread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">JavaThread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">signal_thread_entry</span><span class="p">);</span>
+
+      <span class="p">...</span>
+      <span class="n">Threads</span><span class="o">::</span><span class="n">add</span><span class="p">(</span><span class="n">signal_thread</span><span class="p">);</span>
+      <span class="n">Thread</span><span class="o">::</span><span class="n">start</span><span class="p">(</span><span class="n">signal_thread</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="c1">// Handle ^BREAK
+</span><span class="c1"></span>    <span class="n">os</span><span class="o">::</span><span class="n">signal</span><span class="p">(</span><span class="n">SIGBREAK</span><span class="p">,</span> <span class="n">os</span><span class="o">::</span><span class="n">user_handler</span><span class="p">());</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<p><code>signal_thread_entry</code> function handles the main logic.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">static</span> <span class="kt">void</span> <span class="nf">signal_thread_entry</span><span class="p">(</span><span class="n">JavaThread</span><span class="o">*</span> <span class="kr">thread</span><span class="p">,</span> <span class="n">TRAPS</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">os</span><span class="o">::</span><span class="n">set_priority</span><span class="p">(</span><span class="kr">thread</span><span class="p">,</span> <span class="n">NearMaxPriority</span><span class="p">);</span>
+  <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">sig</span><span class="p">;</span>
+    <span class="p">{</span>
+      <span class="c1">// FIXME : Currently we have not decided what should be the status
+</span><span class="c1"></span>      <span class="c1">//         for this java thread blocked here. Once we decide about
+</span><span class="c1"></span>      <span class="c1">//         that we should fix this.
+</span><span class="c1"></span>      <span class="n">sig</span> <span class="o">=</span> <span class="n">os</span><span class="o">::</span><span class="n">signal_wait</span><span class="p">();</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">sig</span> <span class="o">==</span> <span class="n">os</span><span class="o">::</span><span class="n">sigexitnum_pd</span><span class="p">())</span> <span class="p">{</span>
+       <span class="c1">// Terminate the signal thread
+</span><span class="c1"></span>       <span class="k">return</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">switch</span> <span class="p">(</span><span class="n">sig</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">case</span> <span class="nl">SIGBREAK</span><span class="p">:</span> <span class="p">{</span>
+<span class="cp">#if INCLUDE_SERVICES
+</span><span class="cp"></span>        <span class="c1">// Check if the signal is a trigger to start the Attach Listener - in that
+</span><span class="c1"></span>        <span class="c1">// case don&#39;t print stack traces.
+</span><span class="c1"></span>        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">DisableAttachMechanism</span><span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// Attempt to transit state to AL_INITIALIZING.
+</span><span class="c1"></span>          <span class="n">AttachListenerState</span> <span class="n">cur_state</span> <span class="o">=</span> <span class="n">AttachListener</span><span class="o">::</span><span class="n">transit_state</span><span class="p">(</span><span class="n">AL_INITIALIZING</span><span class="p">,</span> <span class="n">AL_NOT_INITIALIZED</span><span class="p">);</span>
+          <span class="k">if</span> <span class="p">(</span><span class="n">cur_state</span> <span class="o">==</span> <span class="n">AL_INITIALIZING</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// Attach Listener has been started to initialize. Ignore this signal.
+</span><span class="c1"></span>            <span class="k">continue</span><span class="p">;</span>
+          <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">cur_state</span> <span class="o">==</span> <span class="n">AL_NOT_INITIALIZED</span><span class="p">)</span> <span class="p">{</span>
+            <span class="c1">// Start to initialize.
+</span><span class="c1"></span>            <span class="k">if</span> <span class="p">(</span><span class="n">AttachListener</span><span class="o">::</span><span class="n">is_init_trigger</span><span class="p">())</span> <span class="p">{</span>
+              <span class="c1">// Attach Listener has been initialized.
+</span><span class="c1"></span>              <span class="c1">// Accept subsequent request.
+</span><span class="c1"></span>              <span class="k">continue</span><span class="p">;</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+              <span class="c1">// Attach Listener could not be started.
+</span><span class="c1"></span>              <span class="c1">// So we need to transit the state to AL_NOT_INITIALIZED.
+</span><span class="c1"></span>              <span class="n">AttachListener</span><span class="o">::</span><span class="n">set_state</span><span class="p">(</span><span class="n">AL_NOT_INITIALIZED</span><span class="p">);</span>
+            <span class="p">}</span>
+          <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="n">AttachListener</span><span class="o">::</span><span class="n">check_socket_file</span><span class="p">())</span> <span class="p">{</span>
+            <span class="c1">// Attach Listener has been started, but unix domain socket file
+</span><span class="c1"></span>            <span class="c1">// does not exist. So restart Attach Listener.
+</span><span class="c1"></span>            <span class="k">continue</span><span class="p">;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+<span class="cp">#endif
+</span><span class="cp"></span>        <span class="c1">// Print stack traces
+</span><span class="c1"></span>        <span class="c1">// Any SIGBREAK operations added here should make sure to flush
+</span><span class="c1"></span>        <span class="c1">// the output stream (e.g. tty-&gt;flush()) after output.  See 4803766.
+</span><span class="c1"></span>        <span class="c1">// Each module also prints an extra carriage return after its output.
+</span><span class="c1"></span>        <span class="p">...</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<p>Core algorithms in this function:</p>
+
+<ol>
+<li>use <code>os::signal_wait</code> to wait signals</li>
+<li>Once <code>SIGQUIT(SIGBREAK)</code> signal recieved, <code>Attach Listener</code> may be triggered
+(check if <strong>attach mechanism</strong> is opened, can be controlled by JVM argument <code>-XX:+|-DisableAttachMechanism</code>)</li>
+
+<li><p>function <code>AttachListener::is_init_trigger()</code> is called when <code>cur_state == AL_NOT_INITIALIZED</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// If the file .attach_pid&lt;pid&gt; exists in the working directory
+</span><span class="c1">// or /tmp then this is the trigger to start the attach mechanism
+</span><span class="c1"></span><span class="kt">bool</span> <span class="n">AttachListener</span><span class="o">::</span><span class="n">is_init_trigger</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">init_at_startup</span><span class="p">()</span> <span class="o">||</span> <span class="n">is_initialized</span><span class="p">())</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>               <span class="c1">// initialized at startup or already initialized
+</span><span class="c1"></span>  <span class="p">}</span>
+  <span class="kt">char</span> <span class="n">fn</span><span class="p">[</span><span class="n">PATH_MAX</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+  <span class="kt">int</span> <span class="n">ret</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">stat64</span> <span class="n">st</span><span class="p">;</span>
+  <span class="n">sprintf</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s">&#34;.attach_pid%d&#34;</span><span class="p">,</span> <span class="n">os</span><span class="o">::</span><span class="n">current_process_id</span><span class="p">());</span>
+  <span class="n">RESTARTABLE</span><span class="p">(</span><span class="o">::</span><span class="n">stat64</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">st</span><span class="p">),</span> <span class="n">ret</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">log_trace</span><span class="p">(</span><span class="n">attach</span><span class="p">)(</span><span class="s">&#34;Failed to find attach file: %s, trying alternate&#34;</span><span class="p">,</span> <span class="n">fn</span><span class="p">);</span>
+    <span class="n">snprintf</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="s">&#34;%s/.attach_pid%d&#34;</span><span class="p">,</span>
+             <span class="n">os</span><span class="o">::</span><span class="n">get_temp_directory</span><span class="p">(),</span> <span class="n">os</span><span class="o">::</span><span class="n">current_process_id</span><span class="p">());</span>
+    <span class="n">RESTARTABLE</span><span class="p">(</span><span class="o">::</span><span class="n">stat64</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">st</span><span class="p">),</span> <span class="n">ret</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">log_debug</span><span class="p">(</span><span class="n">attach</span><span class="p">)(</span><span class="s">&#34;Failed to find attach file: %s&#34;</span><span class="p">,</span> <span class="n">fn</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">ret</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// simple check to avoid starting the attach mechanism when
+</span><span class="c1"></span>    <span class="c1">// a bogus non-root user creates the file
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">os</span><span class="o">::</span><span class="n">Posix</span><span class="o">::</span><span class="n">matches_effective_uid_or_root</span><span class="p">(</span><span class="n">st</span><span class="p">.</span><span class="n">st_uid</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">init</span><span class="p">();</span>
+      <span class="n">log_trace</span><span class="p">(</span><span class="n">attach</span><span class="p">)(</span><span class="s">&#34;Attach triggered by %s&#34;</span><span class="p">,</span> <span class="n">fn</span><span class="p">);</span>
+      <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="n">log_debug</span><span class="p">(</span><span class="n">attach</span><span class="p">)(</span><span class="s">&#34;File %s has wrong user id %d (vs %d). Attach is not triggered&#34;</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">st</span><span class="p">.</span><span class="n">st_uid</span><span class="p">,</span> <span class="n">geteuid</span><span class="p">());</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<p>In this function, <code>init</code> function will be called if file <code>.Attach_pid&lt;PID&gt;</code>
+exists and <code>uid</code> of this file is correct.</p></li>
+
+<li><p><strong>Attach Listener</strong> thread will be created and started in <code>init</code> function</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// services/attachListener.cpp
+</span><span class="c1">// Starts the Attach Listener thread
+</span><span class="c1"></span><span class="kt">void</span> <span class="n">AttachListener</span><span class="o">::</span><span class="n">init</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">EXCEPTION_MARK</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">char</span> <span class="n">thread_name</span><span class="p">[]</span> <span class="o">=</span> <span class="s">&#34;Attach Listener&#34;</span><span class="p">;</span>
+  <span class="n">Handle</span> <span class="n">string</span> <span class="o">=</span> <span class="n">java_lang_String</span><span class="o">::</span><span class="n">create_from_str</span><span class="p">(</span><span class="n">thread_name</span><span class="p">,</span> <span class="n">THREAD</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">has_init_error</span><span class="p">(</span><span class="n">THREAD</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">set_state</span><span class="p">(</span><span class="n">AL_NOT_INITIALIZED</span><span class="p">);</span>
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Initialize thread_oop to put it into the system threadGroup
+</span><span class="c1"></span>  <span class="n">Handle</span> <span class="n">thread_group</span> <span class="p">(</span><span class="n">THREAD</span><span class="p">,</span> <span class="n">Universe</span><span class="o">::</span><span class="n">system_thread_group</span><span class="p">());</span>
+  <span class="n">Handle</span> <span class="n">thread_oop</span> <span class="o">=</span> <span class="n">JavaCalls</span><span class="o">::</span><span class="n">construct_new_instance</span><span class="p">(</span><span class="n">SystemDictionary</span><span class="o">::</span><span class="n">Thread_klass</span><span class="p">(),</span>
+                       <span class="n">vmSymbols</span><span class="o">::</span><span class="n">threadgroup_string_void_signature</span><span class="p">(),</span>
+                       <span class="n">thread_group</span><span class="p">,</span>
+                       <span class="n">string</span><span class="p">,</span>
+                       <span class="n">THREAD</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">has_init_error</span><span class="p">(</span><span class="n">THREAD</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">set_state</span><span class="p">(</span><span class="n">AL_NOT_INITIALIZED</span><span class="p">);</span>
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+
+ <span class="p">...</span>
+
+  <span class="p">{</span> <span class="n">MutexLocker</span> <span class="n">mu</span><span class="p">(</span><span class="n">Threads_lock</span><span class="p">);</span>
+    <span class="n">JavaThread</span><span class="o">*</span> <span class="n">listener_thread</span> <span class="o">=</span> <span class="k">new</span> <span class="n">JavaThread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">attach_listener_thread_entry</span><span class="p">);</span>
+
+    <span class="c1">// Check that thread and osthread were created
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">listener_thread</span> <span class="o">==</span> <span class="nb">NULL</span> <span class="o">||</span> <span class="n">listener_thread</span><span class="o">-&gt;</span><span class="n">osthread</span><span class="p">()</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">vm_exit_during_initialization</span><span class="p">(</span><span class="s">&#34;java.lang.OutOfMemoryError&#34;</span><span class="p">,</span>
+                                    <span class="n">os</span><span class="o">::</span><span class="n">native_thread_creation_failed_msg</span><span class="p">());</span>
+    <span class="p">}</span>
+
+    <span class="n">java_lang_Thread</span><span class="o">::</span><span class="n">set_thread</span><span class="p">(</span><span class="n">thread_oop</span><span class="p">(),</span> <span class="n">listener_thread</span><span class="p">);</span>
+    <span class="n">java_lang_Thread</span><span class="o">::</span><span class="n">set_daemon</span><span class="p">(</span><span class="n">thread_oop</span><span class="p">());</span>
+
+    <span class="n">listener_thread</span><span class="o">-&gt;</span><span class="n">set_threadObj</span><span class="p">(</span><span class="n">thread_oop</span><span class="p">());</span>
+    <span class="n">Threads</span><span class="o">::</span><span class="n">add</span><span class="p">(</span><span class="n">listener_thread</span><span class="p">);</span>
+    <span class="n">Thread</span><span class="o">::</span><span class="n">start</span><span class="p">(</span><span class="n">listener_thread</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+</ol>
+
+<h3 id="what-will-attach-listener-thread-do">What will &ldquo;Attach Listener&rdquo; thread do</h3>
+
+<p>We can see <code>attach_listener_thread_entry</code> function is referred when create
+<strong>Attach Listener</strong> thread, let&rsquo;s see what will it do.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// The Attach Listener threads services a queue. It dequeues an operation
+</span><span class="c1">// from the queue, examines the operation name (command), and dispatches
+</span><span class="c1">// to the corresponding function to perform the operation.
+</span><span class="c1"></span>
+<span class="k">static</span> <span class="kt">void</span> <span class="nf">attach_listener_thread_entry</span><span class="p">(</span><span class="n">JavaThread</span><span class="o">*</span> <span class="kr">thread</span><span class="p">,</span> <span class="n">TRAPS</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">os</span><span class="o">::</span><span class="n">set_priority</span><span class="p">(</span><span class="kr">thread</span><span class="p">,</span> <span class="n">NearMaxPriority</span><span class="p">);</span>
+
+  <span class="n">assert</span><span class="p">(</span><span class="kr">thread</span> <span class="o">==</span> <span class="n">Thread</span><span class="o">::</span><span class="n">current</span><span class="p">(),</span> <span class="s">&#34;Must be&#34;</span><span class="p">);</span>
+  <span class="n">assert</span><span class="p">(</span><span class="kr">thread</span><span class="o">-&gt;</span><span class="n">stack_base</span><span class="p">()</span> <span class="o">!=</span> <span class="nb">NULL</span> <span class="o">&amp;&amp;</span> <span class="kr">thread</span><span class="o">-&gt;</span><span class="n">stack_size</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+         <span class="s">&#34;Should already be setup&#34;</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">AttachListener</span><span class="o">::</span><span class="n">pd_init</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">AttachListener</span><span class="o">::</span><span class="n">set_state</span><span class="p">(</span><span class="n">AL_NOT_INITIALIZED</span><span class="p">);</span>
+    <span class="k">return</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">AttachListener</span><span class="o">::</span><span class="n">set_initialized</span><span class="p">();</span>
+
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="n">AttachOperation</span><span class="o">*</span> <span class="n">op</span> <span class="o">=</span> <span class="n">AttachListener</span><span class="o">::</span><span class="n">dequeue</span><span class="p">();</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">op</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">AttachListener</span><span class="o">::</span><span class="n">set_state</span><span class="p">(</span><span class="n">AL_NOT_INITIALIZED</span><span class="p">);</span>
+      <span class="k">return</span><span class="p">;</span>   <span class="c1">// dequeue failed or shutdown
+</span><span class="c1"></span>    <span class="p">}</span>
+
+    <span class="n">ResourceMark</span> <span class="n">rm</span><span class="p">;</span>
+    <span class="n">bufferedStream</span> <span class="n">st</span><span class="p">;</span>
+    <span class="n">jint</span> <span class="n">res</span> <span class="o">=</span> <span class="n">JNI_OK</span><span class="p">;</span>
+
+    <span class="c1">// handle special detachall operation
+</span><span class="c1"></span>    <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">(),</span> <span class="n">AttachOperation</span><span class="o">::</span><span class="n">detachall_operation_name</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">AttachListener</span><span class="o">::</span><span class="n">detachall</span><span class="p">();</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">EnableDynamicAgentLoading</span> <span class="o">&amp;&amp;</span> <span class="n">strcmp</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">(),</span> <span class="s">&#34;load&#34;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">st</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">&#34;Dynamic agent loading is not enabled. &#34;</span>
+               <span class="s">&#34;Use -XX:+EnableDynamicAgentLoading to launch target VM.&#34;</span><span class="p">);</span>
+      <span class="n">res</span> <span class="o">=</span> <span class="n">JNI_ERR</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="c1">// find the function to dispatch too
+</span><span class="c1"></span>      <span class="n">AttachOperationFunctionInfo</span><span class="o">*</span> <span class="n">info</span> <span class="o">=</span> <span class="nb">NULL</span><span class="p">;</span>
+      <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">funcs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">name</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">name</span> <span class="o">=</span> <span class="n">funcs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">name</span><span class="p">;</span>
+        <span class="n">assert</span><span class="p">(</span><span class="n">strlen</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">AttachOperation</span><span class="o">::</span><span class="n">name_length_max</span><span class="p">,</span> <span class="s">&#34;operation &lt;= name_length_max&#34;</span><span class="p">);</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">(),</span> <span class="n">name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">info</span> <span class="o">=</span> <span class="o">&amp;</span><span class="p">(</span><span class="n">funcs</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+          <span class="k">break</span><span class="p">;</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="c1">// check for platform dependent attach operation
+</span><span class="c1"></span>      <span class="k">if</span> <span class="p">(</span><span class="n">info</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">AttachListener</span><span class="o">::</span><span class="n">pd_find_operation</span><span class="p">(</span><span class="n">op</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">());</span>
+      <span class="p">}</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">info</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// dispatch to the function that implements this operation
+</span><span class="c1"></span>        <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">info</span><span class="o">-&gt;</span><span class="n">func</span><span class="p">)(</span><span class="n">op</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">st</span><span class="p">);</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="n">st</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">&#34;Operation %s not recognized!&#34;</span><span class="p">,</span> <span class="n">op</span><span class="o">-&gt;</span><span class="n">name</span><span class="p">());</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">JNI_ERR</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// operation complete - send result and output to client
+</span><span class="c1"></span>    <span class="n">op</span><span class="o">-&gt;</span><span class="n">complete</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">st</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="n">ShouldNotReachHere</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<p>In this function, sevaral things will be done:</p>
+
+<ol>
+<li><p><code>pd_init</code> function will be called, which will call <code>LinuxAttachListener::init()</code>
+function to create a stream socket and bind to file <code>/tmp/.java_pid&lt;PID&gt;</code>, and
+start to <code>listen</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// os/linux/attachListener_linux.cpp
+</span><span class="c1"></span><span class="kt">int</span> <span class="n">LinuxAttachListener</span><span class="o">::</span><span class="n">init</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="n">path</span><span class="p">[</span><span class="n">UNIX_PATH_MAX</span><span class="p">];</span>          <span class="c1">// socket file
+</span><span class="c1"></span>  <span class="kt">char</span> <span class="n">initial_path</span><span class="p">[</span><span class="n">UNIX_PATH_MAX</span><span class="p">];</span>  <span class="c1">// socket file during setup
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">listener</span><span class="p">;</span>                      <span class="c1">// listener socket (file descriptor)
+</span><span class="c1"></span>
+  <span class="c1">// register function to cleanup
+</span><span class="c1"></span>  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">_atexit_registered</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">_atexit_registered</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+    <span class="o">::</span><span class="n">atexit</span><span class="p">(</span><span class="n">listener_cleanup</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kt">int</span> <span class="n">n</span> <span class="o">=</span> <span class="n">snprintf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">UNIX_PATH_MAX</span><span class="p">,</span> <span class="s">&#34;%s/.java_pid%d&#34;</span><span class="p">,</span>
+                   <span class="n">os</span><span class="o">::</span><span class="n">get_temp_directory</span><span class="p">(),</span> <span class="n">os</span><span class="o">::</span><span class="n">current_process_id</span><span class="p">());</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">UNIX_PATH_MAX</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">snprintf</span><span class="p">(</span><span class="n">initial_path</span><span class="p">,</span> <span class="n">UNIX_PATH_MAX</span><span class="p">,</span> <span class="s">&#34;%s.tmp&#34;</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">UNIX_PATH_MAX</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// create the listener socket
+</span><span class="c1"></span>  <span class="n">listener</span> <span class="o">=</span> <span class="o">::</span><span class="n">socket</span><span class="p">(</span><span class="n">PF_UNIX</span><span class="p">,</span> <span class="n">SOCK_STREAM</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">listener</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// bind socket
+</span><span class="c1"></span>  <span class="k">struct</span> <span class="n">sockaddr_un</span> <span class="n">addr</span><span class="p">;</span>
+  <span class="n">memset</span><span class="p">((</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">addr</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">addr</span><span class="p">));</span>
+  <span class="n">addr</span><span class="p">.</span><span class="n">sun_family</span> <span class="o">=</span> <span class="n">AF_UNIX</span><span class="p">;</span>
+  <span class="n">strcpy</span><span class="p">(</span><span class="n">addr</span><span class="p">.</span><span class="n">sun_path</span><span class="p">,</span> <span class="n">initial_path</span><span class="p">);</span>
+  <span class="o">::</span><span class="n">unlink</span><span class="p">(</span><span class="n">initial_path</span><span class="p">);</span>
+  <span class="kt">int</span> <span class="n">res</span> <span class="o">=</span> <span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="n">listener</span><span class="p">,</span> <span class="p">(</span><span class="k">struct</span> <span class="n">sockaddr</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">addr</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">addr</span><span class="p">));</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">::</span><span class="n">close</span><span class="p">(</span><span class="n">listener</span><span class="p">);</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// put in listen mode, set permissions, and rename into place
+</span><span class="c1"></span>  <span class="n">res</span> <span class="o">=</span> <span class="o">::</span><span class="n">listen</span><span class="p">(</span><span class="n">listener</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">RESTARTABLE</span><span class="p">(</span><span class="o">::</span><span class="n">chmod</span><span class="p">(</span><span class="n">initial_path</span><span class="p">,</span> <span class="n">S_IREAD</span><span class="o">|</span><span class="n">S_IWRITE</span><span class="p">),</span> <span class="n">res</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// make sure the file is owned by the effective user and effective group
+</span><span class="c1"></span>      <span class="c1">// e.g. the group could be inherited from the directory in case the s bit is set
+</span><span class="c1"></span>      <span class="n">RESTARTABLE</span><span class="p">(</span><span class="o">::</span><span class="n">chown</span><span class="p">(</span><span class="n">initial_path</span><span class="p">,</span> <span class="n">geteuid</span><span class="p">(),</span> <span class="n">getegid</span><span class="p">()),</span> <span class="n">res</span><span class="p">);</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="o">::</span><span class="n">rename</span><span class="p">(</span><span class="n">initial_path</span><span class="p">,</span> <span class="n">path</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">res</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="o">::</span><span class="n">close</span><span class="p">(</span><span class="n">listener</span><span class="p">);</span>
+    <span class="o">::</span><span class="n">unlink</span><span class="p">(</span><span class="n">initial_path</span><span class="p">);</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">set_path</span><span class="p">(</span><span class="n">path</span><span class="p">);</span>
+  <span class="n">set_listener</span><span class="p">(</span><span class="n">listener</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div></li>
+
+<li><p>If succeeded, call <code>AttachListener::set_initialized()</code> function to set state
+to <code>AL_INITIALIZED</code></p></li>
+
+<li><p>In non-stopping loop, keep dequeuing <code>option</code>s by <code>LinuxAttachListener::dequeue()</code>
+function, then call the function belongs to the dequeued <code>option</code>; the subscribed
+functions are:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="k">static</span> <span class="n">AttachOperationFunctionInfo</span> <span class="n">funcs</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="p">{</span> <span class="s">&#34;agentProperties&#34;</span><span class="p">,</span>  <span class="n">get_agent_properties</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;datadump&#34;</span><span class="p">,</span>         <span class="n">data_dump</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;dumpheap&#34;</span><span class="p">,</span>         <span class="n">dump_heap</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;load&#34;</span><span class="p">,</span>             <span class="n">load_agent</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;properties&#34;</span><span class="p">,</span>       <span class="n">get_system_properties</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;threaddump&#34;</span><span class="p">,</span>       <span class="n">thread_dump</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;inspectheap&#34;</span><span class="p">,</span>      <span class="n">heap_inspection</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;setflag&#34;</span><span class="p">,</span>          <span class="n">set_flag</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;printflag&#34;</span><span class="p">,</span>        <span class="n">print_flag</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="s">&#34;jcmd&#34;</span><span class="p">,</span>             <span class="n">jcmd</span> <span class="p">},</span>
+  <span class="p">{</span> <span class="nb">NULL</span><span class="p">,</span>               <span class="nb">NULL</span> <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<h3 id="ipc-protocal-during-communication">IPC protocal during communication</h3>
+
+<p>Finally, let&rsquo;s have a look at the protocal during IPC communication, which lies
+in the <code>dequeue</code> process we talked before.</p></li>
+</ol>
+
+<p><code>LinuxAttachListener::dequeue()</code> function will be called in the <code>dequeue</code>
+process.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// os/linux/attachListener_linux.cpp
+</span><span class="c1">// Dequeue an operation
+</span><span class="c1">//
+</span><span class="c1">// In the Linux implementation there is only a single operation and clients
+</span><span class="c1">// cannot queue commands (except at the socket level).
+</span><span class="c1">//
+</span><span class="c1"></span><span class="n">LinuxAttachOperation</span><span class="o">*</span> <span class="n">LinuxAttachListener</span><span class="o">::</span><span class="n">dequeue</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="kt">int</span> <span class="n">s</span><span class="p">;</span>
+
+    <span class="c1">// wait for client to connect
+</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">sockaddr</span> <span class="n">addr</span><span class="p">;</span>
+    <span class="n">socklen_t</span> <span class="n">len</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">addr</span><span class="p">);</span>
+    <span class="n">RESTARTABLE</span><span class="p">(</span><span class="o">::</span><span class="n">accept</span><span class="p">(</span><span class="n">listener</span><span class="p">(),</span> <span class="o">&amp;</span><span class="n">addr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">len</span><span class="p">),</span> <span class="n">s</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="nb">NULL</span><span class="p">;</span>      <span class="c1">// log a warning?
+</span><span class="c1"></span>    <span class="p">}</span>
+
+    <span class="c1">// get the credentials of the peer and check the effective uid/guid
+</span><span class="c1"></span>    <span class="k">struct</span> <span class="n">ucred</span> <span class="n">cred_info</span><span class="p">;</span>
+    <span class="n">socklen_t</span> <span class="n">optlen</span> <span class="o">=</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">cred_info</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">::</span><span class="n">getsockopt</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">SOL_SOCKET</span><span class="p">,</span> <span class="n">SO_PEERCRED</span><span class="p">,</span> <span class="p">(</span><span class="kt">void</span><span class="o">*</span><span class="p">)</span><span class="o">&amp;</span><span class="n">cred_info</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">optlen</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">log_debug</span><span class="p">(</span><span class="n">attach</span><span class="p">)(</span><span class="s">&#34;Failed to get socket option SO_PEERCRED&#34;</span><span class="p">);</span>
+      <span class="o">::</span><span class="n">close</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+      <span class="k">continue</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">os</span><span class="o">::</span><span class="n">Posix</span><span class="o">::</span><span class="n">matches_effective_uid_and_gid_or_root</span><span class="p">(</span><span class="n">cred_info</span><span class="p">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">cred_info</span><span class="p">.</span><span class="n">gid</span><span class="p">))</span> <span class="p">{</span>
+      <span class="n">log_debug</span><span class="p">(</span><span class="n">attach</span><span class="p">)(</span><span class="s">&#34;euid/egid check failed (%d/%d vs %d/%d)&#34;</span><span class="p">,</span>
+              <span class="n">cred_info</span><span class="p">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">cred_info</span><span class="p">.</span><span class="n">gid</span><span class="p">,</span> <span class="n">geteuid</span><span class="p">(),</span> <span class="n">getegid</span><span class="p">());</span>
+      <span class="o">::</span><span class="n">close</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+      <span class="k">continue</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// peer credential look okay so we read the request
+</span><span class="c1"></span>    <span class="n">LinuxAttachOperation</span><span class="o">*</span> <span class="n">op</span> <span class="o">=</span> <span class="n">read_request</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">op</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+      <span class="o">::</span><span class="n">close</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+      <span class="k">continue</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="n">op</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<p>We can find the protocal part in <code>LinuxAttachListener::read_request</code> function.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-cpp" data-lang="cpp"><span class="c1">// os/linux/attachListener_linux.cpp
+</span><span class="c1"></span><span class="n">LinuxAttachOperation</span><span class="o">*</span> <span class="n">LinuxAttachListener</span><span class="o">::</span><span class="n">read_request</span><span class="p">(</span><span class="kt">int</span> <span class="n">s</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kt">char</span> <span class="n">ver_str</span><span class="p">[</span><span class="mi">8</span><span class="p">];</span>
+  <span class="n">sprintf</span><span class="p">(</span><span class="n">ver_str</span><span class="p">,</span> <span class="s">&#34;%d&#34;</span><span class="p">,</span> <span class="n">ATTACH_PROTOCOL_VER</span><span class="p">);</span>
+
+  <span class="c1">// The request is a sequence of strings so we first figure out the
+</span><span class="c1"></span>  <span class="c1">// expected count and the maximum possible length of the request.
+</span><span class="c1"></span>  <span class="c1">// The request is:
+</span><span class="c1"></span>  <span class="c1">//   &lt;ver&gt;0&lt;cmd&gt;0&lt;arg&gt;0&lt;arg&gt;0&lt;arg&gt;0
+</span><span class="c1"></span>  <span class="c1">// where &lt;ver&gt; is the protocol version (1), &lt;cmd&gt; is the command
+</span><span class="c1"></span>  <span class="c1">// name (&#34;load&#34;, &#34;datadump&#34;, ...), and &lt;arg&gt; is an argument
+</span><span class="c1"></span>  <span class="kt">int</span> <span class="n">expected_str_count</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">AttachOperation</span><span class="o">::</span><span class="n">arg_count_max</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">int</span> <span class="n">max_len</span> <span class="o">=</span> <span class="p">(</span><span class="k">sizeof</span><span class="p">(</span><span class="n">ver_str</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">AttachOperation</span><span class="o">::</span><span class="n">name_length_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
+    <span class="n">AttachOperation</span><span class="o">::</span><span class="n">arg_count_max</span><span class="o">*</span><span class="p">(</span><span class="n">AttachOperation</span><span class="o">::</span><span class="n">arg_length_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+
+  <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">max_len</span><span class="p">];</span>
+  <span class="kt">int</span> <span class="n">str_count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+
+  <span class="p">...</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div>
+<h2 id="conclusion">Conclusion</h2>
+
+<p>That&rsquo;s the entire interactive process of the <strong>Java Attach Mechanism</strong>. After
+walking through the source code, we have a better understanding of this
+mechanism, which is widely used by many tools like <em>JStack</em>, <em>JPS</em>,
+<em>Async-Profiler</em>, etc.</p>
+
+<p>We can see the core method to enable <strong>Attach</strong> is <strong>Unix Domain Socket</strong>, JVM
+subcribes some basic functions, and through a declaired protocal, some other
+process may <em>call</em> these functions to dump threads, dump heaps, etc.</p>
+
+<p>In addition, rather than launch the socket server on starting, JVM decide to
+launch the server when several requirements satisfied, including <code>SIGQUIT</code>
+signal recieved, <code>.Attach_pid&lt;PID&gt;</code> file found, etc.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+<li><a href="http://lovestblog.cn/blog/2014/06/18/jvm-attach/">http://lovestblog.cn/blog/2014/06/18/jvm-attach/</a></li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2019-11-11
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/java/">java</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/new-vs-make/">
+            <span class="next-text nav-default">New() vs Make()</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2019
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Wenfeng</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script id="baidu_analytics">
+  var _hmt = _hmt || [];
+  (function() {
+    if (window.location.hostname === 'localhost') return;
+    var hm = document.createElement("script"); hm.async = true;
+    hm.src = "https://hm.baidu.com/hm.js?2394a408cca2a9e611801f76b5dc0267";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+
+
+
+
+
+
+</body>
+</html>
