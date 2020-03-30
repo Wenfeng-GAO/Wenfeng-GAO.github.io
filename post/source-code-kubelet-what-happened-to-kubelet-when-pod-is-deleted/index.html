@@ -16,10 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
-<meta name="author" content="Wenfeng" /><meta name="description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
-Conclusion Before discussing the implementation details of the source code, let&amp;rsquo;s stand high and talk about the general process that Kubelet will make.
-For example, we start by deleting a pod.
-1  kubectl delete pod &amp;lt;pod&amp;gt;   kube-apiserver won&amp;rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the ." /><meta name="keywords" content="kubernetes, kubelet, source code go through" />
+<meta name="author" content="Wenfeng" /><meta name="description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&amp;rsquo;s go through the code module by module while keeping these questions in mind." /><meta name="keywords" content="kubernetes, kubelet, source code go through" />
 
 
 
@@ -53,31 +50,22 @@ For example, we start by deleting a pod.
 
 
 <meta property="og:title" content="What Happened to Kubelet When Pod Is Deleted" />
-<meta property="og:description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
-Conclusion Before discussing the implementation details of the source code, let&rsquo;s stand high and talk about the general process that Kubelet will make.
-For example, we start by deleting a pod.
-1  kubectl delete pod &lt;pod&gt;   kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the ." />
+<meta property="og:description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&rsquo;s go through the code module by module while keeping these questions in mind." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/" />
 <meta property="article:published_time" content="2020-03-26T04:11:32+08:00" />
 <meta property="article:modified_time" content="2020-03-31T04:11:32+08:00" />
 <meta itemprop="name" content="What Happened to Kubelet When Pod Is Deleted">
-<meta itemprop="description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
-Conclusion Before discussing the implementation details of the source code, let&rsquo;s stand high and talk about the general process that Kubelet will make.
-For example, we start by deleting a pod.
-1  kubectl delete pod &lt;pod&gt;   kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the .">
+<meta itemprop="description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&rsquo;s go through the code module by module while keeping these questions in mind.">
 <meta itemprop="datePublished" content="2020-03-26T04:11:32&#43;08:00" />
 <meta itemprop="dateModified" content="2020-03-31T04:11:32&#43;08:00" />
-<meta itemprop="wordCount" content="2087">
+<meta itemprop="wordCount" content="2118">
 
 
 
 <meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="What Happened to Kubelet When Pod Is Deleted"/>
-<meta name="twitter:description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
-Conclusion Before discussing the implementation details of the source code, let&rsquo;s stand high and talk about the general process that Kubelet will make.
-For example, we start by deleting a pod.
-1  kubectl delete pod &lt;pod&gt;   kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the ."/>
+<meta name="twitter:description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&rsquo;s go through the code module by module while keeping these questions in mind."/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -156,7 +144,9 @@ For example, we start by deleting a pod.
     
     <div class="post-content">
       <p>The source code of Kubelet is quite complicated. In order to better understand
-it, we start by thinking about an operation we</p>
+it, we start by thinking about an operation we play normally: delete a pod.</p>
+<p>What will happen to Kubelet and how will it delete containers eventually? Let&rsquo;s
+go through the code module by module while keeping these questions in mind.</p>
 <h2 id="conclusion">Conclusion</h2>
 <p>Before discussing the implementation details of the source code, let&rsquo;s stand
 high and talk about the general process that Kubelet will make.</p>

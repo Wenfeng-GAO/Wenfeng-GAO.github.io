@@ -17,10 +17,7 @@
       <pubDate>Thu, 26 Mar 2020 04:11:32 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</guid>
-      <description>The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
-Conclusion Before discussing the implementation details of the source code, let&amp;rsquo;s stand high and talk about the general process that Kubelet will make.
-For example, we start by deleting a pod.
-1  kubectl delete pod &amp;lt;pod&amp;gt;   kube-apiserver won&amp;rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the .</description>
+      <description>The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&amp;rsquo;s go through the code module by module while keeping these questions in mind.</description>
     </item>
     
     <item>
