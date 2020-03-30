@@ -37,7 +37,7 @@ Step 1 Create MySQL service Create a unit file mysql.service
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/" />
@@ -66,16 +66,13 @@ Step 1 Create MySQL service Create a unit file mysql.service
 Ok, ssh to one of your cluster node, let&rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
 1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd.">
-
-
 <meta itemprop="datePublished" content="2016-06-03T18:22:13&#43;08:00" />
 <meta itemprop="dateModified" content="2016-06-03T18:22:13&#43;08:00" />
-<meta itemprop="wordCount" content="171">
+<meta itemprop="wordCount" content="168">
 
 
 
-<meta itemprop="keywords" content="coreos,docker," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="coreos,docker," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Deploy Worldpress in Coreos Cluster Using Fleet"/>
 <meta name="twitter:description" content="In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&rsquo;t have one.
 Ok, ssh to one of your cluster node, let&rsquo;s start.
@@ -156,40 +153,18 @@ Step 1 Create MySQL service Create a unit file mysql.service
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#step-1-create-mysql-service">Step 1 Create MySQL service</a></li>
-<li><a href="#step-2-create-wordpress-service">Step 2 Create WordPress service</a></li>
-<li><a href="#a-bit-explanation">A bit Explanation</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>In this post, I would like to tell you how to deploy a simple WorldPress service
+      <p>In this post, I would like to tell you how to deploy a simple WorldPress service
 with MySQL database in <a href="https://coreos.com/">CoreOS cluster</a> in 3 minutes.
 You may reference <a href="http://wenfeng-gao.github.io/2016/05/30/setup-coreos-cluster-in-virtualbox.html">my previous blog</a>
- to setup a CoreOS cluster locally if you don&rsquo;t have one.</p>
-
+to setup a CoreOS cluster locally if you don&rsquo;t have one.</p>
 <p>Ok, <code>ssh</code> to one of your cluster node, let&rsquo;s start.</p>
-
 <h3 id="step-1-create-mysql-service">Step 1 Create MySQL service</h3>
-
 <p>Create a unit file <code>mysql.service</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -214,33 +189,20 @@ You may reference <a href="http://wenfeng-gao.github.io/2016/05/30/setup-coreos-
 </span><span class="w"></span>ExecStartPre=-/usr/bin/docker<span class="w"> </span>rm<span class="w"> </span>mysql<span class="w">
 </span><span class="w"></span>ExecStartPre=/usr/bin/docker<span class="w"> </span>pull<span class="w"> </span>mysql<span class="p">:</span><span class="m">5.7</span><span class="w">
 </span><span class="w"></span>ExecStart=/usr/bin/docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>mysql<span class="w"> </span>-e<span class="w"> </span>MYSQL_ROOT_PASSWORD=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>-e<span class="w"> </span>MYSQL_DATABASE=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>-e<span class="w"> </span>MYSQL_USER=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>-e<span class="w"> </span>MYSQL_PASSWORD=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>mysql<span class="p">:</span><span class="m">5.7</span><span class="w">
-</span><span class="w"></span>ExecStop=/usr/bin/docker<span class="w"> </span>stop<span class="w"> </span>mysql</code></pre></td></tr></table>
+</span><span class="w"></span>ExecStop=/usr/bin/docker<span class="w"> </span>stop<span class="w"> </span>mysql<span class="w">
+</span></code></pre></td></tr></table>
 </div>
-</div>
-<p>To start service, run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">fleetctl start mysql.service</pre></td></tr></table>
-</div>
-</div>
+</div><p>To start service, run</p>
+<pre><code>fleetctl start mysql.service
+</code></pre>
 <p>To view its status, (normally it should be <em>active</em> and <em>running</em>) run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">fleetctl list-units</pre></td></tr></table>
-</div>
-</div>
+<pre><code>fleetctl list-units
+</code></pre>
 <h3 id="step-2-create-wordpress-service">Step 2 Create WordPress service</h3>
-
 <p>Create the second unit file <code>wordpress.service</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -269,25 +231,16 @@ You may reference <a href="http://wenfeng-gao.github.io/2016/05/30/setup-coreos-
 </span><span class="w"></span>ExecStop=/usr/bin/docker<span class="w"> </span>stop<span class="w"> </span>wordpress<span class="w">
 </span><span class="w">
 </span><span class="w"></span><span class="p">[</span>X-Fleet<span class="p">]</span><span class="w">
-</span><span class="w"></span>X-ConditionMachineOf=mysql.service</code></pre></td></tr></table>
+</span><span class="w"></span>X-ConditionMachineOf=mysql.service<span class="w">
+</span></code></pre></td></tr></table>
 </div>
-</div>
-<p>Run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">fleetctl start wordpress.service</pre></td></tr></table>
-</div>
-</div>
+</div><p>Run</p>
+<pre><code>fleetctl start wordpress.service
+</code></pre>
 <p>Ok, it&rsquo;s done! Go <em>http://&lt;your-coreos-host-ip&gt;:8880</em> and you should see the
 WordPress install page.</p>
-
-<p><img src="http://pn9ta8hbk.bkt.clouddn.com/wordpress.PNG" alt="WordPress Install Page" /></p>
-
+<p><img src="http://pn9ta8hbk.bkt.clouddn.com/wordpress.PNG" alt="WordPress Install Page"></p>
 <h3 id="a-bit-explanation">A bit Explanation</h3>
-
 <ul>
 <li><code>TimeoutStartSec=0</code> aims to turning off timeouts, as the <code>docker pull</code> may take
 a while</li>
@@ -382,7 +335,7 @@ same host with <em>mysql</em> service</li>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

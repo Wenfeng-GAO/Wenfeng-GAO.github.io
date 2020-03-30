@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2019-09-29T16:06:44+08:00" />
 <meta itemprop="name" content="Why Does Kubelet Modify File Permissions">
 <meta itemprop="description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted.">
-
-
 <meta itemprop="datePublished" content="2019-09-29T16:06:44&#43;08:00" />
 <meta itemprop="dateModified" content="2019-09-29T16:06:44&#43;08:00" />
 <meta itemprop="wordCount" content="989">
 
 
 
-<meta itemprop="keywords" content="kubernetes,kubelet," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Why Does Kubelet Modify File Permissions"/>
 <meta name="twitter:description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted."/>
 
@@ -146,36 +143,19 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#background">Background</a></li>
-<li><a href="#trouble-shooting">Trouble Shooting</a></li>
-<li><a href="#ref">Ref</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<h2 id="background">Background</h2>
-
+      <h2 id="background">Background</h2>
 <p>Recently, I found an interesting effect. I have some pods which use flexVolume,
 and after pods are <em>Running</em>, I&rsquo;ll put some <strong>readOnly</strong> files in this volume
 directory. The intersting part is that these files will become <strong>writable</strong> every
 time after kubelet being restarted.</p>
-
 <ul>
-<li><p>Before kubelet restarts</p>
+<li>Before kubelet restarts</li>
+</ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -183,19 +163,20 @@ time after kubelet being restarted.</p>
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">-rw-r--r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test1
----------- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test2
--r----x--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test3
----x--x--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test4
--r--r----- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test5
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:05 test6</code></pre></td></tr></table>
+<pre class="chroma"><code class="language-bash" data-lang="bash">-rw-r--r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test1
+---------- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test2
+-r----x--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test3
+---x--x--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test4
+-r--r----- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test5
+-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:05 test6
+</code></pre></td></tr></table>
 </div>
-</div></li>
-
-<li><p>After kubelet restarts</p>
+</div><ul>
+<li>After kubelet restarts</li>
+</ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -203,16 +184,17 @@ time after kubelet being restarted.</p>
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">-rw-rw-r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test1
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test2
--rw-rwx--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test3
--rwxrwx--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test4
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:03 test5
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> <span class="m">11</span>:05 test6</code></pre></td></tr></table>
+<pre class="chroma"><code class="language-bash" data-lang="bash">-rw-rw-r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test1
+-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test2
+-rw-rwx--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test3
+-rwxrwx--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test4
+-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test5
+-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:05 test6
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -222,28 +204,24 @@ time after kubelet being restarted.</p>
 </span><span class="lnt">8
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">File: ‘test1’
-Size: <span class="m">0</span>         	Blocks: <span class="m">0</span>          IO Block: <span class="m">4096</span>   regular empty file
+<pre class="chroma"><code class="language-bash" data-lang="bash">  File: ‘test1’
+  Size: <span class="m">0</span>         	Blocks: <span class="m">0</span>          IO Block: <span class="m">4096</span>   regular empty file
 Device: fd01h/64769d	Inode: <span class="m">404813664</span>   Links: <span class="m">1</span>
-Access: <span class="o">(</span><span class="m">0664</span>/-rw-rw-r--<span class="o">)</span>  Uid: <span class="o">(</span>    <span class="m">0</span>/    root<span class="o">)</span>   Gid: <span class="o">(</span> <span class="m">2000</span>/ UNKNOWN<span class="o">)</span>
-Access: <span class="m">2019</span>-09-27 <span class="m">11</span>:03:57.045523223 +0800
-Modify: <span class="m">2019</span>-09-27 <span class="m">11</span>:03:57.045523223 +0800
-Change: <span class="m">2019</span>-09-27 <span class="m">11</span>:07:21.387847127 +0800
-Birth: -</code></pre></td></tr></table>
+Access: <span class="o">(</span>0664/-rw-rw-r--<span class="o">)</span>  Uid: <span class="o">(</span>    0/    root<span class="o">)</span>   Gid: <span class="o">(</span> 2000/ UNKNOWN<span class="o">)</span>
+Access: 2019-09-27 11:03:57.045523223 +0800
+Modify: 2019-09-27 11:03:57.045523223 +0800
+Change: 2019-09-27 11:07:21.387847127 +0800
+ Birth: -
+</code></pre></td></tr></table>
 </div>
-</div></li>
-</ul>
-
-<h2 id="trouble-shooting">Trouble Shooting</h2>
-
+</div><h2 id="trouble-shooting">Trouble Shooting</h2>
 <p>I failed finding something valuable after tracking kubelet logs. So I decide to
 search the root cause in kubelet source code.</p>
-
 <p>Fortunately, I found the code where kubelet does change the files&rsquo; permissions.
 <code>pkg/volume/flexvolume/mounter.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -356,18 +334,17 @@ search the root cause in kubelet source code.</p>
 	<span class="p">}</span>
 
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>The key point is on <em>line N. 51</em>, which will <code>SetVolumeOwnership</code> when volume is not <code>readOnly</code>
+</div><p>The key point is on <em>line N. 51</em>, which will <code>SetVolumeOwnership</code> when volume is not <code>readOnly</code>
 and pod seted <code>FSGroup</code>.</p>
-
 <p>In function <code>SetVolumeOwnership</code>, we can see that kubelet modifies file
 permissions by <code>OR 0440</code>.
 <code>pkg/volume/volume_linux.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -492,14 +469,14 @@ permissions by <code>OR 0440</code>.
 
 		<span class="k">return</span> <span class="kc">nil</span>
 	<span class="p">})</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>And in <code>PodSecurityContext</code> struct, we can find the comments which already point
+</div><p>And in <code>PodSecurityContext</code> struct, we can find the comments which already point
 out this case.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -528,17 +505,14 @@ out this case.</p>
 </span><span class="c1"></span>    <span class="c1">// If unset, the Kubelet will not modify the ownership and permissions of any volume.
 </span><span class="c1"></span>    <span class="c1">// +optional
 </span><span class="c1"></span>    <span class="nx">FSGroup</span> <span class="o">*</span><span class="kt">int64</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>And as it says, <em>Some volume types allow the Kubelet to change the ownership of
+</div><p>And as it says, <em>Some volume types allow the Kubelet to change the ownership of
 that volume</em>, and I found <code>hostPath</code> won&rsquo;t change the ownership of volume.</p>
-
 <p>Why it&rsquo;s designed like this? I found the design proposal(<a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/volume-ownership-management.md">Proposal Volume Plugins and Idempotency</a>),
 but still, it didn&rsquo;t explain what&rsquo;s the point to <code>OR 0440</code> to all files.</p>
-
 <h2 id="ref">Ref</h2>
-
 <ul>
 <li><a href="https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/volume-ownership-management.md">Proposal Volume Plugins and Idempotency</a></li>
 </ul>
@@ -630,7 +604,7 @@ but still, it didn&rsquo;t explain what&rsquo;s the point to <code>OR 0440</code
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

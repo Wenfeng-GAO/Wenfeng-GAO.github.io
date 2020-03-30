@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>coreos on Je pense donc je suis</title>
@@ -52,7 +52,8 @@ Step 1 Create MySQL service Create a unit file mysql.service
       <pubDate>Mon, 30 May 2016 18:21:53 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</guid>
-      <description>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.</description>
+      <description>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.
+So as I made it work finally, it&amp;rsquo;s time to share with others.</description>
     </item>
     
   </channel>

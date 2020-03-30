@@ -36,7 +36,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/a-little-taste-on-react/" />
@@ -63,16 +63,13 @@
 <meta itemprop="description" content="I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:
  So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.
  &ldquo;Maybe I should listen to this guy&rsquo;s suggestion&rdquo;, I said to myself, so I spent a week to understand what is React and how to use it.">
-
-
 <meta itemprop="datePublished" content="2017-12-06T18:23:43&#43;08:00" />
 <meta itemprop="dateModified" content="2017-12-06T18:23:43&#43;08:00" />
-<meta itemprop="wordCount" content="465">
+<meta itemprop="wordCount" content="449">
 
 
 
-<meta itemprop="keywords" content="react," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="react," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="A Little Taste on React"/>
 <meta name="twitter:description" content="I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:
  So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.
@@ -152,132 +149,75 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#what-is-react">What is React</a></li>
-<li><a href="#why-use-it">Why use it</a></li>
-<li><a href="#easiest-way-to-product">Easiest way to product</a></li>
-<li><a href="#bonus">Bonus :)</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>I have some experience on Android development, and recently for some reason I
+      <p>I have some experience on Android development, and recently for some reason I
 want to try <a href="http://facebook.github.io/react-native/">React Native</a>. As the RN
 official tutorial said:</p>
-
 <blockquote>
 <p>So to understand the basic structure of a React Native app, you need to
 understand some of the basic React concepts, like JSX, components, state, and props.</p>
 </blockquote>
-
 <p>&ldquo;Maybe I should listen to this guy&rsquo;s suggestion&rdquo;, I said to myself, so I
 spent a week to understand what is React and how to use it.</p>
-
 <p>So this article is from a front-end newbie&rsquo;s point of view, hope that may help
 another curious newbie. :)</p>
-
 <h3 id="what-is-react">What is React</h3>
-
 <p><a href="https://facebook.github.io/react/">React</a> is a JavaScript library for building
 user interfaces.</p>
-
 <p>So it&rsquo;s not a framework, in a traditional MVC model, it will only help you in View
 part.</p>
-
 <p>It enables you to have <em>components</em> as the basic block of your UI, but this have
 nothing related to <a href="http://getbootstrap.com">Bootstrap</a> components, you have to
 write your own <em>components</em>(Of course using HTML, CSS and JavaScript).</p>
-
 <h3 id="why-use-it">Why use it</h3>
-
 <p>So what can React do for us? Why we should learn or use it(By the way, it&rsquo;s
 learning curve is a bit over my expectation)?</p>
-
 <p>It does have good reasons:</p>
-
 <ul>
-<li><p><strong>Component-Based.</strong>
+<li>
+<p><strong>Component-Based.</strong>
 Keep <em>component</em> as the basic block is really a good thing. It&rsquo;s much easier to
 maintain and reconstruct the code, to cooperate with other developers, to separate
-tasks in team, etc.</p></li>
-
-<li><p><strong>Declarative.</strong>
-As all HTMLs are encapsulated by JavaScript in *component*s, we can name them
+tasks in team, etc.</p>
+</li>
+<li>
+<p><strong>Declarative.</strong>
+As all HTMLs are encapsulated by JavaScript in <em>component</em>s, we can name them
 meaningfully instead of <code>&lt;form&gt;</code> or <code>&lt;div&gt;</code>, etc. Declarative views make your code
-more predictable and easier to read and debug.</p></li>
-
-<li><p><strong>Speed.</strong>
+more predictable and easier to read and debug.</p>
+</li>
+<li>
+<p><strong>Speed.</strong>
 React is fast, because instead of rendering the full web page, it will efficiently
-update and render just the right components when your data changes.</p></li>
+update and render just the right components when your data changes.</p>
+</li>
 </ul>
-
 <h3 id="easiest-way-to-product">Easiest way to product</h3>
-
 <p>For me the easiest way to play locally and build for production is to use <code>npm</code>.
 To start a project, I use <code>create-react-app</code>.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">npm install -g create-react-app
+<pre><code>npm install -g create-react-app
 create-react-app hello-world
 cd hello-world
-npm start</pre></td></tr></table>
-</div>
-</div>
+npm start
+</code></pre>
 <p><code>npm start</code> will start a local server and serve on <code>http://localhost:3000</code>. Every
 time you save your changes, it&rsquo;ll regenerate and refresh the web page for you,
 that is really friendly to debug.</p>
-
 <p>If you want to put your craft on your server, <code>npm run build</code> will help.</p>
-
 <p>It generates static files in <code>build</code> directory.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span><span class="lnt">5
-</span><span class="lnt">6
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">➜  tic-tac-toe git:(dev) ll build
+<pre><code>➜  tic-tac-toe git:(dev) ll build
 total 72
 -rw-r--r--  1 Wenfeng  staff   257B 12  5 23:02 asset-manifest.json
 -rw-r--r--  1 Wenfeng  staff    24K 12  5 23:02 favicon.ico
 -rw-r--r--  1 Wenfeng  staff   455B 12  5 23:02 index.html
-drwxr-xr-x  6 Wenfeng  staff   204B 12  5 23:02 static</pre></td></tr></table>
-</div>
-</div>
+drwxr-xr-x  6 Wenfeng  staff   204B 12  5 23:02 static
+</code></pre>
 <p>and the only thing you have to do is to put them onto your server.</p>
-
-<h3 id="bonus">Bonus :)</h3>
-
+<h3 id="bonus-">Bonus :)</h3>
 <p>I put one of my two demos online:
 <a href="http://demos.com.s3-website-us-east-1.amazonaws.com/tic-tac-toe/">tic-tac-toe</a></p>
-
-<iframe src="http://demos.com.s3-website-us-east-1.amazonaws.com/tic-tac-toe/" width="700" height="700">
-  <p>Your browser does not support iframes.</p>
-</iframe>
-
+<!-- raw HTML omitted -->
 <p>Source code: <a href="https://github.com/Wenfeng-GAO/tic-tac-toe">Wenfeng-GAO/tic-tac-toe</a></p>
 
     </div>
@@ -366,7 +306,7 @@ drwxr-xr-x  6 Wenfeng  staff   204B 12  5 23:02 static</pre></td></tr></table>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/8-classical-sorting-algorithms/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2019-09-29T23:17:50+08:00" />
 <meta itemprop="name" content="8 Classical Sorting Algorithms">
 <meta itemprop="description" content="In this article, I&rsquo;ll review the following 8 classical sorting algorithms, and implement them in Go.">
-
-
 <meta itemprop="datePublished" content="2019-09-29T23:17:50&#43;08:00" />
 <meta itemprop="dateModified" content="2019-09-29T23:17:50&#43;08:00" />
 <meta itemprop="wordCount" content="1427">
 
 
 
-<meta itemprop="keywords" content="algorithms," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="algorithms," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="8 Classical Sorting Algorithms"/>
 <meta name="twitter:description" content="In this article, I&rsquo;ll review the following 8 classical sorting algorithms, and implement them in Go."/>
 
@@ -146,44 +143,9 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#highly-inefficient-sorts">Highly inefficient sorts</a>
-<ul>
-<li><a href="#bubble-sort">Bubble sort</a></li>
-</ul></li>
-<li><a href="#simple-sorts">Simple sorts</a>
-<ul>
-<li><a href="#selection-sort">Selection sort</a></li>
-<li><a href="#insertion-sort">Insertion sort</a></li>
-<li><a href="#shell-sort">Shell sort</a></li>
-</ul></li>
-<li><a href="#efficient-sorts">Efficient sorts</a>
-<ul>
-<li><a href="#heap-sort">Heap sort</a></li>
-<li><a href="#merge-sort">Merge sort</a></li>
-<li><a href="#quick-sort">Quick sort</a></li>
-</ul></li>
-<li><a href="#non-comparison-sorts">Non-comparison sorts</a>
-<ul>
-<li><a href="#lsd-radix-sort">LSD Radix sort</a></li>
-</ul></li>
-<li><a href="#references">References</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>In this article, I&rsquo;ll review the following 8 classical sorting algorithms, and implement them in Go:</p>
-
+      <p>In this article, I&rsquo;ll review the following 8 classical sorting algorithms, and implement them in Go:</p>
 <ul>
 <li>bubble sort</li>
 <li>selection sort</li>
@@ -194,28 +156,22 @@
 <li>heap sort</li>
 <li>radix sort</li>
 </ul>
-
 <p>These basic sorting algorithms are sometimes favored by interviewers, and the
 ideas of these classical sorting algorithms(like merge sort, quick sort, heap sort,
 etc.) are sometimes the key points of algorithm problems, so it&rsquo;s worth
 taking time on it.</p>
-
 <h2 id="highly-inefficient-sorts">Highly inefficient sorts</h2>
-
 <h3 id="bubble-sort">Bubble sort</h3>
-
 <p>Bubble sort is simple but highly inefficient, so it&rsquo;s rarely used in practice,
 unless in situation where inputs data is very small or nearly sorted.</p>
-
 <p>The algorithms is to compare adjsent two numbers, swap them if first is larger
 than second, from beginning to end. Every time the biggest so far will pop to
 the right, and every time it takes O(n) time complexity and it needs n times, so
 the time complexity is O(n2).</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/bubble_sort.gif" alt="bubble sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/bubble_sort.gif" alt="bubble sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -234,29 +190,23 @@ the time complexity is O(n2).</p>
 			<span class="p">}</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="simple-sorts">Simple sorts</h2>
-
+</div><h2 id="simple-sorts">Simple sorts</h2>
 <p>Two of the simplest sorts are insertion sort and selection sort, both of which
 are efficient on small data.</p>
-
 <h3 id="selection-sort">Selection sort</h3>
-
 <p>Selection sort is very simple:</p>
-
 <ol>
 <li>find the minimum in the list</li>
 <li>swap with the i index</li>
 </ol>
-
 <p>Its time complexity is O(n2).</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/selection_sort.gif" alt="selection sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/selection_sort.gif" alt="selection sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -279,20 +229,17 @@ are efficient on small data.</p>
 		<span class="p">}</span>
 		<span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">minIndex</span><span class="p">]</span> <span class="p">=</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">minIndex</span><span class="p">],</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="insertion-sort">Insertion sort</h3>
-
+</div><h3 id="insertion-sort">Insertion sort</h3>
 <p>Insertion sort is used in cases where the input data is small or partly sorted.
 The idea is to pick one from unsorted list and insert into sorted part.</p>
-
 <p>Its time complexity is O(n2).</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/insertion_sort.gif" alt="insertion sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/insertion_sort.gif" alt="insertion sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -307,20 +254,18 @@ The idea is to pick one from unsorted list and insert into sorted part.</p>
 			<span class="nx">nums</span><span class="p">[</span><span class="nx">j</span><span class="p">],</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">j</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="p">=</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">j</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">j</span><span class="p">]</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="shell-sort">Shell sort</h3>
-
+</div><h3 id="shell-sort">Shell sort</h3>
 <p>Shell sort improves upon insertion sort by moving out of order elements more
 than one position at a time. It will separate data by <em>gap</em> and sort each group
 by <em>insertion sort</em>, and continously decrease <em>gap</em> until it reaches 1, in that
 case it becomes <em>insertion sort</em> completely.</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/shell_sort.gif" alt="shell sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/shell_sort.gif" alt="shell sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -339,25 +284,21 @@ case it becomes <em>insertion sort</em> completely.</p>
 			<span class="p">}</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="efficient-sorts">Efficient sorts</h2>
-
+</div><h2 id="efficient-sorts">Efficient sorts</h2>
 <h3 id="heap-sort">Heap sort</h3>
-
 <p>Heapsort is a much more efficient version of <em>selection sort</em>. It also works by
 determining the largest (or smallest) element of the list, placing that at the
 end (or beginning) of the list, then continuing with the rest of the list, but
 accomplishes this task efficiently by using a data structure called a heap, a
 special type of binary tree.</p>
-
 <p>Using the heap, finding the next largest element takes O(log n) time, instead of O(n) for a linear scan as in simple selection sort. This allows Heapsort to run in O(n log n) time, and this is also the worst case complexity.</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/heap_sort.gif" alt="heap sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/heap_sort.gif" alt="heap sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -424,26 +365,22 @@ special type of binary tree.</p>
 			<span class="k">return</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="merge-sort">Merge sort</h3>
-
+</div><h3 id="merge-sort">Merge sort</h3>
 <p>The concept of merge sort: <em>Divide and Conquer</em> is widely used for solving other
 questions. Basically it works as follows:</p>
-
 <ol>
 <li>If the length of list is smaller or equal than 1, it&rsquo;s sorted</li>
 <li>Divide the list to two sublist and sort them recursively</li>
 <li>Merge two sorted list into one</li>
 </ol>
-
 <p>Its time complexity is O(n2), and it needs O(n) space.</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/merge_sort.gif" alt="merge sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/merge_sort.gif" alt="merge sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -520,17 +457,15 @@ questions. Basically it works as follows:</p>
 	<span class="k">for</span> <span class="nx">i</span><span class="p">,</span> <span class="nx">v</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">tmp</span> <span class="p">{</span>
 		<span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="p">=</span> <span class="nx">v</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="quick-sort">Quick sort</h3>
-
+</div><h3 id="quick-sort">Quick sort</h3>
 <p>Quicksort is a <em>divide and conquer</em> algorithm which relies on a <em>partition</em> operation: to partition an array, an element called a pivot is selected. All elements smaller than the pivot are moved before it and all greater elements are moved after it. This can be done efficiently in linear time and in-place. The lesser and greater sublists are then recursively sorted. This yields average time complexity of O(n log n), with low overhead, and thus this is a popular algorithm.</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/quick_sort.gif" alt="quick sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/quick_sort.gif" alt="quick sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -577,23 +512,19 @@ questions. Basically it works as follows:</p>
 	<span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="p">=</span> <span class="nx">pivot</span>
 	<span class="nf">quickSort</span><span class="p">(</span><span class="nx">nums</span><span class="p">[:</span><span class="nx">i</span><span class="p">])</span>
 	<span class="nf">quickSort</span><span class="p">(</span><span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="o">+</span><span class="mi">1</span><span class="p">:])</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="non-comparison-sorts">Non-comparison sorts</h2>
-
+</div><h2 id="non-comparison-sorts">Non-comparison sorts</h2>
 <h3 id="lsd-radix-sort">LSD Radix sort</h3>
-
 <p>Radix sort is an integer sorting algorithm that sorts data with integer keys by
 grouping the keys by individual digits that share the same significant position
 and value (place value).</p>
-
 <p>Radix sort uses counting sort as a subroutine to sort an array of numbers.</p>
-
-<p><img src="/post/8-classical-sorting-algorithms/radix_sort.png" alt="radix sort" /></p>
+<p><img src="/post/8-classical-sorting-algorithms/radix_sort.png" alt="radix sort"></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -696,11 +627,10 @@ and value (place value).</p>
 		<span class="nx">pow</span><span class="p">,</span> <span class="nx">d</span> <span class="p">=</span> <span class="nx">pow</span><span class="o">*</span><span class="mi">10</span><span class="p">,</span> <span class="nx">d</span><span class="o">-</span><span class="mi">1</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="nx">n</span> <span class="o">/</span> <span class="nx">pow</span> <span class="o">%</span> <span class="mi">10</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="references">References</h2>
-
+</div><h2 id="references">References</h2>
 <ul>
 <li><a href="https://en.wikipedia.org/wiki/Sorting_algorithm">Wiki sorting algorithm</a></li>
 <li><a href="https://brilliant.org/wiki/radix-sort/">Radix sort</a></li>
@@ -793,7 +723,7 @@ and value (place value).</p>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

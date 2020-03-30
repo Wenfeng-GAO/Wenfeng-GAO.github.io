@@ -18,7 +18,7 @@
 
 <meta name="author" content="Wenfeng" /><meta name="description" content="Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
 I wish all the commit messages will follow the pattern like:
-1 2 3 4  [Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.   However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed." /><meta name="keywords" content="Hugo, blog, tech" />
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia." /><meta name="keywords" content="Hugo, blog, tech" />
 
 
 
@@ -36,7 +36,7 @@ I wish all the commit messages will follow the pattern like:
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/simple-commit-msg-hook/" />
@@ -54,7 +54,7 @@ I wish all the commit messages will follow the pattern like:
 <meta property="og:title" content="Simple Commit-Msg for Git Hook" />
 <meta property="og:description" content="Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
 I wish all the commit messages will follow the pattern like:
-1 2 3 4  [Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.   However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed." />
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/simple-commit-msg-hook/" />
 <meta property="article:published_time" content="2017-09-28T18:23:26+08:00" />
@@ -62,21 +62,18 @@ I wish all the commit messages will follow the pattern like:
 <meta itemprop="name" content="Simple Commit-Msg for Git Hook">
 <meta itemprop="description" content="Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
 I wish all the commit messages will follow the pattern like:
-1 2 3 4  [Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.   However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed.">
-
-
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.">
 <meta itemprop="datePublished" content="2017-09-28T18:23:26&#43;08:00" />
 <meta itemprop="dateModified" content="2017-09-28T18:23:26&#43;08:00" />
-<meta itemprop="wordCount" content="399">
+<meta itemprop="wordCount" content="361">
 
 
 
-<meta itemprop="keywords" content="git,shell," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="git,shell," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Simple Commit-Msg for Git Hook"/>
 <meta name="twitter:description" content="Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
 I wish all the commit messages will follow the pattern like:
-1 2 3 4  [Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.   However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed."/>
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia."/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -152,66 +149,23 @@ I wish all the commit messages will follow the pattern like:
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#create-commit-msg-file">Create <code>commit-msg</code> file</a></li>
-<li><a href="#test">Test</a></li>
-<li><a href="#references">References</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>Although I am the only contributor of my own Github project, I still want my
+      <p>Although I am the only contributor of my own Github project, I still want my
 commit message to be tidier.</p>
-
 <p>I wish all the commit messages will follow the pattern like:</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span><span class="lnt">4
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">[Example]: This is an Example.
+<pre><code>[Example]: This is an Example.
 [Exercise]: This ia an Exercise.
 [Problem]: A problem solved.
-[Other]: Maybe a merge commit.</pre></td></tr></table>
-</div>
-</div>
+[Other]: Maybe a merge commit.
+</code></pre>
 <p>However, I usually remember to follow this pattern after the commit, that&rsquo;s
 really disappointed. So I decided to write a simple hook to prevent this kind of
 Amnesia.</p>
-
 <h2 id="create-commit-msg-file">Create <code>commit-msg</code> file</h2>
-
 <p>Hooks reside in the .git/hooks directory of every Git repository. And if we go
 to that directory, we&rsquo;ll find several example hooks.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">Wenfeng-GAO.github.io git:(new-blog) ✗ ll .git/hooks
+<pre><code>Wenfeng-GAO.github.io git:(new-blog) ✗ ll .git/hooks
 total 80
 -rwxr-xr-x  1 Wenfeng  staff   478B May 21 09:36 applypatch-msg.sample
 -rwxr-xr-x  1 Wenfeng  staff   896B May 21 09:36 commit-msg.sample
@@ -221,93 +175,45 @@ total 80
 -rwxr-xr-x  1 Wenfeng  staff   1.3K May 21 09:36 pre-push.sample
 -rwxr-xr-x  1 Wenfeng  staff   4.8K May 21 09:36 pre-rebase.sample
 -rwxr-xr-x  1 Wenfeng  staff   1.2K May 21 09:36 prepare-commit-msg.sample
--rwxr-xr-x  1 Wenfeng  staff   3.5K May 21 09:36 update.sample</pre></td></tr></table>
-</div>
-</div>
+-rwxr-xr-x  1 Wenfeng  staff   3.5K May 21 09:36 update.sample
+</code></pre>
 <p>So first of all, we create a real <code>commit-msg</code> file in this directory, and make
 it executable.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">cd .git/hooks
+<pre><code>cd .git/hooks
 touch commit-msg
-chmod a+x commit-msg</pre></td></tr></table>
-</div>
-</div>
+chmod a+x commit-msg
+</code></pre>
 <p>And here is what I did for the purpose of fixing commit message pattern.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma"><span class="cp">#!/bin/bash
-</span><span class="cp"></span>
-<span class="c1"># regex to validate in commit msg</span>
-<span class="nv">commit_regex</span><span class="o">=</span><span class="s1">&#39;\[(Example|Exercise|Problem|Other)\]:&#39;</span>
+<pre><code>#!/bin/bash
 
-<span class="nv">RED</span><span class="o">=</span><span class="s1">&#39;\033[0;31m&#39;</span>
-<span class="nv">NC</span><span class="o">=</span><span class="s1">&#39;\033[0m&#39;</span> <span class="c1"># No Color</span>
-<span class="nv">error_msg</span><span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">RED</span><span class="si">}</span><span class="s2">Aborting commit. Please follow the commit message pattern \
-</span><span class="s2">.</span><span class="si">${</span><span class="nv">NC</span><span class="si">}</span><span class="s2">\n[Example|Exercise|Problem|Other]: msg&#34;</span>
+# regex to validate in commit msg
+commit_regex='\[(Example|Exercise|Problem|Other)\]:'
 
-<span class="k">if</span> ! grep -qE <span class="s2">&#34;</span><span class="nv">$commit_regex</span><span class="s2">&#34;</span> <span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span><span class="p">;</span> <span class="k">then</span>
-    <span class="nb">echo</span> -e <span class="s2">&#34;</span><span class="nv">$error_msg</span><span class="s2">&#34;</span> &gt;<span class="p">&amp;</span><span class="m">2</span>
-    <span class="nb">exit</span> <span class="m">1</span>
-<span class="k">fi</span></pre></td></tr></table>
-</div>
-</div>
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+error_msg=&quot;${RED}Aborting commit. Please follow the commit message pattern \
+.${NC}\n[Example|Exercise|Problem|Other]: msg&quot;
+
+if ! grep -qE &quot;$commit_regex&quot; &quot;$1&quot;; then
+    echo -e &quot;$error_msg&quot; &gt;&amp;2
+    exit 1
+fi
+</code></pre>
 <h2 id="test">Test</h2>
-
 <p>Ok, that&rsquo;s done. It&rsquo;s not a long story :)
 Now, if we are not obey the rule, we can&rsquo;t commit.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">algo git:(master) ✗ git commit -m &#34;update gitignore&#34;
+<pre><code>algo git:(master) ✗ git commit -m &quot;update gitignore&quot;
 Aborting commit. Please follow the commit message pattern .
-[Example|Exercise|Problem|Other]: msg</pre></td></tr></table>
-</div>
-</div>
+[Example|Exercise|Problem|Other]: msg
+</code></pre>
 <p>And, if we follow the pattern, we can commit successfully.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">algo git:(master) ✗ git commit -m &#34;[Other]: update gitignore&#34;
+<pre><code>algo git:(master) ✗ git commit -m &quot;[Other]: update gitignore&quot;
 [master 967773d] [Other]: update gitignore
- 1 file changed, 4 insertions(+)</pre></td></tr></table>
-</div>
-</div>
+ 1 file changed, 4 insertions(+)
+</code></pre>
 <p>That&rsquo;s exactly what I want.</p>
-
 <h2 id="references">References</h2>
-
 <p>I found two links really helpful when creating the <code>commit-msg</code> hook.</p>
-
 <ul>
 <li><a href="https://git-scm.com/docs/githooks">Documentation for Git hooks</a></li>
 <li><a href="https://www.atlassian.com/git/tutorials/git-hooks">Git Hooks tutorial</a></li>
@@ -400,7 +306,7 @@ Aborting commit. Please follow the commit message pattern .
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

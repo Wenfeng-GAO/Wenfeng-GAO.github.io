@@ -35,7 +35,7 @@ The problem for me is that my work environment is Windows, and it&amp;rsquo;s no
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/" />
@@ -60,16 +60,13 @@ The problem for me is that my work environment is Windows, and it&rsquo;s not ea
 <meta itemprop="name" content="Setup Jekyll in Windows environment using Docker">
 <meta itemprop="description" content="Github provides a great service for technique bloggers: Github Pages. Just by creating a repo in GitHub, we can host a domain like http://username.github.io. And with Jekyll we can write blogs with Markdown and preview blog pages locally and conveniently.
 The problem for me is that my work environment is Windows, and it&rsquo;s not easy to install Jekyll in Windows(especially in China). So an idea comes out with me is to use Docker.">
-
-
 <meta itemprop="datePublished" content="2016-05-12T18:20:55&#43;08:00" />
 <meta itemprop="dateModified" content="2016-05-12T18:20:55&#43;08:00" />
-<meta itemprop="wordCount" content="307">
+<meta itemprop="wordCount" content="303">
 
 
 
-<meta itemprop="keywords" content="docker,jekyll," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="docker,jekyll," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Setup Jekyll in Windows environment using Docker"/>
 <meta name="twitter:description" content="Github provides a great service for technique bloggers: Github Pages. Just by creating a repo in GitHub, we can host a domain like http://username.github.io. And with Jekyll we can write blogs with Markdown and preview blog pages locally and conveniently.
 The problem for me is that my work environment is Windows, and it&rsquo;s not easy to install Jekyll in Windows(especially in China). So an idea comes out with me is to use Docker."/>
@@ -148,125 +145,57 @@ The problem for me is that my work environment is Windows, and it&rsquo;s not ea
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#requirements">Requirements</a></li>
-</ul></li>
-<li><a href="#step-one">Step One</a></li>
-<li><a href="#step-two">Step Two</a></li>
-<li><a href="#step-three">Step Three</a></li>
-<li><a href="#step-final">Step Final</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>Github provides a great service for technique bloggers: <a href="https://pages.github.com/">Github
+      <p>Github provides a great service for technique bloggers: <a href="https://pages.github.com/">Github
 Pages</a>. Just by creating a repo in GitHub, we can
 host a domain like <code>http://username.github.io</code>. And with
 <a href="https://jekyllrb.com/">Jekyll</a> we can write blogs with Markdown and preview
 blog pages locally and conveniently.</p>
-
 <p>The problem for me is that my work environment is Windows, and it&rsquo;s not easy to
 install Jekyll in Windows(especially in China). So an idea comes out with me is
 to use Docker.</p>
-
 <p>So let&rsquo;s do it!</p>
-
 <h4 id="requirements">Requirements</h4>
-
 <p>Assume that:</p>
-
 <ul>
 <li>Docker installed (if not go to <a href="https://www.docker.com/">https://www.docker.com/</a>)</li>
 <li>GitHub repo for blog created</li>
 </ul>
-
 <h3 id="step-one">Step One</h3>
-
 <p>Pull official Jekyll Docker image in your docker host machine.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    docker pull jekyll/jekyll</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    docker pull jekyll/jekyll
+</code></pre>
 <h3 id="step-two">Step Two</h3>
-
 <p>Move to your blog repo directory, for me is
 <code>/c/Users/ewenfga/Code/github.io/Wenfeng-GAO.github.io</code> because docker
 automatically mount with my C disk.</p>
-
 <p>Run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    docker run --rm -v $(pwd):/srv/jekyll -it jekyll/jekyll bash</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    docker run --rm -v $(pwd):/srv/jekyll -it jekyll/jekyll bash
+</code></pre>
 <p>This line of code will run the jekyll image interatively and mount
 <code>/srv/jekyll</code>directory with current directory. That&rsquo;s why we move to this GitHub
 repo.</p>
-
 <p>Run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    jekyll new . --force</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    jekyll new . --force
+</code></pre>
 <p>This jekyll command will create all what we need for blogs, including a <code>_post</code>
 directory where we place our blogs.</p>
-
 <h3 id="step-three">Step Three</h3>
-
 <p>Quit the docker container(<code>Ctrl d</code>). By now we have setup our blog&rsquo;s structure
 by jekyll, all is done and we can push to GibHub and see our blogs on the
 internet if we wish.</p>
-
 <p>But Jekyll also provides us a wonderful local server, by which we can preview
 what we write locally.</p>
-
 <p>Run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    docker run --rm --label=jekyll --volume=$(pwd):/srv/jekyll -it -p 4000:4000</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    docker run --rm --label=jekyll --volume=$(pwd):/srv/jekyll -it -p 4000:4000
+</code></pre>
 <p>jekyll/jekyll</p>
-
-<p>This line of code will run a docker container as a server and export <code>port
-4000</code>.</p>
-
+<p>This line of code will run a docker container as a server and export <code>port 4000</code>.</p>
 <p>I recommand you to make an alias for this piece of code as we&rsquo;ll use it often.</p>
-
 <h3 id="step-final">Step Final</h3>
-
 <p>Ok, now lets open our browser and type <code>&lt;your-docker-host-machine-ip&gt;:4000</code> in
-the navigation bar, you will see something like: <img src="http://pn9ta8hbk.bkt.clouddn.com/jekyll.PNG" alt="jekyll
-screenshot" />
+the navigation bar, you will see something like: <img src="http://pn9ta8hbk.bkt.clouddn.com/jekyll.PNG" alt="jekyllscreenshot">
 Enjoy!</p>
 
     </div>
@@ -352,7 +281,7 @@ Enjoy!</p>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2019-10-24T09:50:45+08:00" />
 <meta itemprop="name" content="How to Perf Nodejs Apps in Container">
 <meta itemprop="description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;">
-
-
 <meta itemprop="datePublished" content="2019-10-24T09:50:45&#43;08:00" />
 <meta itemprop="dateModified" content="2019-10-24T09:50:45&#43;08:00" />
 <meta itemprop="wordCount" content="668">
 
 
 
-<meta itemprop="keywords" content="perf,flamegraph,nodejs," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="perf,flamegraph,nodejs," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="How to Perf Nodejs Apps in Container"/>
 <meta name="twitter:description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;"/>
 
@@ -146,65 +143,33 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#run-app-with-perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</a>
-<ul>
-<li><a href="#linux-perf-events-jit-support">Linux perf_events JIT support</a></li>
-<li><a href="#v8-perf-basic-prof-support">v8 &ndash;perf-basic-prof support</a></li>
-</ul></li>
-<li><a href="#perf-outside-of-container">Perf outside of container</a></li>
-<li><a href="#prepare-tmp-perf-65875-map-file">Prepare <code>/tmp/perf-65875.map</code> file</a></li>
-<li><a href="#generate-flame-graph">Generate Flame Graph</a></li>
-<li><a href="#overall-script">Overall script</a></li>
-<li><a href="#references">References</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>In my previous blogs, I&rsquo;ve shared about how to profile Java applications in
+      <p>In my previous blogs, I&rsquo;ve shared about how to profile Java applications in
 various of methods, now I&rsquo;ll show you how to profile Nodejs apps with
 <a href="http://www.brendangregg.com/perf.html">perf</a>.</p>
-
 <p>Let&rsquo;s get started.</p>
-
-<h2 id="run-app-with-perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</h2>
-
+<h2 id="run-app-with---perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</h2>
 <p>First of all, as Nodejs application has a V8 virtual machine and <a href="https://en.wikipedia.org/wiki/Just-in-time_compilation">JIT</a> process,
 <em>perf</em> can&rsquo;t get the stack traces directly, so we need a solution to achieve
 this.</p>
-
-<h3 id="linux-perf-events-jit-support">Linux perf_events JIT support</h3>
-
+<h3 id="linux-perf_events-jit-support">Linux perf_events JIT support</h3>
 <p>In 2009, Linux perf_events added JIT symbol support, so that symbols from
 language virtual machines like the JVM/V8 could be inspected.  It works in the
 following amazingly simple way:</p>
-
 <ol>
 <li>Your JIT application must be modified to create a <code>/tmp/perf-PID.map</code> file,
 which is a simple text database containing symbol addresses (in hex), sizes,
 and symbol names.</li>
 <li>That&rsquo;s it.</li>
 </ol>
-
 <p>perf already looks for the <code>/tmp/perf-PID.map</code> file, and if it finds it, it uses
 it for symbol translations. So only v8 needed to be modified.</p>
-
-<h3 id="v8-perf-basic-prof-support">v8 &ndash;perf-basic-prof support</h3>
-
+<h3 id="v8---perf-basic-prof-support">v8 &ndash;perf-basic-prof support</h3>
 <p>In November 2013, v8 added perf_events support, enabled using the <code>--perf-basic-prof</code> option. This made it into node v0.11.13. It works like this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -221,9 +186,9 @@ it for symbol translations. So only v8 needed to be modified.</p>
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># ~/node-v0.11.13-linux-x64/bin/node --perf-basic-prof hello.js &amp;</span>
-<span class="o">[</span><span class="m">1</span><span class="o">]</span> <span class="m">31441</span>
+<span class="o">[</span>1<span class="o">]</span> <span class="m">31441</span>
 <span class="c1"># ls -l /tmp/perf-31441.map</span>
--rw-r--r-- <span class="m">1</span> root root <span class="m">81920</span> Sep <span class="m">17</span> <span class="m">20</span>:41 /tmp/perf-31441.map
+-rw-r--r-- <span class="m">1</span> root root <span class="m">81920</span> Sep <span class="m">17</span> 20:41 /tmp/perf-31441.map
 <span class="c1"># tail /tmp/perf-31441.map</span>
 14cec4db98a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Generic-&gt;String<span class="o">)</span>
 14cec4db9920 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*String-&gt;String<span class="o">)</span>
@@ -233,40 +198,36 @@ it for symbol translations. So only v8 needed to be modified.</p>
 14cec4db9e80 <span class="m">22</span> KeyedLoadIC:
 14cec4db9f20 <span class="m">22</span> KeyedLoadIC:
 14cec4db9fc0 <span class="m">56</span> Stub:DoubleToIStub
-14cec4dba080 10c Stub:KeyedStoreElementStub</code></pre></td></tr></table>
+14cec4dba080 10c Stub:KeyedStoreElementStub
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>This text file is what perf_events reads.</p>
-
+</div><p>This text file is what perf_events reads.</p>
 <p>As I run Nodejs applications with <a href="http://pm2.keymetrics.io/">pm2</a> in Docker
 container, I&rsquo;ll <code>--perf-basic-prof</code> argument like this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash">pm2 start index.js <span class="se">\
-</span><span class="se"></span>          --node-args --perf-basic-prof</code></pre></td></tr></table>
+</span><span class="se"></span>          --node-args --perf-basic-prof
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="perf-outside-of-container">Perf outside of container</h2>
-
+</div><h2 id="perf-outside-of-container">Perf outside of container</h2>
 <p>I decide to perf out side of container mainly because of the following 2
 reasons:</p>
-
 <ul>
 <li>additional previlege permissions should be added to container in order to
 support perf_event_open syscall</li>
 <li>perf inside container may increase a bit of overhead to application
 namespace</li>
 </ul>
-
 <p>Because we perf outside of container, we need get application&rsquo;s host PID to
 perf.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -275,27 +236,26 @@ perf.</p>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash">$ docker top a3115
 UID     PID      PPID     STIME    TIME       CMD
-<span class="m">1004</span>    <span class="m">65462</span>    <span class="m">14902</span>    <span class="m">10</span>:43    <span class="m">00</span>:00:01   PM2 v2.9.1: God Daemon <span class="o">(</span>/home/deploy/.pm2<span class="o">)</span>
-<span class="m">1004</span>    <span class="m">65700</span>    <span class="m">65462</span>    <span class="m">10</span>:43    <span class="m">00</span>:00:01   node /opt/app/node/lib/node_modules/pm2/lib/HttpInterface.js
-<span class="m">1004</span>    <span class="m">65875</span>    <span class="m">65462</span>    <span class="m">10</span>:43    <span class="m">00</span>:00:03   node /opt/nodeapp/index.js</code></pre></td></tr></table>
+<span class="m">1004</span>    <span class="m">65462</span>    <span class="m">14902</span>    10:43    00:00:01   PM2 v2.9.1: God Daemon <span class="o">(</span>/home/deploy/.pm2<span class="o">)</span>
+<span class="m">1004</span>    <span class="m">65700</span>    <span class="m">65462</span>    10:43    00:00:01   node /opt/app/node/lib/node_modules/pm2/lib/HttpInterface.js
+<span class="m">1004</span>    <span class="m">65875</span>    <span class="m">65462</span>    10:43    00:00:03   node /opt/nodeapp/index.js
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>Here <code>65875</code> is our target PID to perf.</p>
+</div><p>Here <code>65875</code> is our target PID to perf.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">perf record -F <span class="m">99</span> -p <span class="m">65875</span> -g -- sleep <span class="m">30</span></code></pre></td></tr></table>
+<pre class="chroma"><code class="language-bash" data-lang="bash">perf record -F <span class="m">99</span> -p <span class="m">65875</span> -g -- sleep <span class="m">30</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="prepare-tmp-perf-65875-map-file">Prepare <code>/tmp/perf-65875.map</code> file</h2>
-
+</div><h2 id="prepare-tmpperf-65875map-file">Prepare <code>/tmp/perf-65875.map</code> file</h2>
 <p>As we perf outside of container, <code>/tmp/perf-PID.map</code> file was generated inside
 container, we have to copy it out before next process.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -305,53 +265,49 @@ container, we have to copy it out before next process.</p>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># find file in container</span>
 $ docker <span class="nb">exec</span> a3115 sh -c <span class="s2">&#34;ls -l /tmp/perf*.map&#34;</span>
--rw-rw-r-- <span class="m">1</span> deploy deploy <span class="m">686639</span> Oct <span class="m">24</span> <span class="m">11</span>:51 /tmp/perf-384.map
+-rw-rw-r-- <span class="m">1</span> deploy deploy <span class="m">686639</span> Oct <span class="m">24</span> 11:51 /tmp/perf-384.map
 
 <span class="c1"># copy out, don&#39;t forget to change file name with host pid</span>
-$ docker cp a3115:/tmp/perf-384.map /tmp/perf-65875.map</code></pre></td></tr></table>
+$ docker cp a3115:/tmp/perf-384.map /tmp/perf-65875.map
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="generate-flame-graph">Generate Flame Graph</h2>
+</div><h2 id="generate-flame-graph">Generate Flame Graph</h2>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">perf script -f &gt; out.nodestacks01</code></pre></td></tr></table>
+<pre class="chroma"><code class="language-bash" data-lang="bash">perf script -f &gt; out.nodestacks01
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>We need Gregg&rsquo;s <a href="http://github.com/brendangregg/FlameGraph">FlameGraph</a> to generate flame graph.</p>
+</div><p>We need Gregg&rsquo;s <a href="http://github.com/brendangregg/FlameGraph">FlameGraph</a> to generate flame graph.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">git clone --depth <span class="m">1</span> http://github.com/brendangregg/FlameGraph</code></pre></td></tr></table>
+<pre class="chroma"><code class="language-bash" data-lang="bash">git clone --depth <span class="m">1</span> http://github.com/brendangregg/FlameGraph
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>Generate</p>
+</div><p>Generate</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">cd</span> FlameGraph
-./stackcollapse-perf.pl &lt; ../out.nodestacks01 <span class="p">|</span> ./flamegraph.pl --color<span class="o">=</span>js &gt; ../out.nodestacks01.svg</code></pre></td></tr></table>
+./stackcollapse-perf.pl &lt; ../out.nodestacks01 <span class="p">|</span> ./flamegraph.pl --color<span class="o">=</span>js &gt; ../out.nodestacks01.svg
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>Now we can get a flame graph like this:</p>
-
-<p><img src="/post/how-to-profile-nodejs-in-container/nodejs_perf_flamegraph.svg" alt="nodejs perf
-flamegraph" /></p>
-
+</div><p>Now we can get a flame graph like this:</p>
+<p><img src="/post/how-to-profile-nodejs-in-container/nodejs_perf_flamegraph.svg" alt="nodejs perfflamegraph"></p>
 <h2 id="overall-script">Overall script</h2>
-
 <p>You can download <code>FlameGraph</code> then use this script to get the svg file outside
 the container.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -412,11 +368,10 @@ the container.</p>
 <span class="c1"># perf</span>
 <span class="nv">HOST_PIDs</span><span class="o">=</span><span class="sb">`</span><span class="nb">echo</span> <span class="nv">$PIDs</span><span class="p">|</span>tr <span class="s1">&#39; &#39;</span> <span class="s1">&#39;,&#39;</span><span class="sb">`</span>
 perf record -F <span class="m">99</span> -p <span class="nv">$HOST_PIDs</span> -g -- sleep <span class="nv">$PROFILING_DURATION</span>
-perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span class="p">|</span> FlameGraph/flamegraph.pl --color<span class="o">=</span>js &gt; <span class="nv">$CTN_ID</span>.<span class="k">$(</span>date +%s<span class="k">)</span>.svg</code></pre></td></tr></table>
+perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span class="p">|</span> FlameGraph/flamegraph.pl --color<span class="o">=</span>js &gt; <span class="nv">$CTN_ID</span>.<span class="k">$(</span>date +%s<span class="k">)</span>.svg
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="references">References</h2>
-
+</div><h2 id="references">References</h2>
 <ul>
 <li><a href="http://www.brendangregg.com/blog/2014-09-17/node-flame-graphs-on-linux.html">gregg&rsquo;s blog about nodejs perf</a></li>
 <li><a href="http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html">gregg&rsquo;s flame graphs blog</a></li>
@@ -512,7 +467,7 @@ perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span c
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

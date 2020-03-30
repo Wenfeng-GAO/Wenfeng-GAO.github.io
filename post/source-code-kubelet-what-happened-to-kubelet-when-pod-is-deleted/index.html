@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>What Happened to Kubelet When Pod Is Deleted - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
+Conclusion Before discussing the implementation details of the source code, let&amp;rsquo;s stand high and talk about the general process that Kubelet will make.
+For example, we start by deleting a pod.
+1  kubectl delete pod &amp;lt;pod&amp;gt;   kube-apiserver won&amp;rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the ." /><meta name="keywords" content="kubernetes, kubelet, source code go through" />
+
+
+
+<meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-92434611-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-92434611-1');
+</script>
+
+
+
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="What Happened to Kubelet When Pod Is Deleted" />
+<meta property="og:description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
+Conclusion Before discussing the implementation details of the source code, let&rsquo;s stand high and talk about the general process that Kubelet will make.
+For example, we start by deleting a pod.
+1  kubectl delete pod &lt;pod&gt;   kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the ." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/" />
+<meta property="article:published_time" content="2020-03-26T04:11:32+08:00" />
+<meta property="article:modified_time" content="2020-03-31T04:11:32+08:00" />
+<meta itemprop="name" content="What Happened to Kubelet When Pod Is Deleted">
+<meta itemprop="description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
+Conclusion Before discussing the implementation details of the source code, let&rsquo;s stand high and talk about the general process that Kubelet will make.
+For example, we start by deleting a pod.
+1  kubectl delete pod &lt;pod&gt;   kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the .">
+<meta itemprop="datePublished" content="2020-03-26T04:11:32&#43;08:00" />
+<meta itemprop="dateModified" content="2020-03-31T04:11:32&#43;08:00" />
+<meta itemprop="wordCount" content="2087">
+
+
+
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="What Happened to Kubelet When Pod Is Deleted"/>
+<meta name="twitter:description" content="The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
+Conclusion Before discussing the implementation details of the source code, let&rsquo;s stand high and talk about the general process that Kubelet will make.
+For example, we start by deleting a pod.
+1  kubectl delete pod &lt;pod&gt;   kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the ."/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+</nav>
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">What Happened to Kubelet When Pod Is Deleted</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2020-03-26 </span>
+        
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    
+    <div class="post-content">
+      <p>The source code of Kubelet is quite complicated. In order to better understand
+it, we start by thinking about an operation we</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Before discussing the implementation details of the source code, let&rsquo;s stand
+high and talk about the general process that Kubelet will make.</p>
+<p>For example, we start by deleting a pod.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">kubectl delete pod &lt;pod&gt;
+</code></pre></td></tr></table>
+</div>
+</div><p>kube-apiserver won&rsquo;t directly delete the corresponding pod resource in etcd
+after receiving the deletion request, but will set the <code>.metadata.deletionTimestamp</code> of pod to current time.</p>
+<p>On the mean time, Kubelet, who is <code>watching</code> the pod resource from
+kube-apiserver, will start a series of operations to recycle computing
+resources(such as deleting containers, releasing storages, etc.). As soon as
+Kubelet makes sure resources are successfully released, it will send a force
+deletion request to kube-apiserver, at which point the pod resource will be
+really deleted from etcd.</p>
+<p><img src="/post/source-code-kubelet-how-kubelet-delete-pod/kubelet-remove-pod-steps.png" alt="kubelet-remove-pod-steps"></p>
+<h2 id="kube-apiserver-update-deletiontimestamp">kube-apiserver update deletionTimestamp</h2>
+<p>The most fundamental task of kube-apiserver is to <code>CRUD</code> resources in etcd.</p>
+<p>When receiving a deletion request, there&rsquo;re 2 possibilities:</p>
+<h3 id="force-delete">force delete</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-bash" data-lang="bash">kubectl delete pods &lt;pod&gt; --grace-period<span class="o">=</span><span class="m">0</span> --force
+</code></pre></td></tr></table>
+</div>
+</div><p>In this case, kube-apiserver will delete the metadata in etcd directly.</p>
+<h3 id="graceful-delete">graceful delete</h3>
+<p>After receiving request, rather than delete directly, kube-apiserver will update <code>deletionTimestamp</code> of pod metadata to current time.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-yaml" data-lang="yaml"><span class="k">apiVersion</span><span class="p">:</span><span class="w"> </span>v1<span class="w">
+</span><span class="w"></span><span class="k">kind</span><span class="p">:</span><span class="w"> </span>Pod<span class="w">
+</span><span class="w"></span><span class="k">metadata</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">deletionGracePeriodSeconds</span><span class="p">:</span><span class="w"> </span><span class="m">30</span><span class="w">
+</span><span class="w">  </span><span class="k">deletionTimestamp</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;2020-03-23T20:56:25Z&#34;</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>This is also the default thing kube-apiserver does when we delete a pod
+normally.</p>
+<p>In this way, kube-apiserver finishes its work, and it&rsquo;s no longer
+kube-apiserver&rsquo;s concern as for what the other components will do according to
+the pod changes.</p>
+<p>Here also reflects the design philosophy of Kubernetes, each component is only
+responsible for doing its own job.</p>
+<h2 id="watch-by-kubelet">Watch by Kubelet</h2>
+<p>Kubelet uses the <em>list-watch</em> mechanism to sense changes in of the pod. How does it work? Let&rsquo;s take a closer look.</p>
+<p>In the <em>makePodSourceConfig</em> module, Kubelet will set up a goroutine to listen to various sources of changes of pods(kube-apiserver, manifest, http etc., here we are mainly concerned about changes from the kube-apiserver).</p>
+<p>Then through the <em>Merge</em> method, it generates a uniformed metadata structure, and
+put it into an updates channel, then the <em>syncLoop</em> module is responsible for
+consuming from this channel.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span><span class="lnt">9
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/kubelet/kubelet.go
+</span><span class="c1"></span>
+<span class="k">if</span> <span class="nx">kubeDeps</span><span class="p">.</span><span class="nx">PodConfig</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">err</span> <span class="kt">error</span>
+    <span class="nx">kubeDeps</span><span class="p">.</span><span class="nx">PodConfig</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nf">makePodSourceConfig</span><span class="p">(</span><span class="nx">kubeCfg</span><span class="p">,</span> <span class="nx">kubeDeps</span><span class="p">,</span> <span class="nx">nodeName</span><span class="p">,</span> <span class="nx">bootstrapCheckpointPath</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>In the <em>makePodSourceConfig</em> method, we focus on the aspect of waching
+apiserver.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// makePodSourceConfig creates a config.PodConfig from the given
+</span><span class="c1">// KubeletConfiguration or returns an error.
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">makePodSourceConfig</span><span class="p">(</span><span class="nx">kubeCfg</span> <span class="o">*</span><span class="nx">kubeletconfiginternal</span><span class="p">.</span><span class="nx">KubeletConfiguration</span><span class="p">,</span> <span class="nx">kubeDeps</span> <span class="o">*</span><span class="nx">Dependencies</span><span class="p">,</span> <span class="nx">nodeName</span> <span class="nx">types</span><span class="p">.</span><span class="nx">NodeName</span><span class="p">,</span> <span class="nx">bootstrapCheckpointPath</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">config</span><span class="p">.</span><span class="nx">PodConfig</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="o">...</span>
+
+	<span class="c1">// source of all configuration
+</span><span class="c1"></span>	<span class="nx">cfg</span> <span class="o">:=</span> <span class="nx">config</span><span class="p">.</span><span class="nf">NewPodConfig</span><span class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">PodConfigNotificationIncremental</span><span class="p">,</span> <span class="nx">kubeDeps</span><span class="p">.</span><span class="nx">Recorder</span><span class="p">)</span>
+
+    <span class="o">...</span>
+
+	<span class="k">if</span> <span class="nx">kubeDeps</span><span class="p">.</span><span class="nx">KubeClient</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Watching apiserver&#34;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">updatechannel</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">updatechannel</span> <span class="p">=</span> <span class="nx">cfg</span><span class="p">.</span><span class="nf">Channel</span><span class="p">(</span><span class="nx">kubetypes</span><span class="p">.</span><span class="nx">ApiserverSource</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="nx">config</span><span class="p">.</span><span class="nf">NewSourceApiserver</span><span class="p">(</span><span class="nx">kubeDeps</span><span class="p">.</span><span class="nx">KubeClient</span><span class="p">,</span> <span class="nx">nodeName</span><span class="p">,</span> <span class="nx">updatechannel</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">cfg</span><span class="p">,</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>In the <em>cfg.Channel</em> method, a goroutine will eventually be created to continuously rearrange the info of updated pods from kube-apiserver and send it to a channel for consumption by other module (<em>syncLoop</em>).</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/util/config/config.go
+</span><span class="c1">// Channel returns a channel where a configuration source
+</span><span class="c1">// can send updates of new configurations. Multiple calls with the same
+</span><span class="c1">// source will return the same channel. This allows change and state based sources
+</span><span class="c1">// to use the same channel. Different source names however will be treated as a
+</span><span class="c1">// union.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">Mux</span><span class="p">)</span> <span class="nf">Channel</span><span class="p">(</span><span class="nx">source</span> <span class="kt">string</span><span class="p">)</span> <span class="kd">chan</span> <span class="kd">interface</span><span class="p">{}</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">source</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="nb">panic</span><span class="p">(</span><span class="s">&#34;Channel given an empty name&#34;</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nx">sourceLock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">m</span><span class="p">.</span><span class="nx">sourceLock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">channel</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">sources</span><span class="p">[</span><span class="nx">source</span><span class="p">]</span>
+	<span class="k">if</span> <span class="nx">exists</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">channel</span>
+	<span class="p">}</span>
+	<span class="nx">newChannel</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">interface</span><span class="p">{})</span>
+	<span class="nx">m</span><span class="p">.</span><span class="nx">sources</span><span class="p">[</span><span class="nx">source</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newChannel</span>
+	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span> <span class="nx">m</span><span class="p">.</span><span class="nf">listen</span><span class="p">(</span><span class="nx">source</span><span class="p">,</span> <span class="nx">newChannel</span><span class="p">)</span> <span class="p">},</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">newChannel</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Meanwhile, the <em>config.NewSourceApiserver</em> method will use a general mechanism of k8s (<em>list-watch</em>) to send the latest pod update info to the goroutine working above.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/kubelet/config/apiserver.go
+</span><span class="c1">// NewSourceApiserver creates a config source that watches and pulls from the apiserver.
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewSourceApiserver</span><span class="p">(</span><span class="nx">c</span> <span class="nx">clientset</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="nx">nodeName</span> <span class="nx">types</span><span class="p">.</span><span class="nx">NodeName</span><span class="p">,</span> <span class="nx">updates</span> <span class="kd">chan</span><span class="o">&lt;-</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+	<span class="nx">lw</span> <span class="o">:=</span> <span class="nx">cache</span><span class="p">.</span><span class="nf">NewListWatchFromClient</span><span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="nf">CoreV1</span><span class="p">().</span><span class="nf">RESTClient</span><span class="p">(),</span> <span class="s">&#34;pods&#34;</span><span class="p">,</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">NamespaceAll</span><span class="p">,</span> <span class="nx">fields</span><span class="p">.</span><span class="nf">OneTermEqualSelector</span><span class="p">(</span><span class="nx">api</span><span class="p">.</span><span class="nx">PodHostField</span><span class="p">,</span> <span class="nb">string</span><span class="p">(</span><span class="nx">nodeName</span><span class="p">)))</span>
+	<span class="nf">newSourceApiserverFromLW</span><span class="p">(</span><span class="nx">lw</span><span class="p">,</span> <span class="nx">updates</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">// newSourceApiserverFromLW holds creates a config source that watches and pulls from the apiserver.
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">newSourceApiserverFromLW</span><span class="p">(</span><span class="nx">lw</span> <span class="nx">cache</span><span class="p">.</span><span class="nx">ListerWatcher</span><span class="p">,</span> <span class="nx">updates</span> <span class="kd">chan</span><span class="o">&lt;-</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+	<span class="nx">send</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">objs</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+		<span class="kd">var</span> <span class="nx">pods</span> <span class="p">[]</span><span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span>
+		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">o</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">objs</span> <span class="p">{</span>
+			<span class="nx">pods</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">pods</span><span class="p">,</span> <span class="nx">o</span><span class="p">.(</span><span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">))</span>
+		<span class="p">}</span>
+		<span class="nx">updates</span> <span class="o">&lt;-</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">PodUpdate</span><span class="p">{</span><span class="nx">Pods</span><span class="p">:</span> <span class="nx">pods</span><span class="p">,</span> <span class="nx">Op</span><span class="p">:</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">SET</span><span class="p">,</span> <span class="nx">Source</span><span class="p">:</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">ApiserverSource</span><span class="p">}</span>
+	<span class="p">}</span>
+	<span class="nx">r</span> <span class="o">:=</span> <span class="nx">cache</span><span class="p">.</span><span class="nf">NewReflector</span><span class="p">(</span><span class="nx">lw</span><span class="p">,</span> <span class="o">&amp;</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">{},</span> <span class="nx">cache</span><span class="p">.</span><span class="nf">NewUndeltaStore</span><span class="p">(</span><span class="nx">send</span><span class="p">,</span> <span class="nx">cache</span><span class="p">.</span><span class="nx">MetaNamespaceKeyFunc</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+	<span class="k">go</span> <span class="nx">r</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>At this point, the module that obtains pod&rsquo;s updates from kube-apiserver has also completed its task.</p>
+<p>The task of this module is clear as well: only responsible for continuously updating the latest updates of pods from various sources, and sending unified information to <em>update</em> channel.</p>
+<p>As to who consumes from the <em>update</em> channel or how to consume it, it&rsquo;s not the business of this module any longer.</p>
+<blockquote>
+<p>Do one thing per module, do it well, and try to avoid dependencies.</p>
+</blockquote>
+<h2 id="delete-containers">Delete containers</h2>
+<p>Let&rsquo;s take a look at the module that consumes the information from the <em>update</em> channel l, which will delete the containers of deleted pod.</p>
+<p>In the <em>syncLoopIteration</em> module, Kubelet consumes information from various channels and then creates, updates, or destroys pods as needed.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">syncLoopIteration</span><span class="p">(</span><span class="nx">configCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">PodUpdate</span><span class="p">,</span> <span class="nx">handler</span> <span class="nx">SyncHandler</span><span class="p">,</span>
+	<span class="nx">syncCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span> <span class="nx">housekeepingCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span> <span class="nx">plegCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="o">*</span><span class="nx">pleg</span><span class="p">.</span><span class="nx">PodLifecycleEvent</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+	<span class="k">select</span> <span class="p">{</span>
+	<span class="k">case</span> <span class="nx">u</span><span class="p">,</span> <span class="nx">open</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">configCh</span><span class="p">:</span>
+		<span class="c1">// Update from a config source; dispatch it to the right handler
+</span><span class="c1"></span>		<span class="c1">// callback.
+</span><span class="c1"></span>		<span class="k">if</span> <span class="p">!</span><span class="nx">open</span> <span class="p">{</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Update channel is closed. Exiting the sync loop.&#34;</span><span class="p">)</span>
+			<span class="k">return</span> <span class="kc">false</span>
+		<span class="p">}</span>
+
+		<span class="k">switch</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Op</span> <span class="p">{</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">ADD</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;SyncLoop (ADD, %q): %q&#34;</span><span class="p">,</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Source</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pods</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">))</span>
+			<span class="c1">// After restarting, kubelet will get all existing pods through
+</span><span class="c1"></span>			<span class="c1">// ADD as if they are new pods. These pods will then go through the
+</span><span class="c1"></span>			<span class="c1">// admission process and *may* be rejected. This can be resolved
+</span><span class="c1"></span>			<span class="c1">// once we have checkpointing.
+</span><span class="c1"></span>			<span class="nx">handler</span><span class="p">.</span><span class="nf">HandlePodAdditions</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">)</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">UPDATE</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;SyncLoop (UPDATE, %q): %q&#34;</span><span class="p">,</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Source</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">PodsWithDeletionTimestamps</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">))</span>
+			<span class="nx">handler</span><span class="p">.</span><span class="nf">HandlePodUpdates</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">)</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">REMOVE</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;SyncLoop (REMOVE, %q): %q&#34;</span><span class="p">,</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Source</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pods</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">))</span>
+			<span class="nx">handler</span><span class="p">.</span><span class="nf">HandlePodRemoves</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">)</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">RECONCILE</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;SyncLoop (RECONCILE, %q): %q&#34;</span><span class="p">,</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Source</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pods</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">))</span>
+			<span class="nx">handler</span><span class="p">.</span><span class="nf">HandlePodReconcile</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">)</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">DELETE</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;SyncLoop (DELETE, %q): %q&#34;</span><span class="p">,</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Source</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pods</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">))</span>
+			<span class="c1">// DELETE is treated as a UPDATE because of graceful deletion.
+</span><span class="c1"></span>			<span class="nx">handler</span><span class="p">.</span><span class="nf">HandlePodUpdates</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">)</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">RESTORE</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;SyncLoop (RESTORE, %q): %q&#34;</span><span class="p">,</span> <span class="nx">u</span><span class="p">.</span><span class="nx">Source</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pods</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">))</span>
+			<span class="c1">// These are pods restored from the checkpoint. Treat them as new
+</span><span class="c1"></span>			<span class="c1">// pods.
+</span><span class="c1"></span>			<span class="nx">handler</span><span class="p">.</span><span class="nf">HandlePodAdditions</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Pods</span><span class="p">)</span>
+		<span class="k">case</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">SET</span><span class="p">:</span>
+			<span class="c1">// TODO: Do we want to support this?
+</span><span class="c1"></span>			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Kubelet does not support snapshot update&#34;</span><span class="p">)</span>
+		<span class="p">}</span>
+    <span class="o">...</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Here we are mainly concerned about the information from <em>configCh</em>, which are all wathed from kube-apiserver.</p>
+<p>When the pod is deleted, Kubelet receives an update of type <em>kubetypes.DELETE</em>, then it will call <em>handler.HandlePodUpdates (u.Pods)</em> method, which will eventually call the <em>kl.killPod</em> method.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// One of the following arguments must be non-nil: runningPod, status.
+</span><span class="c1">// TODO: Modify containerRuntime.KillPod() to accept the right arguments.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">killPod</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">runningPod</span> <span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">status</span> <span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">PodStatus</span><span class="p">,</span> <span class="nx">gracePeriodOverride</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">p</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">Pod</span>
+	<span class="k">if</span> <span class="nx">runningPod</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">p</span> <span class="p">=</span> <span class="o">*</span><span class="nx">runningPod</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="nx">status</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">p</span> <span class="p">=</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nf">ConvertPodStatusToRunningPod</span><span class="p">(</span><span class="nx">kl</span><span class="p">.</span><span class="nf">getRuntime</span><span class="p">().</span><span class="nf">Type</span><span class="p">(),</span> <span class="nx">status</span><span class="p">)</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;one of the two arguments must be non-nil: runningPod, status&#34;</span><span class="p">)</span>
+	<span class="p">}</span>
+
+	<span class="c1">// Call the container runtime KillPod method which stops all running containers of the pod
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">containerRuntime</span><span class="p">.</span><span class="nf">killpod</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">p</span><span class="p">,</span> <span class="nx">graceperiodoverride</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">err</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">containermanager</span><span class="p">.</span><span class="nf">updateqoscgroups</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">v</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">infof</span><span class="p">(</span><span class="s">&#34;failed to update qos cgroups while killing pod: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>From now on, containers corresponding to the pod will be deleted, and the resources used will also be released.</p>
+<p>However, the pod metadata still exists in etcd. When will this metadata be
+deleted and by which component? Let&rsquo;s take a look.</p>
+<h2 id="force-delete-pod">Force delete pod</h2>
+<p>Kubelet starts a <code>statusManager</code> at the same time when it starts, which is responsible for the synchronization of pod status.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span><span class="lnt">8
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/kubelet/kubelet.go
+</span><span class="c1">// Run starts the kubelet reacting to config updates
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">Run</span><span class="p">(</span><span class="nx">updates</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nx">PodUpdate</span><span class="p">)</span> <span class="p">{</span>
+	<span class="o">...</span>
+	<span class="c1">// Start component sync loops.
+</span><span class="c1"></span>	<span class="nx">kl</span><span class="p">.</span><span class="nx">statusManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span>
+	<span class="o">...</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/kubelet/status/status_manager.go
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">Start</span><span class="p">()</span> <span class="p">{</span>
+	<span class="c1">// Don&#39;t start the status manager if we don&#39;t have a client. This will happen
+</span><span class="c1"></span>	<span class="c1">// on the master, where the kubelet is responsible for bootstrapping the pods
+</span><span class="c1"></span>	<span class="c1">// of the master components.
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">m</span><span class="p">.</span><span class="nx">kubeClient</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Kubernetes client is nil, not starting status manager.&#34;</span><span class="p">)</span>
+		<span class="k">return</span>
+	<span class="p">}</span>
+
+	<span class="nx">klog</span><span class="p">.</span><span class="nf">Info</span><span class="p">(</span><span class="s">&#34;Starting to sync pod status with apiserver&#34;</span><span class="p">)</span>
+	<span class="c1">//lint:ignore SA1015 Ticker can link since this is only called once and doesn&#39;t handle termination.
+</span><span class="c1"></span>	<span class="nx">syncTicker</span> <span class="o">:=</span> <span class="nx">time</span><span class="p">.</span><span class="nf">Tick</span><span class="p">(</span><span class="nx">syncPeriod</span><span class="p">)</span>
+	<span class="c1">// syncPod and syncBatch share the same go routine to avoid sync races.
+</span><span class="c1"></span>	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Forever</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+		<span class="k">select</span> <span class="p">{</span>
+		<span class="k">case</span> <span class="nx">syncRequest</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">m</span><span class="p">.</span><span class="nx">podStatusChannel</span><span class="p">:</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Status Manager: syncing pod: %q, with status: (%d, %v) from podStatusChannel&#34;</span><span class="p">,</span>
+				<span class="nx">syncRequest</span><span class="p">.</span><span class="nx">podUID</span><span class="p">,</span> <span class="nx">syncRequest</span><span class="p">.</span><span class="nx">status</span><span class="p">.</span><span class="nx">version</span><span class="p">,</span> <span class="nx">syncRequest</span><span class="p">.</span><span class="nx">status</span><span class="p">.</span><span class="nx">status</span><span class="p">)</span>
+			<span class="nx">m</span><span class="p">.</span><span class="nf">syncPod</span><span class="p">(</span><span class="nx">syncRequest</span><span class="p">.</span><span class="nx">podUID</span><span class="p">,</span> <span class="nx">syncRequest</span><span class="p">.</span><span class="nx">status</span><span class="p">)</span>
+		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">syncTicker</span><span class="p">:</span>
+			<span class="nx">m</span><span class="p">.</span><span class="nf">syncBatch</span><span class="p">()</span>
+		<span class="p">}</span>
+	<span class="p">},</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>The main synchronization works lies in <em>syncPod</em> methods.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/kubelet/status/status_manager.go
+</span><span class="c1">// syncPod syncs the given status with the API server. The caller must not hold the lock.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">syncPod</span><span class="p">(</span><span class="nx">uid</span> <span class="nx">types</span><span class="p">.</span><span class="nx">UID</span><span class="p">,</span> <span class="nx">status</span> <span class="nx">versionedPodStatus</span><span class="p">)</span> <span class="p">{</span>
+	<span class="o">...</span>
+
+	<span class="c1">// We don&#39;t handle graceful deletion of mirror pods.
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">m</span><span class="p">.</span><span class="nf">canBeDeleted</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">status</span><span class="p">.</span><span class="nx">status</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">deleteOptions</span> <span class="o">:=</span> <span class="nx">metav1</span><span class="p">.</span><span class="nf">NewDeleteOptions</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+		<span class="c1">// Use the pod UID as the precondition for deletion to prevent deleting a newly created pod with the same name and namespace.
+</span><span class="c1"></span>		<span class="nx">deleteOptions</span><span class="p">.</span><span class="nx">Preconditions</span> <span class="p">=</span> <span class="nx">metav1</span><span class="p">.</span><span class="nf">NewUIDPreconditions</span><span class="p">(</span><span class="nb">string</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">UID</span><span class="p">))</span>
+		<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">kubeClient</span><span class="p">.</span><span class="nf">CoreV1</span><span class="p">().</span><span class="nf">Pods</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Namespace</span><span class="p">).</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">deleteOptions</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;Failed to delete status for pod %q: %v&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">),</span> <span class="nx">err</span><span class="p">)</span>
+			<span class="k">return</span>
+		<span class="p">}</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Pod %q fully terminated and removed from etcd&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">))</span>
+		<span class="nx">m</span><span class="p">.</span><span class="nf">deletePodStatus</span><span class="p">(</span><span class="nx">uid</span><span class="p">)</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>As we can see in the <em>syncPod</em> method, Kubelet will <em>force delete pod</em> as long
+as it thinks the pod <em>canBeDeleted</em>. So what means <em>canBeDeleted</em> exactly?</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">canBeDeleted</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">status</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">PodStatus</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">DeletionTimestamp</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">||</span> <span class="nx">kubetypes</span><span class="p">.</span><span class="nf">IsMirrorPod</span><span class="p">(</span><span class="nx">pod</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">false</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="nx">m</span><span class="p">.</span><span class="nx">podDeletionSafety</span><span class="p">.</span><span class="nf">PodResourcesAreReclaimed</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">status</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// pkg/kubelet/kubelet_pods.go
+</span><span class="c1">// PodResourcesAreReclaimed returns true if all required node-level resources that a pod was consuming have
+</span><span class="c1">// been reclaimed by the kubelet.  Reclaiming resources is a prerequisite to deleting a pod from the API server.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">PodResourcesAreReclaimed</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">status</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">PodStatus</span><span class="p">)</span> <span class="kt">bool</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="p">!</span><span class="nf">notRunning</span><span class="p">(</span><span class="nx">status</span><span class="p">.</span><span class="nx">ContainerStatuses</span><span class="p">)</span> <span class="p">{</span>
+		<span class="c1">// We shouldn&#39;t delete pods that still have running containers
+</span><span class="c1"></span>		<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Pod %q is terminated, but some containers are still running&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">))</span>
+		<span class="k">return</span> <span class="kc">false</span>
+	<span class="p">}</span>
+	<span class="c1">// pod&#39;s containers should be deleted
+</span><span class="c1"></span>	<span class="nx">runtimeStatus</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">podCache</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">UID</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Pod %q is terminated, Error getting runtimeStatus from the podCache: %s&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">),</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">false</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">runtimeStatus</span><span class="p">.</span><span class="nx">ContainerStatuses</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="kd">var</span> <span class="nx">statusStr</span> <span class="kt">string</span>
+		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">status</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">runtimeStatus</span><span class="p">.</span><span class="nx">ContainerStatuses</span> <span class="p">{</span>
+			<span class="nx">statusStr</span> <span class="o">+=</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;%+v &#34;</span><span class="p">,</span> <span class="o">*</span><span class="nx">status</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Pod %q is terminated, but some containers have not been cleaned up: %s&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">),</span> <span class="nx">statusStr</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">false</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="nx">kl</span><span class="p">.</span><span class="nf">podVolumesExist</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">UID</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">kl</span><span class="p">.</span><span class="nx">keepTerminatedPodVolumes</span> <span class="p">{</span>
+		<span class="c1">// We shouldn&#39;t delete pods whose volumes have not been cleaned up if we are not keeping terminated pod volumes
+</span><span class="c1"></span>		<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Pod %q is terminated, but some volumes have not been cleaned up&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">))</span>
+		<span class="k">return</span> <span class="kc">false</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">kubeletConfiguration</span><span class="p">.</span><span class="nx">CgroupsPerQOS</span> <span class="p">{</span>
+		<span class="nx">pcm</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">containerManager</span><span class="p">.</span><span class="nf">NewPodContainerManager</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nx">pcm</span><span class="p">.</span><span class="nf">Exists</span><span class="p">(</span><span class="nx">pod</span><span class="p">)</span> <span class="p">{</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Pod %q is terminated, but pod cgroup sandbox has not been cleaned up&#34;</span><span class="p">,</span> <span class="nx">format</span><span class="p">.</span><span class="nf">Pod</span><span class="p">(</span><span class="nx">pod</span><span class="p">))</span>
+			<span class="k">return</span> <span class="kc">false</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>It turns out that Kubelet needs to confirm that all containers are dead, and resources such as volume have been released, etc.</p>
+<p>Finally, the process of deleting a pod is almost finished. Of course there&rsquo;re
+some other mechanisms such as housekeeping to ensure everything goes right in
+Kubelet&rsquo;s responsibility. We&rsquo;ve basically understood what happened to Kubelet
+when a pod is normally deleted. And by go through the source code, we feel some
+of design philosophy in kubernetes as well.</p>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2020-03-31
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/kubernetes/">kubernetes</a>
+          <a href="/tags/kubelet/">kubelet</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/java-attach-mechanism/">
+            <span class="next-text nav-default">Java Attach Mechanism</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2020
+    <span class="heart">
+      <i class="iconfont icon-heart"></i>
+    </span>
+    <span class="author">Wenfeng</span>
+  </span>
+</div>
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script id="baidu_analytics">
+  var _hmt = _hmt || [];
+  (function() {
+    if (window.location.hostname === 'localhost') return;
+    var hm = document.createElement("script"); hm.async = true;
+    hm.src = "https://hm.baidu.com/hm.js?2394a408cca2a9e611801f76b5dc0267";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+
+
+
+
+
+
+</body>
+</html>

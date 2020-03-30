@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Posts on Je pense donc je suis</title>
@@ -6,10 +6,22 @@
     <description>Recent content in Posts on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 11 Nov 2019 15:26:07 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>What Happened to Kubelet When Pod Is Deleted</title>
+      <link>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</link>
+      <pubDate>Thu, 26 Mar 2020 04:11:32 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</guid>
+      <description>The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
+Conclusion Before discussing the implementation details of the source code, let&amp;rsquo;s stand high and talk about the general process that Kubelet will make.
+For example, we start by deleting a pod.
+1  kubectl delete pod &amp;lt;pod&amp;gt;   kube-apiserver won&amp;rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the .</description>
+    </item>
     
     <item>
       <title>Java Attach Mechanism</title>
@@ -158,7 +170,7 @@ In fact, the same question was posed on stackoverflow, which gains 5951 votes.</
       <guid>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</guid>
       <description>Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
 I wish all the commit messages will follow the pattern like:
-1 2 3 4  [Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.   However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed.</description>
+[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.</description>
     </item>
     
     <item>
@@ -231,7 +243,8 @@ Step 1 Create MySQL service Create a unit file mysql.service
       <pubDate>Mon, 30 May 2016 18:21:53 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/</guid>
-      <description>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.</description>
+      <description>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.
+So as I made it work finally, it&amp;rsquo;s time to share with others.</description>
     </item>
     
     <item>

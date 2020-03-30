@@ -36,7 +36,7 @@ In fact, the same question was posed on stackoverflow, which gains 5951 votes." 
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/python-yield-keyword/" />
@@ -63,16 +63,13 @@ In fact, the same question was posed on stackoverflow, which gains 5951 votes." 
 <meta itemprop="description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&rsquo;s no similar thing in Java or C language.
 So in this post, I&rsquo;ll try to explain and conclude what the yield keyword does.
 In fact, the same question was posed on stackoverflow, which gains 5951 votes.">
-
-
 <meta itemprop="datePublished" content="2018-02-06T18:23:56&#43;08:00" />
 <meta itemprop="dateModified" content="2018-02-06T18:23:56&#43;08:00" />
 <meta itemprop="wordCount" content="870">
 
 
 
-<meta itemprop="keywords" content="python," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="python," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Python Yield Keyword"/>
 <meta name="twitter:description" content="Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&rsquo;s no similar thing in Java or C language.
 So in this post, I&rsquo;ll try to explain and conclude what the yield keyword does.
@@ -152,56 +149,28 @@ In fact, the same question was posed on stackoverflow, which gains 5951 votes."/
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#yield">yield</a></li>
-<li><a href="#iterators">Iterators</a></li>
-<li><a href="#generators">Generators</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p><em>Yield</em> keyword is an important feature in Python language, in order to
+      <p><em>Yield</em> keyword is an important feature in Python language, in order to
 understand coroutine in Python, we need to understand <em>yield</em> and
 <em>generator</em> first. However, this feature also makes the Python newbies like me
 confused a lot, as there&rsquo;s no similar thing in Java or C language.</p>
-
 <p>So in this post, I&rsquo;ll try to explain and conclude what the <em>yield</em> keyword does.</p>
-
 <p>In fact, the same question was posed on
 <a href="http://stackoverflow.com/questions/231767/what-does-the-yield-keyword-do">stackoverflow</a>, which gains 5951 votes.</p>
-
 <h3 id="yield">yield</h3>
-
 <blockquote>
 <p>The yield expression is only used when defining a generator function, and can only be used in the body of a function definition. Using a yield expression in a function definition is sufficient to cause that definition to create a generator function instead of a normal function.</p>
 </blockquote>
-
 <p>We maybe feel confused about the definition of <strong>yield</strong> expresion, but if we&rsquo;ve already understood what <strong>yield</strong> exactly is, we may find that the qoutes from the python documentation is well expressed.</p>
-
 <p>So, <em>the yield expression is only used when defining a generator function</em>.
 What is a <strong>generator function</strong>, or first of all, what is a <strong>gennerator</strong>?</p>
-
 <p>Generators are iterators, but you can only iterate over them once.</p>
-
 <h3 id="iterators">Iterators</h3>
-
 <p>The use of iterators pervades and unifies Python. Most container objects can be looped over using a for statement:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -222,13 +191,13 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="s2">&#34;123&#34;</span><span class="p">:</span>
     <span class="k">print</span> <span class="n">char</span>
 <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&#34;myfile.txt&#34;</span><span class="p">):</span>
-    <span class="k">print</span> <span class="n">line</span><span class="p">,</span></code></pre></td></tr></table>
+    <span class="k">print</span> <span class="n">line</span><span class="p">,</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>Behind the scenes, the for statement calls <code>iter()</code> on the container object. The function returns an iterator object that defines the method <code>next()</code> which accesses elements in the container one at a time. When there are no more elements, <code>next()</code> raises a <code>StopIteration</code> exception which tells the for loop to terminate. This example shows how it all works:</p>
+</div><p>Behind the scenes, the for statement calls <code>iter()</code> on the container object. The function returns an iterator object that defines the method <code>next()</code> which accesses elements in the container one at a time. When there are no more elements, <code>next()</code> raises a <code>StopIteration</code> exception which tells the for loop to terminate. This example shows how it all works:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -259,13 +228,13 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 <span class="n">Traceback</span> <span class="p">(</span><span class="n">most</span> <span class="n">recent</span> <span class="n">call</span> <span class="n">last</span><span class="p">):</span>
   <span class="n">File</span> <span class="s2">&#34;&lt;stdin&gt;&#34;</span><span class="p">,</span> <span class="n">line</span> <span class="mi">1</span><span class="p">,</span> <span class="ow">in</span> <span class="err">?</span>
     <span class="n">it</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="ne">StopIteration</span></code></pre></td></tr></table>
+<span class="ne">StopIteration</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>Having seen the mechanics behind the iterator protocol, it is easy to add iterator behavior to your classes. Define an <code>__iter__()</code> method which returns an object with a next() method. If the class defines <code>next()</code>, then <code>__iter__()</code> can just return self:</p>
+</div><p>Having seen the mechanics behind the iterator protocol, it is easy to add iterator behavior to your classes. Define an <code>__iter__()</code> method which returns an object with a next() method. If the class defines <code>next()</code>, then <code>__iter__()</code> can just return self:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -294,11 +263,12 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">StopIteration</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span></code></pre></td></tr></table>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -315,26 +285,25 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 <span class="n">m</span>
 <span class="n">a</span>
 <span class="n">p</span>
-<span class="n">s</span></code></pre></td></tr></table>
+<span class="n">s</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="generators">Generators</h3>
-
+</div><h3 id="generators">Generators</h3>
 <p>Generators are iterators, but <strong>you can only iterate over them once</strong>. It&rsquo;s because they do not store all the values in memory, <strong>they generate the values on the fly</strong>:</p>
-
 <p>Some simple generators can be coded succinctly as expressions using a syntax similar to list comprehensions but with parentheses instead of brackets.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-python" data-lang="python"><span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
-    <span class="k">print</span> <span class="n">element</span></code></pre></td></tr></table>
+    <span class="k">print</span> <span class="n">element</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -347,28 +316,27 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 <span class="o">...</span>    <span class="k">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 <span class="mi">0</span>
 <span class="mi">1</span>
-<span class="mi">4</span></code></pre></td></tr></table>
+<span class="mi">4</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>It is just the same except you used <code>()</code> instead of <code>[]</code>. But, you <strong>cannot</strong> perform <code>for i in mygenerator</code> a second time since generators can only be used once: they calculate 0, then forget about it and calculate 1, and end calculating 4, one by one.</p>
-
+</div><p>It is just the same except you used <code>()</code> instead of <code>[]</code>. But, you <strong>cannot</strong> perform <code>for i in mygenerator</code> a second time since generators can only be used once: they calculate 0, then forget about it and calculate 1, and end calculating 4, one by one.</p>
 <p>Generators are a simple and powerful tool for creating iterators. They are written like regular functions but use the <strong>yield</strong> statement whenever they want to return data.</p>
-
 <p>An example shows that generators can be trivially easy to create:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span></code></pre></td></tr></table>
+        <span class="k">yield</span> <span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -383,13 +351,13 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 <span class="n">f</span>
 <span class="n">l</span>
 <span class="n">o</span>
-<span class="n">g</span></code></pre></td></tr></table>
+<span class="n">g</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>With <strong>Generators</strong> we can deal with large scale of input in <strong>Iterator</strong> manner without the worry of memory limit. For example:</p>
+</div><p>With <strong>Generators</strong> we can deal with large scale of input in <strong>Iterator</strong> manner without the worry of memory limit. For example:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -408,15 +376,14 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 
 <span class="n">f</span> <span class="o">=</span> <span class="n">fib</span><span class="p">()</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1000000</span><span class="p">):</span>
-    <span class="k">print</span> <span class="s2">&#34;</span><span class="si">%d</span><span class="s2">: </span><span class="si">%d</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">next</span><span class="p">())</span></code></pre></td></tr></table>
+    <span class="k">print</span> <span class="s2">&#34;</span><span class="si">%d</span><span class="s2">: </span><span class="si">%d</span><span class="s2">&#34;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">next</span><span class="p">())</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>To be brief, a normal function with <strong>yield</strong> keyword will become a generator function, which returns a <strong>generator</strong> after being called. Then the <strong>generator</strong> could be used by calling the <strong>generator-iterator methods</strong> like <code>generator.next()</code>, <code>generator.send()</code>, etc.</p>
-
+</div><p>To be brief, a normal function with <strong>yield</strong> keyword will become a generator function, which returns a <strong>generator</strong> after being called. Then the <strong>generator</strong> could be used by calling the <strong>generator-iterator methods</strong> like <code>generator.next()</code>, <code>generator.send()</code>, etc.</p>
 <p>To understand these functions, you have to read the documentation carefully, I won&rsquo;t discuss about it now, perhaps the last example will help you understand.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -461,7 +428,8 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
 <span class="mi">2</span>
 <span class="mi">2</span>
 <span class="mi">2</span>
-<span class="mi">5</span></code></pre></td></tr></table>
+<span class="mi">5</span>
+</code></pre></td></tr></table>
 </div>
 </div>
     </div>
@@ -550,7 +518,7 @@ What is a <strong>generator function</strong>, or first of all, what is a <stron
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/basic-shell-commands/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2017-07-29T18:23:09+08:00" />
 <meta itemprop="name" content="Basic Shell Commands">
 <meta itemprop="description" content="公司某个产品的测试环境比较复杂，它需要在 OpenStack 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产">
-
-
 <meta itemprop="datePublished" content="2017-07-29T18:23:09&#43;08:00" />
 <meta itemprop="dateModified" content="2017-07-29T18:23:09&#43;08:00" />
 <meta itemprop="wordCount" content="696">
 
 
 
-<meta itemprop="keywords" content="shell," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="shell," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Basic Shell Commands"/>
 <meta name="twitter:description" content="公司某个产品的测试环境比较复杂，它需要在 OpenStack 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产"/>
 
@@ -144,35 +141,13 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#if">if</a></li>
-<li><a href="#grep">grep</a></li>
-<li><a href="#sed">sed</a></li>
-<li><a href="#echo-with-color">echo with color</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>公司某个产品的测试环境比较复杂，它需要在 <em>OpenStack</em> 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产品节点通过接收与发送数据包进行测试。</p>
-
+      <p>公司某个产品的测试环境比较复杂，它需要在 <em>OpenStack</em> 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产品节点通过接收与发送数据包进行测试。</p>
 <p>整个部署与测试流程都需要用Jenkins做自动化测试，而我的任务是将TestAgent节点移植到Docker容器中。用时一个多月，从熟悉源代码的部署与测试流程，到OpenStack的UI界面和CLI命令的基本使用，到OpenStack网络通信的基本理解，到Python的学习与使用(如使用pexpect通过ssh执行shell命令和脚本)， 到shell脚本的熟悉与使用，这个过程中爬过了许多大大小小的坑，也收获了很多东西，这里主要总结一下shell脚本的常用命令。</p>
-
 <h2 id="if">if</h2>
-
 <p><code>if TEST-COMMANDS; then CONSEQUENT-COMMANDS; fi</code></p>
-
 <p>其中<code>TEST-COMMANDS</code>一般有3种情形：</p>
-
 <ul>
 <li><code>shell command</code>
 如果它的返回状态为0，则执行<code>CONSEQUENT-COMMANDS</code></li>
@@ -180,20 +155,14 @@
 <li>double bracket <code>[[]]</code>
 在方括号内都会做一些判断，如判断文件是否存在，<code>[ -f FILE ]</code>等等，而其两者的区别在于<code>[[]]</code>是<code>[]</code>的拓展，只支持与bash、zsh等几种shell，所以可移植性要差一些，不过如果不考虑移植性的问题，<code>[[]]</code>会更加简洁与可读，具体可以参考 <a href="http://stackoverflow.com/questions/669452/is-preferable-over-in-bash-scripts">StackOverFlow上的回答</a>以及<a href="http://mywiki.wooledge.org/BashFAQ/031">这篇文档</a>。</li>
 </ul>
-
 <p>有时简单的逻辑关系可以直接使用<code>&amp;&amp;</code>代替。</p>
-
 <h2 id="grep">grep</h2>
-
 <p><code>grep -rl “pattern” file</code> 返回含有“pattern”的文件名，<code>grep</code>常与<code>awk</code>或者<code>cut</code>一起使用，例如</p>
-
 <ul>
 <li><code>grep &quot;foo&quot; file.txt | awk '{print $1}'</code></li>
 <li><code>grep &quot;/bin/bash&quot; /etc/passwd | cut -d':' -f1,6</code></li>
 </ul>
-
 <h2 id="sed">sed</h2>
-
 <ul>
 <li><code>sed -i 'pattern' file</code> 直接操作文件的内容而不是stdout</li>
 <li><code>sed 's/hello/bonjour/' greetings.txt</code> 基本用法</li>
@@ -201,9 +170,7 @@
 <li><code>sed  '/Hello/a World' input</code> 在之后增加一行</li>
 <li><code>sed '/^\s*$/d'</code> 删除空白行</li>
 </ul>
-
 <h2 id="echo-with-color">echo with color</h2>
-
 <ul>
 <li><code>RED='\033[0;31m'</code></li>
 <li><code>NC='\033[0m' # No Color</code></li>
@@ -296,7 +263,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

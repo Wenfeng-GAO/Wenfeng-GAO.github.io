@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2018-11-28T23:14:35+08:00" />
 <meta itemprop="name" content="Kubernetes源码分析之CPU Manager">
 <meta itemprop="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（">
-
-
 <meta itemprop="datePublished" content="2018-11-28T23:14:35&#43;08:00" />
 <meta itemprop="dateModified" content="2018-11-28T23:14:35&#43;08:00" />
-<meta itemprop="wordCount" content="3853">
+<meta itemprop="wordCount" content="3844">
 
 
 
-<meta itemprop="keywords" content="kubernetes,kubelet," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Kubernetes源码分析之CPU Manager"/>
 <meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（"/>
 
@@ -144,88 +141,52 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li><a href="#背景">背景</a></li>
-<li><a href="#使用方式">使用方式</a></li>
-<li><a href="#源码分析">源码分析</a>
-<ul>
-<li><a href="#start-cpu-manager">Start CPU Manager</a></li>
-<li><a href="#reconcile">Reconcile</a>
-<ul>
-<li><a href="#reconcile方法做了什么事情">Reconcile方法做了什么事情？</a></li>
-<li><a href="#为什么要做">为什么要做</a></li>
-</ul></li>
-<li><a href="#addcontainer-removecontainer">AddContainer/RemoveContainer</a>
-<ul>
-<li><a href="#addcontainer">AddContainer</a></li>
-<li><a href="#removecontainer">RemoveContainer</a></li>
-</ul></li>
-</ul></li>
-<li><a href="#问题思考">问题思考</a></li>
-<li><a href="#总结">总结</a></li>
-<li><a href="#reference">Reference</a></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<h1 id="背景">背景</h1>
-
+      <h1 id="背景">背景</h1>
 <p>Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于<a href="https://www.kernel.org/doc/Documentation/cgroup-v1/cpusets.txt">cpuset</a>的支持，通过很长一段时间的讨论（<a href="https://github.com/kubernetes/kubernetes/issues/10570">[Issue] Determine if we should support cpuset-cpus and cpuset-mem</a>)后，最终通过<a href="https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/">CPU Manager</a>来实现。</p>
-
 <p>CPU Manager作为alpha版本从v1.8开始出现，自v1.10开始作为beta版本默认开启。</p>
-
 <h1 id="使用方式">使用方式</h1>
-
 <p>v1.10版本前需要开启<code>feature-gate</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"> --feature-gates<span class="o">=</span><span class="nv">CPUManager</span><span class="o">=</span>true</code></pre></td></tr></table>
+<pre class="chroma"><code class="language-bash" data-lang="bash"> --feature-gates<span class="o">=</span><span class="nv">CPUManager</span><span class="o">=</span><span class="nb">true</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>开启cpuset还需要一些cpumanager的参数设置</p>
+</div><p>开启cpuset还需要一些cpumanager的参数设置</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash">--cpu-manager-policy<span class="o">=</span>static
---cpu-manager-reconcile-period<span class="o">=</span>10s / Optional, default same as <span class="sb">`</span>--node-status-update-frequency<span class="sb">`</span></code></pre></td></tr></table>
+--cpu-manager-reconcile-period<span class="o">=</span>10s / Optional, default same as <span class="sb">`</span>--node-status-update-frequency<span class="sb">`</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>还需要设置cpu reservation，可以通过</p>
+</div><p>还需要设置cpu reservation，可以通过</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash">--kube-reserved
 // or
---system-reserved</code></pre></td></tr></table>
+--system-reserved
+</code></pre></td></tr></table>
 </div>
-</div>
-<h1 id="源码分析">源码分析</h1>
-
+</div><h1 id="源码分析">源码分析</h1>
 <h2 id="start-cpu-manager">Start CPU Manager</h2>
-
 <p>在kubelet启动之时，cpuManager会被生成，并<code>Start</code>。此时，cpuManager已经获取了所在宿主机的cpu拓扑结构，并且另起goroutine每隔<code>reconcilePeriod</code>时间，对宿主机上所有的<code>activePods</code>做一次<code>reconcile</code>。</p>
-
 <p><code>kubelet.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -246,13 +207,13 @@
 	<span class="p">}</span>
 	<span class="o">...</span>
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>container_manager_linux.go</code></p>
+</div><p><code>container_manager_linux.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -281,13 +242,13 @@
 
 	<span class="o">...</span>
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>cpu_manager.go</code></p>
+</div><p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -316,38 +277,30 @@
 		<span class="k">return</span>
 	<span class="p">}</span>
 	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span> <span class="nx">m</span><span class="p">.</span><span class="nf">reconcileState</span><span class="p">()</span> <span class="p">},</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">,</span> <span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>可以看见，在kubelet启动之时会调用<code>kl.containerManager.Start</code>来启动<code>containerManager</code>，而<code>containerManager</code>一上来会先判断<code>cpuManager Feature Gate</code>是否开启了，如果是，则调用<code>cm.cpuManager.Start</code>。</p>
-
+</div><p>可以看见，在kubelet启动之时会调用<code>kl.containerManager.Start</code>来启动<code>containerManager</code>，而<code>containerManager</code>一上来会先判断<code>cpuManager Feature Gate</code>是否开启了，如果是，则调用<code>cm.cpuManager.Start</code>。</p>
 <p>在<code>cpuManager.Start()</code>方法中，实际上只做了一件事情——如果<code>policy</code>为<code>static</code>，则每隔<code>reconcilePeriod</code>时间，执行一次<code>reconcileState()</code>方法。</p>
-
 <p>看到这里，也大概明白了参数设置<code>--cpu-manager-policy=static</code>，<code>--cpu-manager-reconcile-period</code>的用意了。</p>
-
 <h2 id="reconcile">Reconcile</h2>
-
 <h3 id="reconcile方法做了什么事情">Reconcile方法做了什么事情？</h3>
-
-<p><code>Reconcile</code>循环处理宿主机上的<code>activePods</code>，主要做了3件事：
-1. 找到<code>containerID</code>
-2. 获取这个container需要绑定的cpuset
-3. 更新这个container</p>
-
+<p><code>Reconcile</code>循环处理宿主机上的<code>activePods</code>，主要做了3件事：</p>
+<ol>
+<li>找到<code>containerID</code></li>
+<li>获取这个container需要绑定的cpuset</li>
+<li>更新这个container</li>
+</ol>
 <h3 id="为什么要做">为什么要做</h3>
-
 <p>实际上，在cpuManager创建之时，便得到了host的cpu拓扑，这时cpuManager维护一个cpu资源池，每当有新的pod需要使用cpuset，便从这个资源池中调走一些cpu来给其使用，使用cpuset的pod绑定并独占这些cpu核，而原本可以使用整个资源池资源的其他非cpuset的pod，现在都需要更新一把，使其使用最新的（缩小了的）cpu资源池。</p>
-
 <p>这就是<code>go wait.Until(func() { m.reconcileState() }, m.reconcilePeriod, wait.NeverStop)</code>的用意所在。</p>
-
 <blockquote>
 <p>所以理论上来说，刚刚使用cpuset的pod最长要等到<code>reconcilePeriod</code>之后，才能完全独占其CPU。</p>
 </blockquote>
-
 <p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -432,13 +385,13 @@
 		<span class="p">}</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="nx">success</span><span class="p">,</span> <span class="nx">failure</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>从以上代码，我们知道通过调用<code>cset := m.state.GetCPUSetOrDefault(containerID)</code>，来获取container需要绑定的cpuset。那么它具体是如何获取的呢？</p>
+</div><p>从以上代码，我们知道通过调用<code>cset := m.state.GetCPUSetOrDefault(containerID)</code>，来获取container需要绑定的cpuset。那么它具体是如何获取的呢？</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -483,13 +436,13 @@
 		<span class="nx">nodeAllocatableReservation</span><span class="p">:</span> <span class="nx">nodeAllocatableReservation</span><span class="p">,</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="nx">manager</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>state_file.go</code></p>
+</div><p><code>state_file.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -524,14 +477,14 @@
 	<span class="p">}</span>
 
 	<span class="k">return</span> <span class="nx">stateFile</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>从以上代码，我们知道cpuManager实际上将<code>state</code>(也就是cpu资源池情况)写进了文件与内存cache中。<code>m.state.GetCPUSetOrDefault(containerID)</code>实际上是从内存中查找对应<code>containerID</code>的cpuset情况。
+</div><p>从以上代码，我们知道cpuManager实际上将<code>state</code>(也就是cpu资源池情况)写进了文件与内存cache中。<code>m.state.GetCPUSetOrDefault(containerID)</code>实际上是从内存中查找对应<code>containerID</code>的cpuset情况。
 <code>state_file.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -544,13 +497,13 @@
 	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
 
 	<span class="k">return</span> <span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>state_mem.go</code></p>
+</div><p><code>state_mem.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -609,35 +562,30 @@
 		<span class="k">return</span> <span class="nx">res</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">()</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>最终cpuset是从<code>s.assignments[containerID]</code>中获取的，而<code>s.assignments</code>实际上只是一个映射了<code>containerID</code>与cpuset的map。
+</div><p>最终cpuset是从<code>s.assignments[containerID]</code>中获取的，而<code>s.assignments</code>实际上只是一个映射了<code>containerID</code>与cpuset的map。
 <code>state.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ContainerCPUAssignments type used in cpu manger state
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ContainerCPUAssignments</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span></code></pre></td></tr></table>
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ContainerCPUAssignments</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>那么问题来了，这个<code>ContainerCPUAssignments</code>是何时添加，何时删除的呢？</p>
-
-<h2 id="addcontainer-removecontainer">AddContainer/RemoveContainer</h2>
-
+</div><p>那么问题来了，这个<code>ContainerCPUAssignments</code>是何时添加，何时删除的呢？</p>
+<h2 id="addcontainerremovecontainer">AddContainer/RemoveContainer</h2>
 <p>在<code>cpu_manager.go</code>中，我们还看到两个方法：<code>AddContainer</code>和<code>RemoveContainer</code>，它们的作用之一便是变更<code>ContainerCPUAssignments</code>。我们接下来看看它们是如何被使用的。</p>
-
 <h3 id="addcontainer">AddContainer</h3>
-
 <p>kubelet给container添加cpuset信息的地方比较隐蔽。在<code>kuberuntime.startContainer</code>中创建container之后，start container之前的<code>PreStartContainer</code>中。</p>
-
 <p><code>kuberuntime_container.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -672,13 +620,13 @@
 	<span class="c1">// Step 4: execute the post start hook.
 </span><span class="c1"></span><span class="o">...</span>
 	<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>internal_container_lifecycle.go</code></p>
+</div><p><code>internal_container_lifecycle.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -691,15 +639,14 @@
 		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>最终，我们还是回到了cpuManager，看到了<code>cpuManager.AddContainer</code>。</p>
-
+</div><p>最终，我们还是回到了cpuManager，看到了<code>cpuManager.AddContainer</code>。</p>
 <p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -746,17 +693,18 @@
 	<span class="p">}</span>
 
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>我们可以看到<code>AddContainer</code>主要做了2件事：
-1. 将containerID对应的cpuset信息写到<code>state</code>中
-2. 更新container的cpuset配置</p>
-
+</div><p>我们可以看到<code>AddContainer</code>主要做了2件事：</p>
+<ol>
+<li>将containerID对应的cpuset信息写到<code>state</code>中</li>
+<li>更新container的cpuset配置</li>
+</ol>
 <p><code>policy_static.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -811,13 +759,13 @@
 
 	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCPUs: returning \&#34;%v\&#34;&#34;</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span>
 	<span class="k">return</span> <span class="nx">result</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>state_file.go</code></p>
+</div><p><code>state_file.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -830,20 +778,19 @@
 	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
 	<span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
 	<span class="nx">sf</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>做第一件事——将cpuset信息写到<code>state</code>中时，不但要将<code>containerID</code>对应的cpuset信息写入，同时也要将这部分cpu从共享池子中拿走，这样<code>reconcile</code>的时候其他pod便也update了。同时，这部分信息不但跟新到内存cache中，同时也会写到本地磁盘。
-&gt;如果不写入磁盘，kubelet重启后变失去了当前cpu的使用情况拓扑。</p>
-
+</div><p>做第一件事——将cpuset信息写到<code>state</code>中时，不但要将<code>containerID</code>对应的cpuset信息写入，同时也要将这部分cpu从共享池子中拿走，这样<code>reconcile</code>的时候其他pod便也update了。同时，这部分信息不但跟新到内存cache中，同时也会写到本地磁盘。</p>
+<blockquote>
+<p>如果不写入磁盘，kubelet重启后变失去了当前cpu的使用情况拓扑。</p>
+</blockquote>
 <h3 id="removecontainer">RemoveContainer</h3>
-
 <p>与<code>AddContainer</code>类似，cpuManager的<code>RemoveContainer</code>方法不需要去<code>updateContainer</code>，而只是需要将container使用的这部分cpu资源还回资源池；而<code>RemoveContainer</code>在<code>PreStopContainer</code>和<code>PostStopContainer</code>中都会被调用到。</p>
-
 <p><code>kuberuntime_container.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -876,13 +823,13 @@
 	<span class="p">}</span>
 <span class="o">...</span>
 	<span class="k">return</span> <span class="nx">err</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>internal_container_lifecycle.go</code></p>
+</div><p><code>internal_container_lifecycle.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -909,13 +856,13 @@
 		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>cpu_manager.go</code></p>
+</div><p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -938,13 +885,13 @@
 		<span class="k">return</span> <span class="nx">err</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>policy_static.go</code></p>
+</div><p><code>policy_static.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -963,35 +910,22 @@
 </span><span class="c1"></span>		<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Union</span><span class="p">(</span><span class="nx">toRelease</span><span class="p">))</span>
 	<span class="p">}</span>
 	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h1 id="问题思考">问题思考</h1>
-
+</div><h1 id="问题思考">问题思考</h1>
 <p><strong>Q</strong>： Kubelet重启后cpuManager如何继续工作？</p>
-
 <p><strong>A</strong>：cpuManager会先从本地文件(<code>/var/lib/k8s/kubelet/cpu_manager_state</code>)中<code>restore</code>，并写入内存cache。</p>
-
-<hr />
-
+<hr>
 <p><strong>Q</strong>： 如果手动修改container的cpuset会如何？</p>
-
 <p><strong>A</strong>： Kubelet会将其重新修改回来，因为会<code>reconcile</code>。</p>
-
-<hr />
-
+<hr>
 <p><strong>Q</strong>：如果手动修改CFS Quota/Share呢？</p>
-
 <p><strong>A</strong>： 修改会保留，因为<code>reconcile</code>只会更新<code>cpuset</code>。</p>
-
 <h1 id="总结">总结</h1>
-
 <p>以上，大致梳理了kubelet的cpuManager大致工作流程，以及设计的目的和意图，限于篇幅不能面面俱到或是过于详尽，读者可以在阅读代码时细细思考与品位。</p>
-
 <p>本文代码分析使用的是v1.9.11版本，在最新版本可能稍有出入。</p>
-
 <h1 id="reference">Reference</h1>
-
 <ul>
 <li><a href="https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/">https://kubernetes.io/blog/2018/07/24/feature-highlight-cpu-manager/</a></li>
 <li><a href="https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/">Control CPU Management Policies on the Node</a></li>
@@ -1087,7 +1021,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

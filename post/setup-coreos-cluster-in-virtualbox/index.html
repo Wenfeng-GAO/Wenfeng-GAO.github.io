@@ -16,7 +16,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
-<meta name="author" content="Wenfeng" /><meta name="description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected." /><meta name="keywords" content="Hugo, blog, tech" />
+<meta name="author" content="Wenfeng" /><meta name="description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&amp;rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&amp;rsquo;s no tutorial as I expected.
+So as I made it work finally, it&amp;rsquo;s time to share with others." /><meta name="keywords" content="Hugo, blog, tech" />
 
 
 
@@ -34,7 +35,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/" />
@@ -50,25 +51,25 @@
 
 
 <meta property="og:title" content="Setup Coreos Cluster Manually with Virtualbox" />
-<meta property="og:description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected." />
+<meta property="og:description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected.
+So as I made it work finally, it&rsquo;s time to share with others." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/setup-coreos-cluster-in-virtualbox/" />
 <meta property="article:published_time" content="2016-05-30T18:21:53+08:00" />
 <meta property="article:modified_time" content="2016-05-30T18:21:53+08:00" />
 <meta itemprop="name" content="Setup Coreos Cluster Manually with Virtualbox">
-<meta itemprop="description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected.">
-
-
+<meta itemprop="description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected.
+So as I made it work finally, it&rsquo;s time to share with others.">
 <meta itemprop="datePublished" content="2016-05-30T18:21:53&#43;08:00" />
 <meta itemprop="dateModified" content="2016-05-30T18:21:53&#43;08:00" />
-<meta itemprop="wordCount" content="848">
+<meta itemprop="wordCount" content="849">
 
 
 
-<meta itemprop="keywords" content="coreos,docker," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="coreos,docker," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Setup Coreos Cluster Manually with Virtualbox"/>
-<meta name="twitter:description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected."/>
+<meta name="twitter:description" content="Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster in minutes; the bad news is that I don&rsquo;t like everything perfectly done by Vagrant like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected.
+So as I made it work finally, it&rsquo;s time to share with others."/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -144,98 +145,42 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#before-we-start">Before we start</a></li>
-<li><a href="#part-1-install-coreos-image-and-setup-a-user">Part 1, install CoreOS image and setup a User</a>
-<ul>
-<li>
-<ul>
-<li><a href="#1-download-stable-iso-https-coreos-com-os-docs-latest-booting-with-iso-html">1. <a href="https://coreos.com/os/docs/latest/booting-with-iso.html">Download stable ISO</a>.</a></li>
-<li><a href="#2-install-in-virtualbox">2. Install in VirtualBox.</a></li>
-<li><a href="#3-create-cloud-config-yml-file">3. Create <em>cloud-config.yml</em> file</a></li>
-<li><a href="#4-install-the-coreos-standalone-version">4. Install the CoreOS standalone version</a></li>
-</ul></li>
-</ul></li>
-<li><a href="#part-2-setup-cluster">Part 2, setup cluster</a>
-<ul>
-<li>
-<ul>
-<li><a href="#1-generate-discovery-key">1. Generate <em>discovery</em> key</a></li>
-<li><a href="#2-update-user-data-file">2. Update <em>user_data</em> file</a></li>
-<li><a href="#3-check-cluster-status">3. Check cluster status</a></li>
-</ul></li>
-</ul></li>
-<li><a href="#trouble-shooting">Trouble shooting</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several
+      <p>Recently, I wanted to set up a tiny CoreOS cluster in my laptop, the good news is that with several
 commands and the existed Vagrantfile offered by the CoreOS official guide, we can setup a cluster
 in minutes; the bad news is that I don&rsquo;t like everything perfectly done by <a href="https://www.vagrantup.com/">Vagrant</a>
 like a magic box, I want to do it total manually, and there&rsquo;s no tutorial as I expected.</p>
-
 <p>So as I made it work finally, it&rsquo;s time to share with others.</p>
-
 <h3 id="before-we-start">Before we start</h3>
-
 <p><a href="https://coreos.com/">CoreOS</a> is a very cool opensource operating system, which is designed for security, consistency, and reliability.
 Instead of installing packages via yum or apt, CoreOS uses Linux containers to manage your services
 at a higher level of abstraction. A single service&rsquo;s code and all dependencies are packaged within
 a container that can be run on one or many CoreOS machines.</p>
-
 <p>It uses <a href="https://coreos.com/etcd/">etcd</a> as the key value store service, and uses <a href="https://coreos.com/etcd/">fleet</a> to manage the containers in the cluster.</p>
-
 <p>And if you just want to setup a cluster locally as fast as posssible, try <a href="https://coreos.com/os/docs/latest/booting-on-vagrant.html">Running CoreOS on Vagrant</a>.</p>
-
 <p>Finally, before we start to setup manually, make sure you have <em>VirtualBox</em> installed.</p>
-
 <h3 id="part-1-install-coreos-image-and-setup-a-user">Part 1, install CoreOS image and setup a User</h3>
-
-<h5 id="1-download-stable-iso-https-coreos-com-os-docs-latest-booting-with-iso-html">1. <a href="https://coreos.com/os/docs/latest/booting-with-iso.html">Download stable ISO</a>.</h5>
-
+<h5 id="1-download-stable-isohttpscoreoscomosdocslatestbooting-with-isohtml">1. <a href="https://coreos.com/os/docs/latest/booting-with-iso.html">Download stable ISO</a>.</h5>
 <h5 id="2-install-in-virtualbox">2. Install in VirtualBox.</h5>
-
-<p>Choose <em>type: Linux</em>, <em>Version: Linux 2.<sup>6</sup>&frasl;<sub>3</sub>.x/4.x(64-bit)</em>, and set <em>Memory</em> at least 1024 MB.
+<p>Choose <em>type: Linux</em>, <em>Version: Linux 2.6/3.x/4.x(64-bit)</em>, and set <em>Memory</em> at least 1024 MB.
 Keep clicking <em>next</em> until <em>finish</em>. Once it&rsquo;s done, click <em>Storage</em> tab and add your iso image to the IDE controller, then click <em>Network</em>
 tab, change connection type from <em>NAT</em> to <em>Bridge</em>, because we need a static IP address to do the following configurations.
 Now we just boot up our VM, and we&rsquo;ll see this if everything goes right.
-<img src="http://pn9ta8hbk.bkt.clouddn.com/iso_install_complete.PNG" alt="ISO Install Complete" />
+<img src="http://pn9ta8hbk.bkt.clouddn.com/iso_install_complete.PNG" alt="ISO Install Complete">
 This means we have a live version of CoreOS running on VirtualBox, with the default <em>core</em> user logged in.</p>
-
-<h5 id="3-create-cloud-config-yml-file">3. Create <em>cloud-config.yml</em> file</h5>
-
+<h5 id="3-create-cloud-configyml-file">3. Create <em>cloud-config.yml</em> file</h5>
 <p>In the current repository,
 Run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    openssl passwd -1 &gt; cloud-config.yml</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    openssl passwd -1 &gt; cloud-config.yml
+</code></pre>
 <p>This is for getting an enscrypted password for logging in. The system prompts you for password and then asks to verify it.
 Once done successfully, you get the hash for your password.</p>
-
 <p>The <em>cloud-config</em> file uses <a href="http://yaml.org/">YAML</a>. We need follow the <a href="https://coreos.com/os/docs/latest/cloud-config.html#file-format">file format</a> to make sure CoreOS recognizes and processes the file.
 The script is something like this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -245,83 +190,48 @@ The script is something like this:</p>
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-yml" data-lang="yml"><span class="c">#cloud-config</span><span class="w">
-</span><span class="w"></span>users<span class="p">:</span><span class="w">
-</span><span class="w">  </span>-<span class="w"> </span>name<span class="p">:</span><span class="w"> </span>wenfeng<span class="w">
-</span><span class="w">    </span>passwd<span class="p">:</span><span class="w"> </span>$<span class="m">1</span>$QJq0Z7rL$GjaetUaSVEU0hM5N3VKpn.<span class="w">
-</span><span class="w">    </span>groups<span class="p">:</span><span class="w">
-</span><span class="w">      </span>-<span class="w"> </span>sudo<span class="w">
-</span><span class="w">      </span>-<span class="w"> </span>docker</code></pre></td></tr></table>
+</span><span class="w"></span><span class="k">users</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>wenfeng<span class="w">
+</span><span class="w">    </span><span class="k">passwd</span><span class="p">:</span><span class="w"> </span>$<span class="m">1</span>$QJq0Z7rL$GjaetUaSVEU0hM5N3VKpn.<span class="w">
+</span><span class="w">    </span><span class="k">groups</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- sudo<span class="w">
+</span><span class="w">      </span>- docker<span class="w">
+</span></code></pre></td></tr></table>
 </div>
-</div>
-<h5 id="4-install-the-coreos-standalone-version">4. Install the CoreOS standalone version</h5>
-
+</div><h5 id="4-install-the-coreos-standalone-version">4. Install the CoreOS standalone version</h5>
 <p>Once <code>cloud-config.yml</code> file is created, run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    coreos-cloudinit -validate --from-file cloud-config.yml</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    coreos-cloudinit -validate --from-file cloud-config.yml
+</code></pre>
 <p>to verify you have done it with no syntax and format errors.</p>
-
 <p>Then, run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    sudo coreos-install -d /dev/sda -C stable -c cloud_config.yml</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    sudo coreos-install -d /dev/sda -C stable -c cloud_config.yml
+</code></pre>
 <p>This will download and install the latest stable CoreOS release on your virtual machine.
 The success message at the end confirms the CoreOS installation if everything goes well.</p>
-
 <p>Unmount the ISO image from the IDE controller and reboot the virtual machine.
 If everything’s right, the virtual machine should reboot and you should be able to login using the username and password set in the cloud-config file.</p>
-
 <p>Here are another two tutorials of installing CoreOS to VirtualBox.</p>
-
 <ul>
 <li><a href="http://www.liberidu.com/blog/2015/04/11/basic-newbie-install-coreos-on-virtualbox-getting-started-with-docker/">BASIC (NEWBIE) INSTALL COREOS ON VIRTUALBOX – GETTING STARTED WITH DOCKER</a></li>
 <li><a href="https://deis.com/blog/2015/coreos-on-virtualbox/">Get started with CoreOS and VirtualBox</a></li>
 </ul>
-
 <h3 id="part-2-setup-cluster">Part 2, setup cluster</h3>
-
 <p>We&rsquo;ll create a cluster of 3 node, so follow the <strong>Part 1</strong> to create 3 CoreOS host.
 As we install CoreOS by <code>coreos-install</code> command, the system will create a <em>user_data</em> file in <code>/var/lib/coreos-install</code> directory, and it will reload this file every time it boots up.
 So we will update this file in order to setup the cluster.</p>
-
 <h5 id="1-generate-discovery-key">1. Generate <em>discovery</em> key</h5>
-
 <p>We use the public discovery service provided by CoreOS to setup the <em>etcd</em> cluster, first run this command in your CLI</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    curl https://discovery.etcd.io/new?size=3</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    curl https://discovery.etcd.io/new?size=3
+</code></pre>
 <p>We&rsquo;ll get an url like <code>https://discovery.etcd.io/4e70847e1c43b9c10ac52bdf27a4698b</code>, copy that for later use.</p>
-
-<h5 id="2-update-user-data-file">2. Update <em>user_data</em> file</h5>
-
+<h5 id="2-update-user_data-file">2. Update <em>user_data</em> file</h5>
 <p>Loggin or <code>ssh</code> to each CoreOS host VM, run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    sudo vi /var/lib/coreos-install/user_data</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    sudo vi /var/lib/coreos-install/user_data
+</code></pre>
 <p>Update the file like:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -352,66 +262,48 @@ So we will update this file in order to setup the cluster.</p>
 <td class="lntd">
 <pre class="chroma"><code class="language-yml" data-lang="yml"><span class="c">#cloud-config</span><span class="w">
 </span><span class="w">
-</span><span class="w"></span>coreos<span class="p">:</span><span class="w">
-</span><span class="w">  </span>etcd2<span class="p">:</span><span class="w">
+</span><span class="w"></span><span class="k">coreos</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span><span class="k">etcd2</span><span class="p">:</span><span class="w">
 </span><span class="w">    </span><span class="c"># generate a new token for each unique cluster from https://discovery.etcd.io/new?size=3</span><span class="w">
 </span><span class="w">    </span><span class="c"># specify the initial size of your cluster with ?size=X</span><span class="w">
-</span><span class="w">    </span>discovery<span class="p">:</span><span class="w"> </span>https<span class="p">:</span>//discovery.etcd.io/4e70847e1c43b9c10ac52bdf27a4698b<span class="w">
-</span><span class="w">    </span>advertise-client-urls<span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">2379</span><span class="p">,</span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">4001</span><span class="w">
-</span><span class="w">    </span>initial-advertise-peer-urls<span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">2380</span><span class="w">
+</span><span class="w">    </span><span class="k">discovery</span><span class="p">:</span><span class="w"> </span>https<span class="p">:</span>//discovery.etcd.io/4e70847e1c43b9c10ac52bdf27a4698b<span class="w">
+</span><span class="w">    </span><span class="k">advertise-client-urls</span><span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">2379</span><span class="p">,</span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">4001</span><span class="w">
+</span><span class="w">    </span><span class="k">initial-advertise-peer-urls</span><span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">2380</span><span class="w">
 </span><span class="w">    </span><span class="c"># listen on both the official ports and the legacy ports</span><span class="w">
 </span><span class="w">    </span><span class="c"># legacy ports can be omitted if your application doesn&#39;t depend on them</span><span class="w">
-</span><span class="w">    </span>listen-client-urls<span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//<span class="m">0.0.0.0</span><span class="p">:</span><span class="m">2379</span><span class="p">,</span>http<span class="p">:</span>//<span class="m">0.0.0.0</span><span class="p">:</span><span class="m">4001</span><span class="w">
-</span><span class="w">    </span>listen-peer-urls<span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">2380</span><span class="w">
-</span><span class="w">  </span>units<span class="p">:</span><span class="w">
-</span><span class="w">    </span>-<span class="w"> </span>name<span class="p">:</span><span class="w"> </span>etcd2.service<span class="w">
-</span><span class="w">      </span>command<span class="p">:</span><span class="w"> </span>start<span class="w">
+</span><span class="w">    </span><span class="k">listen-client-urls</span><span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//<span class="m">0.0.0.0</span><span class="p">:</span><span class="m">2379</span><span class="p">,</span>http<span class="p">:</span>//<span class="m">0.0.0.0</span><span class="p">:</span><span class="m">4001</span><span class="w">
+</span><span class="w">    </span><span class="k">listen-peer-urls</span><span class="p">:</span><span class="w"> </span>http<span class="p">:</span>//&lt;your-coreos-vm-ip-address&gt;<span class="p">:</span><span class="m">2380</span><span class="w">
+</span><span class="w">  </span><span class="k">units</span><span class="p">:</span><span class="w">
+</span><span class="w">    </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>etcd2.service<span class="w">
+</span><span class="w">      </span><span class="k">command</span><span class="p">:</span><span class="w"> </span>start<span class="w">
 </span><span class="w">
-</span><span class="w">    </span>-<span class="w"> </span>name<span class="p">:</span><span class="w"> </span>fleet.service<span class="w">
-</span><span class="w">      </span>command<span class="p">:</span><span class="w"> </span>start<span class="w">
+</span><span class="w">    </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>fleet.service<span class="w">
+</span><span class="w">      </span><span class="k">command</span><span class="p">:</span><span class="w"> </span>start<span class="w">
 </span><span class="w">
 </span><span class="w">
-</span><span class="w"></span>users<span class="p">:</span><span class="w">
-</span><span class="w">  </span>-<span class="w"> </span>name<span class="p">:</span><span class="w"> </span>wenfeng<span class="w">
-</span><span class="w">    </span>passwd<span class="p">:</span><span class="w"> </span>$<span class="m">1</span>$QJq0Z7rL$GjaetUaSVEU0hM5N3VKpn.<span class="w">
-</span><span class="w">    </span>groups<span class="p">:</span><span class="w">
-</span><span class="w">      </span>-<span class="w"> </span>sudo<span class="w">
-</span><span class="w">      </span>-<span class="w"> </span>docker</code></pre></td></tr></table>
+</span><span class="w"></span><span class="k">users</span><span class="p">:</span><span class="w">
+</span><span class="w">  </span>- <span class="k">name</span><span class="p">:</span><span class="w"> </span>wenfeng<span class="w">
+</span><span class="w">    </span><span class="k">passwd</span><span class="p">:</span><span class="w"> </span>$<span class="m">1</span>$QJq0Z7rL$GjaetUaSVEU0hM5N3VKpn.<span class="w">
+</span><span class="w">    </span><span class="k">groups</span><span class="p">:</span><span class="w">
+</span><span class="w">      </span>- sudo<span class="w">
+</span><span class="w">      </span>- docker<span class="w">
+</span></code></pre></td></tr></table>
 </div>
-</div>
-<h5 id="3-check-cluster-status">3. Check cluster status</h5>
-
+</div><h5 id="3-check-cluster-status">3. Check cluster status</h5>
 <p>Once you have updated the <em>user_data</em> file of each CoreOS VM, reboot them at the same time and you will get
 a cluster automatically.</p>
-
 <p>If everything goes well, <code>ssh</code> to a host and run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    systemctl status etcd2</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    systemctl status etcd2
+</code></pre>
 <p>You should see some thing like:
-<img src="http://pn9ta8hbk.bkt.clouddn.com/etcd2_status.PNG" alt="etcd2 status" /></p>
-
+<img src="http://pn9ta8hbk.bkt.clouddn.com/etcd2_status.PNG" alt="etcd2 status"></p>
 <p>Run</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    fleetctl list-machines</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    fleetctl list-machines
+</code></pre>
 <p>You should see come thing like:
-<img src="http://pn9ta8hbk.bkt.clouddn.com/cluster_machine_status.PNG" alt="cluster machine status" /></p>
-
+<img src="http://pn9ta8hbk.bkt.clouddn.com/cluster_machine_status.PNG" alt="cluster machine status"></p>
 <p>Now every goes perfectly, deploy your services and enjoy CoreOS cluster!</p>
-
 <h3 id="trouble-shooting">Trouble shooting</h3>
-
 <ol>
 <li>You can use <code>journalctl -f -t etcd2</code> to see logs of <em>etcd2</em> if any error occurs.</li>
 <li>All CoreOS VMs in the cluster share the same <em>discovery key</em>, and you should generate a new one every time you
@@ -507,7 +399,7 @@ setup a new cluster</li>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

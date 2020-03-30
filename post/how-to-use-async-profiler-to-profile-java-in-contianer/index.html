@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/how-to-use-async-profiler-to-profile-java-in-contianer/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2019-10-14T15:53:55+08:00" />
 <meta itemprop="name" content="How to Use async-profiler to Profile Non-root Java Process in Contianer">
 <meta itemprop="description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool.">
-
-
 <meta itemprop="datePublished" content="2019-10-14T15:53:55&#43;08:00" />
 <meta itemprop="dateModified" content="2019-10-14T15:53:55&#43;08:00" />
 <meta itemprop="wordCount" content="585">
 
 
 
-<meta itemprop="keywords" content="async-profiler,perf,flamegraph,docker," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="async-profiler,perf,flamegraph,docker," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="How to Use async-profiler to Profile Non-root Java Process in Contianer"/>
 <meta name="twitter:description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool."/>
 
@@ -147,78 +144,49 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li><a href="#ways-for-java-cpu-profiling">Ways for Java CPU Profiling</a></li>
-<li><a href="#getting-started">Getting started</a>
-<ul>
-<li><a href="#easy-to-use">Easy to Use</a></li>
-<li><a href="#troubleshooting">Troubleshooting</a>
-<ul>
-<li><a href="#for-privileged-user">For privileged user</a></li>
-</ul></li>
-</ul></li>
-<li><a href="#references">References</a></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<h1 id="ways-for-java-cpu-profiling">Ways for Java CPU Profiling</h1>
-
+      <h1 id="ways-for-java-cpu-profiling">Ways for Java CPU Profiling</h1>
 <p>In order to profile Java processes and get cpu usage hot points(better shown
 with flame graph), there&rsquo;re 3 popular ways:</p>
-
 <ol>
-<li><p>perf + perf-map-agent + FlameGraph</p>
-
+<li>
+<p>perf + perf-map-agent + FlameGraph</p>
 <p>Linux perf tool and Gregg&rsquo;s <a href="https://github.com/brendangregg/FlameGraph">FlameGraph</a>
 can do the job well, but as Java has a
 JVM virtual machine and JIT in-line feature, perf can&rsquo;t get Java&rsquo;s stack trace
 directly, here <a href="https://github.com/jvm-profiling-tools/perf-map-agent">perf-map-agent</a>
 comes to help.</p>
-
 <p><em>perf-map-agent</em> aims to provide a map file for symbols of in-line code.
 <code>XX:+PreserveFramePointer</code> should be added when launce jvm as well.</p>
-
 <p>There&rsquo;re already many good tutorials and blogs about this method, so we won&rsquo;t go
-deeper here.</p></li>
-
-<li><p>eBPF + perf-map-agent + FlameGraph</p>
-
+deeper here.</p>
+</li>
+<li>
+<p>eBPF + perf-map-agent + FlameGraph</p>
 <p>Use eBPF instead of perf tool can alse work well, and it cost lower overhead
 theoretically. I&rsquo;ve written another blog to share the detail about this
-(<a href="https://wenfeng-gao.github.io/post/profile-java-program-with-bcc-tool/">How To Profile Java Program With eBPF/bcc Tool</a>).</p></li>
-
-<li><p>async-profiler</p>
-
+(<a href="https://wenfeng-gao.github.io/post/profile-java-program-with-bcc-tool/">How To Profile Java Program With eBPF/bcc Tool</a>).</p>
+</li>
+<li>
+<p>async-profiler</p>
 <p><a href="https://github.com/jvm-profiling-tools/async-profiler">jvm-profiling-tools/async-profiler</a> is
 an open-source low overhead sampling profiler for Java.</p>
-
 <p>For CPU profiling, it uses perf with <code>AsyncGetCallTrace</code>, for visualization it
-has flame graph support out of box.</p></li>
+has flame graph support out of box.</p>
+</li>
 </ol>
-
 <p>async-profiler already support <a href="https://github.com/jvm-profiling-tools/async-profiler#profiling-java-in-a-container">profiling Java in a container</a>,
 but I still met some obstacles while trying to use it.</p>
-
 <h1 id="getting-started">Getting started</h1>
-
 <p>It&rsquo;s possible to profile both within the Docker container or from the host
 system, I tried both and both works well. Here I introduce profile within the
 container.</p>
-
 <h2 id="easy-to-use">Easy to Use</h2>
-
 <p>Just download the async-profiler in place, it&rsquo;s quite easy to use:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -229,32 +197,30 @@ container.</p>
 ./profiler.sh stop PID
 
 <span class="c1"># flame graph output</span>
-./profiler.sh -d DURATION -f /path/to/output.svg PID</code></pre></td></tr></table>
+./profiler.sh -d DURATION -f /path/to/output.svg PID
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>For CPU profiling, you may get some flame graphs like this.
-<img src="/post/how-to-use-async-profiler-to-profile-java-in-container/flame_graph.svg" alt="flame graph" /></p>
-
+</div><p>For CPU profiling, you may get some flame graphs like this.
+<img src="/post/how-to-use-async-profiler-to-profile-java-in-container/flame_graph.svg" alt="flame graph"></p>
 <h2 id="troubleshooting">Troubleshooting</h2>
-
 <p>When I use async-profiler the first time inside the contianer, I got some
 permission errors.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash">$ ./profiler.sh start PID
 
-Perf events unavailable. See stderr of the target process.</code></pre></td></tr></table>
+Perf events unavailable. See stderr of the target process.
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>And in my error logs, I found this:</p>
+</div><p>And in my error logs, I found this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -265,14 +231,14 @@ Perf events unavailable. See stderr of the target process.</code></pre></td></tr
 Try with --all-user option, or <span class="s1">&#39;echo 1 &gt; /proc/sys/kernel/perf_event_paranoid&#39;</span>
 perf_event_open failed: Permission denied
 perf_event_open failed: Permission denied
-...</code></pre></td></tr></table>
+...
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>What is <code>perf_event_paranoid</code>? It&rsquo;s a <code>sysctl</code> file used to control the
+</div><p>What is <code>perf_event_paranoid</code>? It&rsquo;s a <code>sysctl</code> file used to control the
 permission of unprivileged user to use perf_event.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -288,45 +254,40 @@ permission of unprivileged user to use perf_event.</p>
 <pre class="chroma"><code class="language-bash" data-lang="bash">perf_event_paranoid:
 
 Controls use of the performance events system by unprivileged
-users <span class="o">(</span>without CAP_SYS_ADMIN<span class="o">)</span>.  The default value is <span class="m">2</span>.
+users <span class="o">(</span>without CAP_SYS_ADMIN<span class="o">)</span>.  The default value is 2.
 
  -1: Allow use of <span class="o">(</span>almost<span class="o">)</span> all events by all users
      Ignore mlock limit after perf_event_mlock_kb without CAP_IPC_LOCK
-&gt;<span class="o">=</span><span class="m">0</span>: Disallow ftrace <span class="k">function</span> tracepoint by users without CAP_SYS_ADMIN
+&gt;<span class="o">=</span>0: Disallow ftrace <span class="k">function</span> tracepoint by users without CAP_SYS_ADMIN
      Disallow raw tracepoint access by users without CAP_SYS_ADMIN
-&gt;<span class="o">=</span><span class="m">1</span>: Disallow CPU event access by users without CAP_SYS_ADMIN
-&gt;<span class="o">=</span><span class="m">2</span>: Disallow kernel profiling by users without CAP_SYS_ADMIN</code></pre></td></tr></table>
+&gt;<span class="o">=</span>1: Disallow CPU event access by users without CAP_SYS_ADMIN
+&gt;<span class="o">=</span>2: Disallow kernel profiling by users without CAP_SYS_ADMIN
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>And you can&rsquo;t modify the file directly in the container, because it&rsquo;s read-only:</p>
+</div><p>And you can&rsquo;t modify the file directly in the container, because it&rsquo;s read-only:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
 <pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nb">echo</span> <span class="m">0</span> &gt; /proc/sys/kernel/perf_event_paranoid
-bash: /proc/sys/kernel/perf_event_paranoid: Read-only file system</code></pre></td></tr></table>
+bash: /proc/sys/kernel/perf_event_paranoid: Read-only file system
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>You have to do this command on the host system, in which case will definitly
+</div><p>You have to do this command on the host system, in which case will definitly
 affect all containers on this host, which leverages some kind of security risks.</p>
-
 <p>In addition, you may need to modify <a href="https://docs.docker.com/engine/security/seccomp/">seccomp profile</a>
 or disable it altogether with <code>--security-opt=seccomp:unconfined</code> option.
 As my containers are running in Kubernetes cluster, which disables <code>seccomp</code> by
 default, I no longer need to do this.</p>
-
 <h3 id="for-privileged-user">For privileged user</h3>
-
 <p>As my Java process runs as unprivileged, I have to deal with the
 <code>perf_event_paranoid</code> issue, however, if you run Java process as root user or
 init process, you only need to add <code>SYS_ADMIN</code> capabilities to your container.
 (<a href="https://blog.alicegoldfuss.com/enabling-perf-in-kubernetes/">This blog</a> may
 help in this case.)</p>
-
 <h1 id="references">References</h1>
-
 <ul>
 <li><a href="https://www.kernel.org/doc/Documentation/sysctl/kernel.txt">sysctl doc</a></li>
 <li><a href="https://stackoverflow.com/questions/51911368/what-restriction-is-perf-event-paranoid-1-actually-putting-on-x86-perf">stackoverflow perf_event_paranoid</a></li>
@@ -424,7 +385,7 @@ Profiler</a></li>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

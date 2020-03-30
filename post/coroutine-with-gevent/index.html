@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/coroutine-with-gevent/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2018-02-21T18:24:14+08:00" />
 <meta itemprop="name" content="Coroutine With Gevent">
 <meta itemprop="description" content="背景 工作中用到gevent。 gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。 使用过程中，带着某些问">
-
-
 <meta itemprop="datePublished" content="2018-02-21T18:24:14&#43;08:00" />
 <meta itemprop="dateModified" content="2018-02-21T18:24:14&#43;08:00" />
-<meta itemprop="wordCount" content="2085">
+<meta itemprop="wordCount" content="2087">
 
 
 
-<meta itemprop="keywords" content="python,coroutine," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="python,coroutine," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Coroutine With Gevent"/>
 <meta name="twitter:description" content="背景 工作中用到gevent。 gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。 使用过程中，带着某些问"/>
 
@@ -144,49 +141,20 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#背景">背景</a></li>
-<li><a href="#协程">协程</a>
-<ul>
-<li><a href="#greenlet">Greenlet</a></li>
-</ul></li>
-<li><a href="#问题">问题</a></li>
-<li><a href="#code-of-gevent">Code of gevent</a></li>
-<li><a href="#结论">结论</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<h3 id="背景">背景</h3>
-
+      <h3 id="背景">背景</h3>
 <p>工作中用到gevent。</p>
-
 <blockquote>
 <p>gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。</p>
 </blockquote>
-
 <p>使用过程中，带着某些问题阅读了一部分源码，现在做一下总结与分享。</p>
-
 <h3 id="协程">协程</h3>
-
 <p>Python通过<code>yield</code>与<code>generator</code>，能实现<code>coroutine</code>。举个栗子(更多更详细的例子请
 参考<a href="http://www.dabeaz.com/coroutines/Coroutines.pdf">this awesome presentation</a>)：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -215,22 +183,20 @@
 <span class="o">&gt;&gt;&gt;</span> <span class="n">g</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&#34;hello world&#34;</span><span class="p">)</span>
 <span class="o">&gt;&gt;&gt;</span> <span class="n">g</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&#34;python generators rock!&#34;</span><span class="p">)</span>
 <span class="n">python</span> <span class="n">generators</span> <span class="n">rock</span><span class="err">!</span>
-<span class="o">&gt;&gt;&gt;</span></code></pre></td></tr></table>
+<span class="o">&gt;&gt;&gt;</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>原本以为gevent会是对<code>yield</code>一些封装，了解后知道，在gevent里面，上下文切换通过
+</div><p>原本以为gevent会是对<code>yield</code>一些封装，了解后知道，在gevent里面，上下文切换通过
 yielding来完成的，但其用到的主要模式是Greenlet，
 Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部运行在主程序操作系统
 的内部，但它们被协作式地调度。<strong>在任何时刻，只有一个协程在运行。</strong></p>
-
 <h4 id="greenlet">Greenlet</h4>
-
 <p>对于<a href="http://greenlet.readthedocs.io/en/latest/">Greenlet</a>，暂且不多说，
 通过阅读官网的API，我们知道其主要是通过<code>switch</code>这个
 方法来实现跳转的，<code>switch</code>如何实现的暂不做讨论，先贴上官网的例子混个脸熟：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -261,16 +227,15 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
 
 <span class="n">gr1</span> <span class="o">=</span> <span class="n">greenlet</span><span class="p">(</span><span class="n">test1</span><span class="p">)</span>
 <span class="n">gr2</span> <span class="o">=</span> <span class="n">greenlet</span><span class="p">(</span><span class="n">test2</span><span class="p">)</span>
-<span class="n">gr1</span><span class="o">.</span><span class="n">switch</span><span class="p">()</span></code></pre></td></tr></table>
+<span class="n">gr1</span><span class="o">.</span><span class="n">switch</span><span class="p">()</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="问题">问题</h3>
-
+</div><h3 id="问题">问题</h3>
 <p>使用gevent最基本的用法就是<code>spawn</code>与<code>joinall</code>了，贴一个
 <a href="http://www.gevent.org/intro.html#example">官网的例子</a>：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -285,19 +250,17 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
 <span class="o">&gt;&gt;&gt;</span> <span class="n">jobs</span> <span class="o">=</span> <span class="p">[</span><span class="n">gevent</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">gethostbyname</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span> <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">urls</span><span class="p">]</span>
 <span class="o">&gt;&gt;&gt;</span> <span class="n">gevent</span><span class="o">.</span><span class="n">joinall</span><span class="p">(</span><span class="n">jobs</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="o">&gt;&gt;&gt;</span> <span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">]</span>
-<span class="p">[</span><span class="s1">&#39;74.125.79.106&#39;</span><span class="p">,</span> <span class="s1">&#39;208.77.188.166&#39;</span><span class="p">,</span> <span class="s1">&#39;82.94.164.162&#39;</span><span class="p">]</span></code></pre></td></tr></table>
+<span class="p">[</span><span class="s1">&#39;74.125.79.106&#39;</span><span class="p">,</span> <span class="s1">&#39;208.77.188.166&#39;</span><span class="p">,</span> <span class="s1">&#39;82.94.164.162&#39;</span><span class="p">]</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>主要让我困扰的是官网对于这段代码的描述:
+</div><p>主要让我困扰的是官网对于这段代码的描述:
 <em>After the jobs have been spawned, gevent.joinall() waits for them to complete, allowing up to 2 seconds&hellip;</em></p>
-
 <p>感觉上是<code>gevent.spawn(func)</code>时，<code>func</code>就已经被调用，而<code>joinall</code>只是为了等待所有
 <code>func</code>结束并返回结果。</p>
-
 <p>然后我做了个小实验：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -336,73 +299,18 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
 <span class="o">&gt;&gt;&gt;</span> <span class="n">g</span><span class="o">.</span><span class="n">ready</span><span class="p">()</span>
 <span class="bp">True</span>
 <span class="o">&gt;&gt;&gt;</span>
-<span class="c1"># `ready()` Return a true value if and only if the greenlet has finished execution.</span></code></pre></td></tr></table>
+<span class="c1"># `ready()` Return a true value if and only if the greenlet has finished execution.</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>发现执行<code>joinall</code>之前，<code>g</code>一直是<code>not finished</code>的状态, <code>foo</code>, <code>bar</code>也没有输出任何
+</div><p>发现执行<code>joinall</code>之前，<code>g</code>一直是<code>not finished</code>的状态, <code>foo</code>, <code>bar</code>也没有输出任何
 东西，直到执行了<code>joinall</code>，所以我猜测<code>spawn</code>并不会开
 始执行<code>func</code>，在<code>joinall</code>时，会以协程的方式来调用<code>func</code>。
 带着这个问题，去翻源码寻找答案。</p>
-
 <h3 id="code-of-gevent">Code of gevent</h3>
-
 <p><code>gevent/greenlet.py</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span><span class="lnt">11
-</span><span class="lnt">12
-</span><span class="lnt">13
-</span><span class="lnt">14
-</span><span class="lnt">15
-</span><span class="lnt">16
-</span><span class="lnt">17
-</span><span class="lnt">18
-</span><span class="lnt">19
-</span><span class="lnt">20
-</span></code></pre></td>
-<td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python">    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">spawn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="s2">&#34;&#34;&#34;
-</span><span class="s2">        Create a new :class:`Greenlet` object and schedule it to run ``function(*args, **kwargs)``.
-</span><span class="s2">        This can be used as ``gevent.spawn`` or ``Greenlet.spawn``.
-</span><span class="s2">
-</span><span class="s2">        The arguments are passed to :meth:`Greenlet.__init__`.
-</span><span class="s2">
-</span><span class="s2">        .. versionchanged:: 1.1b1
-</span><span class="s2">            If a *function* is given that is not callable, immediately raise a :exc:`TypeError`
-</span><span class="s2">            instead of spawning a greenlet that will raise an uncaught TypeError.
-</span><span class="s2">        &#34;&#34;&#34;</span>
-        <span class="n">g</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">g</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">g</span>
-
-    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="s2">&#34;&#34;&#34;Schedule the greenlet to run in this loop iteration&#34;&#34;&#34;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_event</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_start_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">run_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">switch</span><span class="p">)</span></code></pre></td></tr></table>
-</div>
-</div>
-<p>从这里可以看出，<code>spawn</code>主要以<code>func</code>为参数，生成了一个<code>Greenlet</code>对象，<code>Greenlet</code>
-对象是<code>greenlet</code>的封装，然后执行了<code>start</code>方法。</p>
-
-<p>在<code>start</code>方法中直接调用了父类<code>greenlet
-</code>库中的方法，我看了半天并没有理出头绪，线索中断了。于是去看<code>joinall</code>碰碰运气。</p>
-
-<p><code>gevent/greenlet.py</code></p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -425,7 +333,61 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
 </span><span class="lnt">21
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">joinall</span><span class="p">(</span><span class="n">greenlets</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">raise_error</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<pre class="chroma"><code class="language-python" data-lang="python">
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">spawn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="s2">&#34;&#34;&#34;
+</span><span class="s2">        Create a new :class:`Greenlet` object and schedule it to run ``function(*args, **kwargs)``.
+</span><span class="s2">        This can be used as ``gevent.spawn`` or ``Greenlet.spawn``.
+</span><span class="s2">
+</span><span class="s2">        The arguments are passed to :meth:`Greenlet.__init__`.
+</span><span class="s2">
+</span><span class="s2">        .. versionchanged:: 1.1b1
+</span><span class="s2">            If a *function* is given that is not callable, immediately raise a :exc:`TypeError`
+</span><span class="s2">            instead of spawning a greenlet that will raise an uncaught TypeError.
+</span><span class="s2">        &#34;&#34;&#34;</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">g</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&#34;&#34;&#34;Schedule the greenlet to run in this loop iteration&#34;&#34;&#34;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_event</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">run_callback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">switch</span><span class="p">)</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>从这里可以看出，<code>spawn</code>主要以<code>func</code>为参数，生成了一个<code>Greenlet</code>对象，<code>Greenlet</code>
+对象是<code>greenlet</code>的封装，然后执行了<code>start</code>方法。</p>
+<p>在<code>start</code>方法中直接调用了父类<code>greenlet</code>库中的方法，我看了半天并没有理出头绪，线索中断了。于是去看<code>joinall</code>碰碰运气。</p>
+<p><code>gevent/greenlet.py</code></p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-python" data-lang="python">
+<span class="k">def</span> <span class="nf">joinall</span><span class="p">(</span><span class="n">greenlets</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">raise_error</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="s2">&#34;&#34;&#34;
 </span><span class="s2">    Wait for the ``greenlets`` to finish.
 </span><span class="s2">
@@ -445,13 +407,13 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">obj</span><span class="o">.</span><span class="n">exception</span>
         <span class="n">done</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">done</span></code></pre></td></tr></table>
+    <span class="k">return</span> <span class="n">done</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>hub.py</code></p>
+</div><p><code>hub.py</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -526,13 +488,13 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
 </span><span class="s2">    &#34;&#34;&#34;</span>
     <span class="k">if</span> <span class="n">objects</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">get_hub</span><span class="p">()</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iwait</span><span class="p">(</span><span class="n">objects</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span></code></pre></td></tr></table>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">iwait</span><span class="p">(</span><span class="n">objects</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>hub.py</code></p>
+</div><p><code>hub.py</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -643,17 +605,16 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">unlink</span><span class="p">(</span><span class="n">switch</span><span class="p">)</span>
                 <span class="k">except</span><span class="p">:</span> <span class="c1"># pylint:disable=bare-except</span>
-                    <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span></code></pre></td></tr></table>
+                    <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>看到这里，终于看到了希望。
+</div><p>看到这里，终于看到了希望。
 <code>Waiter</code>是对<code>greenlet</code>的<code>switch</code>, <code>throw</code>等方法一个wrapper, 而它的<code>switch</code>方法
 主要也是为了调用<code>greenlet</code>的<code>switch</code>方法。</p>
-
 <p><code>hub.py</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -680,15 +641,12 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">switch</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
             <span class="k">except</span><span class="p">:</span> <span class="c1"># pylint:disable=bare-except</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">handle_error</span><span class="p">(</span><span class="n">switch</span><span class="p">,</span> <span class="o">*</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">())</span></code></pre></td></tr></table>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">handle_error</span><span class="p">(</span><span class="n">switch</span><span class="p">,</span> <span class="o">*</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">())</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>而<code>greenlet</code>的<code>switch</code>是做什么的自然就不用多说了。</p>
-
+</div><p>而<code>greenlet</code>的<code>switch</code>是做什么的自然就不用多说了。</p>
 <p>当然，方法的调用过程中还有一些<code>callback</code>的用法，篇幅有限，就不讨论那么详细了。</p>
-
 <h3 id="结论">结论</h3>
-
 <p>在<code>gevent.joinall()</code>方法中，我们看到了协程，看到了方法是如何被实现调用与跳转的。
 <code>gevent.spawn()</code>将方法包装成了<code>Greenlet</code>对象，放到了队列之中，或许有进一步的触发，
 这里我并没有挖掘到太多，便不多言。</p>
@@ -780,7 +738,7 @@ Greenlet是以C扩展模块形式接入Python的轻量级协程。Greenlet全部
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

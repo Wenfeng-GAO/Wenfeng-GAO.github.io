@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2017-05-18T09:56:49+08:00" />
 <meta itemprop="name" content="Mesos Checkpoint Feature &amp; Master Agent Connection">
 <meta itemprop="description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。 本文将讨论的问题： Mesos checkpoint 机制的作用">
-
-
 <meta itemprop="datePublished" content="2017-05-18T09:56:49&#43;08:00" />
 <meta itemprop="dateModified" content="2017-05-18T09:56:49&#43;08:00" />
 <meta itemprop="wordCount" content="2607">
 
 
 
-<meta itemprop="keywords" content="docker,mesos," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="docker,mesos," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Mesos Checkpoint Feature &amp; Master Agent Connection"/>
 <meta name="twitter:description" content="Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。 本文将讨论的问题： Mesos checkpoint 机制的作用"/>
 
@@ -144,129 +141,69 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#usage-of-mesos-checkpoint-feature">Usage of Mesos Checkpoint Feature</a>
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#agent-disconnect-with-executor">Agent disconnect with executor</a></li>
-<li><a href="#agent-disconnect-with-master">Agent disconnect with master</a></li>
-<li><a href="#agent-recovery">Agent recovery</a></li>
-</ul></li>
-</ul></li>
-</ul></li>
-<li><a href="#dealing-with-partitioned-or-failed-agents">Dealing with Partitioned or Failed Agents</a>
-<ul>
-<li><a href="#2-mechanisms-to-track-availability-and-health">2 mechanisms to track availability and health</a></li>
-<li><a href="#steps-to-remove-disconnected-agent">Steps to remove disconnected agent</a></li>
-</ul></li>
-<li><a href="#dealing-with-partitioned-or-failed-masters">Dealing with Partitioned or Failed Masters</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。</p>
-
+      <p>Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。</p>
 <p>本文将讨论的问题：</p>
-
 <ul>
 <li>Mesos checkpoint 机制的作用</li>
 <li>Mesos master 与 agent连接检查的机制</li>
 <li>Mesos master 与 agent连接断开后的状态变化</li>
 </ul>
-
 <h2 id="usage-of-mesos-checkpoint-feature">Usage of Mesos Checkpoint Feature</h2>
-
 <p>Mesos的<code>checkpoint</code>功能主要能起到3个作用：</p>
-
 <h5 id="agent-disconnect-with-executor">Agent disconnect with executor</h5>
-
 <ul>
 <li>当agent线程挂掉，或者与executor无法连接时，如果framework没有使用<code>checkpoint</code>，executor一旦发现与agent断开，立即自动退出。</li>
 <li>如果framework使用了<code>checkpoint</code>，executor将在一段时间内（<code>MESOS_RECOVERY_TIMEOUT</code>）尝试重连，超出timeout之后才会自动退出。这个时间的设置可以通过<code>--recovery_timeout</code>标签来设置，默认15分钟。</li>
 </ul>
-
 <h5 id="agent-disconnect-with-master">Agent disconnect with master</h5>
-
 <ul>
 <li>当agent线程挂掉，或者与master连接断开时，如果没有<code>checkpoint</code>，master会立即为此agent管理的所有task发送<code>TASK_LOST</code>状态变更的信息，然后等待一段时间，给agent重连的机会（这段时间为mesos <code>health check</code>的时间，可以通过<code>--agent_ping_timeout</code> 和 <code>--max_agent_ping_timeouts</code>标签来设置），如果agent重连成功，master会kill掉之前发送<code>TASK_LOST</code>的所有task。</li>
 <li>如果使用了<code>checkpoint</code>，master不会发送<code>TASK_LOST</code>，而是直接等待，如果重连成功了，也不会kill任何task，就像什么也没有发生一样。</li>
 </ul>
-
 <h5 id="agent-recovery">Agent recovery</h5>
-
 <ul>
 <li>当agent重启后，如果没有<code>checkpoint</code>，agent管理的还存活着的task会被立即重启。</li>
 <li>如果使用了<code>checkpoint</code>，agent会将一些信息（<code>Task Info</code>, <code>Executor Info</code>, etc.）写入本地磁盘，重启后可以根据设置来进行恢复。
 这些设置有3个：
-
 <ul>
 <li><code>strict</code>: 若为true，恢复时出现的所有<code>error</code>将被视为<code>fatal</code>，恢复中断；若为<code>false</code>，忽略所有<code>error</code>，以最大的可能去恢复；默认为<code>true</code>。</li>
 <li><code>recover</code>：若为<code>reconnect</code>，重连所有存活的<code>executor</code>；若为<code>cleanup</code>，kill所有存活的<code>executor</code>并退出；默认为<code>reconnect</code>。</li>
 <li><code>recovery_timeout</code>，前面也有所提到，这是给agent预留的恢复时间，如果超过这个时间后还有<code>executor</code>没有连到，那么那些<code>executor</code>将会自动退出，默认时间为15分钟。</li>
-</ul></li>
 </ul>
-
+</li>
+</ul>
 <h2 id="dealing-with-partitioned-or-failed-agents">Dealing with Partitioned or Failed Agents</h2>
-
 <h3 id="2-mechanisms-to-track-availability-and-health">2 mechanisms to track availability and health</h3>
-
 <p>Mesos master用两种方法来检测跟踪agent的可靠性：</p>
-
 <ul>
 <li>Master 与 agent之间<code>tcp</code>连接的状态</li>
 <li><code>Health check</code>：通过master间断性地给agent发<code>ping</code>来检测，如果agent连续几次都响应失败，就判定为失联。<code>health check</code>的时间可以通过这两个标签来控制：
-
 <ul>
 <li><code>--agent_ping_timeout（--slave_ping_timeout）</code>：agent响应<code>ping</code>的时间限制，超出时间还未响应则为失败，默认为15秒。</li>
 <li><code>--max_agent_ping_timeouts (--max_slave_ping_timeouts)</code>：master可容忍的响应失败次数，默认为5。</li>
-</ul></li>
 </ul>
-
+</li>
+</ul>
 <p>所以默认的<code>health check</code> timeout为<code>15*5=75</code>秒。重启的agent需要在这个时间之内<code>re-register</code> master，不然master将<code>shutdown</code> 这个agent，而收到<code>shutdown</code>信号的agent会kill它管理的所有<code>executor</code>和<code>task</code>并退出。</p>
-
 <p>值的注意的是，这个时间设置需要大于<code>ZooKeeper session timeout</code>以避免无用的<code>re-register</code>尝试。</p>
-
 <h3 id="steps-to-remove-disconnected-agent">Steps to remove disconnected agent</h3>
-
 <p>当master检测到agent失联后，会采取步骤从列表中删掉失联的agent，这其中的步骤也会分有<code>checkpoint</code>和没有<code>checkpoint</code>，这在前面也有所提及。</p>
-
 <p>可以看以下图示：</p>
-
-<p><img src="http://pn9ta8hbk.bkt.clouddn.com/mesos-master-agent.jpg" alt="" /></p>
-
+<p><img src="http://pn9ta8hbk.bkt.clouddn.com/mesos-master-agent.jpg" alt=""></p>
 <p>若没有开启<code>checkpoint</code>，master会立即发送<code>TASK_LOST</code> message，只有如果重连成功，会kill掉这些task。</p>
-
 <p>如果在<code>health check timeout</code>时间内重连失败，master会从注册agent列表里移除这个agent，并且发送<code>SLAVE_LOST</code>的callback和相应的<code>TASK_LOST</code>的信息。</p>
-
 <p>而值得注意的是，不管<code>SLAVE_LOST callback</code>还是<code>TASK_LOST status update message</code>，mesos都不保证发送的信息是可靠的，即使因为网络原因中途丢失了，也只会发一次。</p>
-
 <p>被移除列表的agent依然会持续尝试重连master，它所管理的<code>executor</code>和<code>task</code>也会继续运行，如果重连成功了的话（比如网络问题修复了），master会要求agent <code>shutdown</code>，agent会<code>shutdown</code>所有task并退出。官方建议使用process supervisor（e.g. systemd）来自动启动mesos-slave。</p>
-
 <p>这个过程中有几个配置项值得考虑：</p>
-
 <ul>
 <li><code>--agent_removal_rate_limit(--slave_removal_rate_limit)</code>: 当agents <code>health check</code>失败后，从master注册列表中被移除的速度（如<code>1/10mins</code>，<code>2/3hrs</code>等），默认为立即移除。</li>
 <li><code>--recovery_agent_removal_limit(--recovery_slave_removal_limit)</code>: 限制agent被master从注册列表中移除的和<code>shutdown</code>的比例，如果超过这个比例，master将不会移除agent，而是自身<code>failover</code>，通过这个设置可能增加生产环境的安全性，默认为<code>100%</code>。</li>
 <li><code>agent_reregister_timeout(--slave_reregister_timeout)</code>: agent重连master的时间限制。agent与master断开连接或有新的master被选为leader时，会尝试<code>re-register</code>，默认设置时间10分钟，设置必须大于或等于10分钟。</li>
 </ul>
-
 <h2 id="dealing-with-partitioned-or-failed-masters">Dealing with Partitioned or Failed Masters</h2>
-
 <p>由于大部分的master state只存在内存中，当master <code>failover</code>，新的master被选出时，新master对集群的状态将一无所知，直到有agent <code>re-register</code>这个新的master。在这期间如果去询问某台agent的task状态，将没有任何回应。</p>
-
 <p>如果agent没有在<code>--agent_reregister_timeout</code>时间内重连新的master，master将标记这个agent为失败并执行前面提到过的步骤。唯一不同的是，agent被允许连接新的master即使已经超过了timeout。这表示framework可能会看到<code>TASK_LOST</code>状态更新，之后却发现task正在运行(因为agent被允许连入)。</p>
 
     </div>
@@ -356,7 +293,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

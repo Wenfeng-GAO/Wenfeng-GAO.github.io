@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>kubelet on Je pense donc je suis</title>
@@ -6,10 +6,22 @@
     <description>Recent content in kubelet on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Sun, 29 Sep 2019 16:06:44 +0800</lastBuildDate>
+    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate>
     
 	<atom:link href="https://wenfeng-gao.github.io/tags/kubelet/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>What Happened to Kubelet When Pod Is Deleted</title>
+      <link>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</link>
+      <pubDate>Thu, 26 Mar 2020 04:11:32 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</guid>
+      <description>The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we
+Conclusion Before discussing the implementation details of the source code, let&amp;rsquo;s stand high and talk about the general process that Kubelet will make.
+For example, we start by deleting a pod.
+1  kubectl delete pod &amp;lt;pod&amp;gt;   kube-apiserver won&amp;rsquo;t directly delete the corresponding pod resource in etcd after receiving the deletion request, but will set the .</description>
+    </item>
     
     <item>
       <title>Why Does Kubelet Modify File Permissions</title>

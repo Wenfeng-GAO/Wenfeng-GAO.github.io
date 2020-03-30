@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s-volume-manager-source-code-analysis/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2019-02-28T23:07:20+08:00" />
 <meta itemprop="name" content="Kubernetes源码分析之VolumeManager">
 <meta itemprop="description" content="前言 VolumeManager是kubernetes负责管理pod存储相关的重要组件，理解VolumeManager是理解pod生命周期的重">
-
-
 <meta itemprop="datePublished" content="2019-02-28T23:07:20&#43;08:00" />
 <meta itemprop="dateModified" content="2019-02-28T23:07:20&#43;08:00" />
-<meta itemprop="wordCount" content="2359">
+<meta itemprop="wordCount" content="2351">
 
 
 
-<meta itemprop="keywords" content="kubernetes,kubelet," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Kubernetes源码分析之VolumeManager"/>
 <meta name="twitter:description" content="前言 VolumeManager是kubernetes负责管理pod存储相关的重要组件，理解VolumeManager是理解pod生命周期的重"/>
 
@@ -144,40 +141,16 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#前言">前言</a></li>
-<li><a href="#正文">正文</a>
-<ul>
-<li><a href="#desiredstateofworldpopulator">DesiredStateOfWorldPopulator</a></li>
-</ul></li>
-<li><a href="#reconciler">Reconciler</a></li>
-<li><a href="#总结">总结</a></li>
-<li><a href="#ref">Ref</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<h2 id="前言">前言</h2>
-
+      <h2 id="前言">前言</h2>
 <p>VolumeManager是kubernetes负责管理pod存储相关的重要组件，理解VolumeManager是理解pod生命周期的重要环节。
 本文的分析基于v1.13.2版本。</p>
-
 <h2 id="正文">正文</h2>
-
 <p>通很多其他manager一样，<code>volumeManager</code>在<code>NewMainKubelet</code>方法中生成。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -224,11 +197,12 @@
 		<span class="nx">keepTerminatedPodVolumes</span><span class="p">)</span>
   <span class="o">...</span>
 	<span class="k">return</span> <span class="nx">klet</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -355,13 +329,13 @@
 		<span class="nx">kubeletPodsDir</span><span class="p">)</span>
 
 	<span class="k">return</span> <span class="nx">vm</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>在kubelet <code>Run</code>方法中会启动<code>volumeManager</code>。</p>
+</div><p>在kubelet <code>Run</code>方法中会启动<code>volumeManager</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -392,13 +366,13 @@
 	<span class="c1">// Start the pod lifecycle event generator.
 </span><span class="c1"></span>	<span class="nx">kl</span><span class="p">.</span><span class="nx">pleg</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span>
 	<span class="nx">kl</span><span class="p">.</span><span class="nf">syncLoop</span><span class="p">(</span><span class="nx">updates</span><span class="p">,</span> <span class="nx">kl</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>volumeManager.Run</code>方法主要会用goroutine的方式执行2个重要的方法<code>desiredStateOfWorldPopulator.Run</code>和<code>reconciler.Run</code>。</p>
+</div><p><code>volumeManager.Run</code>方法主要会用goroutine的方式执行2个重要的方法<code>desiredStateOfWorldPopulator.Run</code>和<code>reconciler.Run</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -431,15 +405,14 @@
 
 	<span class="o">&lt;-</span><span class="nx">stopCh</span>
 	<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Shutting down Kubelet Volume Manager&#34;</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h3 id="desiredstateofworldpopulator">DesiredStateOfWorldPopulator</h3>
-
+</div><h3 id="desiredstateofworldpopulator">DesiredStateOfWorldPopulator</h3>
 <p><code>DesiredStateOfWorldPopulator</code>遍历所有pod，确保有volume的pod都会存在在desired world cache中，或者将已经不存在的pod从cache中删除，保证cache的实时性。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -470,11 +443,12 @@
 	<span class="nx">dswp</span><span class="p">.</span><span class="nx">hasAddedPods</span> <span class="p">=</span> <span class="kc">true</span>
 	<span class="nx">dswp</span><span class="p">.</span><span class="nx">hasAddedPodsLock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
 	<span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="nx">dswp</span><span class="p">.</span><span class="nx">populatorLoop</span><span class="p">,</span> <span class="nx">dswp</span><span class="p">.</span><span class="nx">loopSleepDuration</span><span class="p">,</span> <span class="nx">stopCh</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -517,15 +491,14 @@
 	<span class="p">}</span>
 
 	<span class="nx">dswp</span><span class="p">.</span><span class="nf">findAndRemoveDeletedPods</span><span class="p">()</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="reconciler">Reconciler</h2>
-
+</div><h2 id="reconciler">Reconciler</h2>
 <p><code>Reconciler</code>会不断查看<code>actual state of the world</code>和<code>desired state of the world</code>是否一致，如果不一致，就通过<code>mount/unmount/attach/detach</code>等操作来保证一致.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -564,13 +537,13 @@
 			<span class="nx">rc</span><span class="p">.</span><span class="nf">sync</span><span class="p">()</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>reconciler</code>会保证*real world*与*desired world*的一致性。</p>
+</div><p><code>reconciler</code>会保证<em>real world</em>与<em>desired world</em>的一致性。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">  1
+<pre class="chroma"><code><span class="lnt">  1
 </span><span class="lnt">  2
 </span><span class="lnt">  3
 </span><span class="lnt">  4
@@ -899,13 +872,13 @@
 			<span class="p">}</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>rc.sync()</code>只会执行1次，为了避免kubelet重启等行为期间有数据的不一致。它会扫描所有pod的volume目录，如果有不一致，将*actual world*和*desired world*的数据都补齐。</p>
+</div><p><code>rc.sync()</code>只会执行1次，为了避免kubelet重启等行为期间有数据的不一致。它会扫描所有pod的volume目录，如果有不一致，将<em>actual world</em>和<em>desired world</em>的数据都补齐。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -928,17 +901,13 @@
 </span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">rc</span> <span class="o">*</span><span class="nx">reconciler</span><span class="p">)</span> <span class="nf">sync</span><span class="p">()</span> <span class="p">{</span>
 	<span class="k">defer</span> <span class="nx">rc</span><span class="p">.</span><span class="nf">updateLastSyncTime</span><span class="p">()</span>
 	<span class="nx">rc</span><span class="p">.</span><span class="nf">syncStates</span><span class="p">()</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<h2 id="总结">总结</h2>
-
+</div><h2 id="总结">总结</h2>
 <p>VolumeManager是负责k8s存储的核心组件，它不但为其他组件提供存储方面的调用接口，同时也通过<code>desired world</code>、<code>actual world</code>、<code>reconciler</code>等机制，实现完整的、闭环的存储管理。</p>
-
 <p>分析VolumeManager的相关代码，不但可以了解k8s的实现原理，还能对设计模式有所体悟和思考。</p>
-
 <h2 id="ref">Ref</h2>
-
 <ul>
 <li><a href="https://blog.csdn.net/zhonglinzhang/article/details/82800287">https://blog.csdn.net/zhonglinzhang/article/details/82800287</a></li>
 </ul>
@@ -1030,7 +999,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

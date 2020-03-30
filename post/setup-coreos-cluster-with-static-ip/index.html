@@ -36,7 +36,7 @@ Setup Static IP First of all, make sure your cluster node VM uses the bridge con
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/setup-coreos-cluster-with-static-ip/" />
@@ -63,16 +63,13 @@ Setup Static IP First of all, make sure your cluster node VM uses the bridge con
 <meta itemprop="description" content="We have talked about how to setup a CoreOS cluster in my previous post: Setup CoreOS Cluster Manually with VirtualBox. However, as we setup the cluster in VirtualBox, which uses DHCP as default, the etcd2 may not work when VM&rsquo;s IP changed.
 So in this article I&rsquo;ll tell you how to upgrade your cluster and enable the VMs use static IPs instead of DHCP.
 Setup Static IP First of all, make sure your cluster node VM uses the bridge connection type (as default), that will enable the connection between outer world, as we are not going to set IP tables.">
-
-
 <meta itemprop="datePublished" content="2017-06-08T18:22:33&#43;08:00" />
 <meta itemprop="dateModified" content="2017-06-08T18:22:33&#43;08:00" />
-<meta itemprop="wordCount" content="269">
+<meta itemprop="wordCount" content="255">
 
 
 
-<meta itemprop="keywords" content="coreos,docker," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="coreos,docker," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Setup Coreos Cluster With Static Ip"/>
 <meta name="twitter:description" content="We have talked about how to setup a CoreOS cluster in my previous post: Setup CoreOS Cluster Manually with VirtualBox. However, as we setup the cluster in VirtualBox, which uses DHCP as default, the etcd2 may not work when VM&rsquo;s IP changed.
 So in this article I&rsquo;ll tell you how to upgrade your cluster and enable the VMs use static IPs instead of DHCP.
@@ -152,58 +149,21 @@ Setup Static IP First of all, make sure your cluster node VM uses the bridge con
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#setup-static-ip">Setup Static IP</a></li>
-<li><a href="#update-etcd2">Update ETCD2</a></li>
-<li><a href="#it-s-done">It&rsquo;s done</a></li>
-</ul></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<p>We have talked about how to setup a CoreOS cluster in my previous post:
+      <p>We have talked about how to setup a CoreOS cluster in my previous post:
 <a href="http://wenfeng-gao.github.io/2016/05/30/setup-coreos-cluster-in-virtualbox.html">Setup CoreOS Cluster Manually with VirtualBox</a>.
 However, as we setup the cluster in VirtualBox, which uses DHCP as default,
 the <em>etcd2</em> may not work when VM&rsquo;s IP changed.</p>
-
 <p>So in this article I&rsquo;ll tell you how to upgrade your cluster and enable the
 VMs use static IPs instead of DHCP.</p>
-
 <h3 id="setup-static-ip">Setup Static IP</h3>
-
 <p>First of all, make sure your cluster node VM uses the <em>bridge</em> connection type
 (as default), that will enable the connection between outer world, as we are not
 going to set IP tables.</p>
-
 <p>In each node VM, create file <code>static.network</code> in path <code>/etc/systemd/network/</code>,
 if the directory doesn&rsquo;t exist, create one.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt"> 1
-</span><span class="lnt"> 2
-</span><span class="lnt"> 3
-</span><span class="lnt"> 4
-</span><span class="lnt"> 5
-</span><span class="lnt"> 6
-</span><span class="lnt"> 7
-</span><span class="lnt"> 8
-</span><span class="lnt"> 9
-</span><span class="lnt">10
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    [Match]
+<pre><code>    [Match]
     Name=enp0s3
 
     [Network]
@@ -212,47 +172,27 @@ if the directory doesn&rsquo;t exist, create one.</p>
     DNS=150.236.34.181
 
     Address=150.236.224.100/24
-    Gateway=150.236.224.1</pre></td></tr></table>
-</div>
-</div>
+    Gateway=150.236.224.1
+</code></pre>
 <ul>
 <li><code>Name</code> is your network interface, you may run <code>ifconfig</code> to check.</li>
 <li>Make sure your static IP Address is in the period of your host machine&rsquo;s network,
 as we use <em>bridge</em> connection type.</li>
 <li>Make sure you have the right DNS, you may copy from <code>/etc/resolv.conf</code></li>
 </ul>
-
 <h3 id="update-etcd2">Update ETCD2</h3>
-
 <p>We need to update <em>etcd2</em> as the IPs changed.</p>
-
 <p>First, we need a new <em>discovery key</em>, so</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    curl https://discovery.etcd.io/new?size=3</pre></td></tr></table>
-</div>
-</div>
+<pre><code>    curl https://discovery.etcd.io/new?size=3
+</code></pre>
 <p>Then, just update to the new <em>discovery key</em> and new IP addresses.</p>
-
 <p>Last and most important, we need remove several files to make our new <em>etcd2</em>
 settings work.</p>
-<div class="highlight"><div class="chroma">
-<table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><span class="lnt">1
-</span><span class="lnt">2
-</span><span class="lnt">3
-</span></pre></td>
-<td class="lntd">
-<pre class="chroma">    sudo rm -rf /run/systemd/system/etcd2.service.d/
+<pre><code>    sudo rm -rf /run/systemd/system/etcd2.service.d/
 
-    sudo rm -rf /var/lib/etcd2</pre></td></tr></table>
-</div>
-</div>
-<h3 id="it-s-done">It&rsquo;s done</h3>
-
+    sudo rm -rf /var/lib/etcd2
+</code></pre>
+<h3 id="its-done">It&rsquo;s done</h3>
 <p>Do these updates on each node VM, and restart them on the same time. Then you&rsquo;ll
 find you have a new CoreOS cluster with static IPs, enjoy!</p>
 
@@ -343,7 +283,7 @@ find you have a new CoreOS cluster with static IPs, enjoy!</p>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>

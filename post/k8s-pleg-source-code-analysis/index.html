@@ -34,7 +34,7 @@
 
 
 
-<meta name="generator" content="Hugo 0.58.3 with theme even" />
+<meta name="generator" content="Hugo 0.68.3 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s-pleg-source-code-analysis/" />
@@ -57,16 +57,13 @@
 <meta property="article:modified_time" content="2019-02-22T10:55:09+08:00" />
 <meta itemprop="name" content="Kubernetes源码分析之PLEG">
 <meta itemprop="description" content="PLEG(Pod Lifecycle Event Generator)是kubelet的核心模块，理解pleg对理解kubelet的运行机制很有帮助。本文的源码分析基于v1.13.2版">
-
-
 <meta itemprop="datePublished" content="2019-02-22T10:55:09&#43;08:00" />
 <meta itemprop="dateModified" content="2019-02-22T10:55:09&#43;08:00" />
 <meta itemprop="wordCount" content="3391">
 
 
 
-<meta itemprop="keywords" content="kubernetes,kubelet," />
-<meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Kubernetes源码分析之PLEG"/>
 <meta name="twitter:description" content="PLEG(Pod Lifecycle Event Generator)是kubelet的核心模块，理解pleg对理解kubelet的运行机制很有帮助。本文的源码分析基于v1.13.2版"/>
 
@@ -144,36 +141,16 @@
       </div>
     </header>
 
-    <div class="post-toc" id="post-toc">
-  <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
-    <nav id="TableOfContents">
-<ul>
-<li>
-<ul>
-<li><a href="#pleg的创建">pleg的创建</a></li>
-<li><a href="#pleg的启动">pleg的启动</a></li>
-<li><a href="#pleg-relist">pleg relist</a></li>
-<li><a href="#snycloop消费pleg-channel">snycLoop消费pleg channel</a></li>
-<li><a href="#参考">参考</a></li>
-</ul></li>
-</ul>
-</nav>
-  </div>
-</div>
+    
     <div class="post-content">
-      
-
-<blockquote>
+      <blockquote>
 <p>PLEG(Pod Lifecycle Event Generator)是kubelet的核心模块，理解pleg对理解kubelet的运行机制很有帮助。本文的源码分析基于v1.13.2版本。</p>
 </blockquote>
-
 <h2 id="pleg的创建">pleg的创建</h2>
-
 <p>和很多其他manager相同，pleg会在<code>NewMainKubelet</code>中创建。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -190,13 +167,13 @@
 		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to create kubelet: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
 	<span class="p">}</span>
   <span class="o">...</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>cmd/kubelet/app/server.go</code></p>
+</div><p><code>cmd/kubelet/app/server.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -225,13 +202,13 @@
 	<span class="nx">k</span><span class="p">.</span><span class="nf">StartGarbageCollection</span><span class="p">()</span>
 
 	<span class="k">return</span> <span class="nx">k</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>pkg/kubelet/kubelet.go</code></p>
+</div><p><code>pkg/kubelet/kubelet.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -246,11 +223,12 @@
 <span class="o">...</span>
 <span class="nx">klet</span><span class="p">.</span><span class="nx">pleg</span> <span class="p">=</span> <span class="nx">pleg</span><span class="p">.</span><span class="nf">NewGenericPLEG</span><span class="p">(</span><span class="nx">klet</span><span class="p">.</span><span class="nx">containerRuntime</span><span class="p">,</span> <span class="nx">plegChannelCapacity</span><span class="p">,</span> <span class="nx">plegRelistPeriod</span><span class="p">,</span> <span class="nx">klet</span><span class="p">.</span><span class="nx">podCache</span><span class="p">,</span> <span class="nx">clock</span><span class="p">.</span><span class="nx">RealClock</span><span class="p">{})</span>
 <span class="o">...</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -277,13 +255,13 @@
 </span><span class="c1"></span>	<span class="c1">// Note that even though we set the period to 1s, the relisting itself can
 </span><span class="c1"></span>	<span class="c1">// take more than 1s to finish if the container runtime responds slowly
 </span><span class="c1"></span>	<span class="c1">// and/or when there are many container changes in one cycle.
-</span><span class="c1"></span>	<span class="nx">plegRelistPeriod</span> <span class="p">=</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Second</span> <span class="o">*</span> <span class="mi">1</span></code></pre></td></tr></table>
+</span><span class="c1"></span>	<span class="nx">plegRelistPeriod</span> <span class="p">=</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Second</span> <span class="o">*</span> <span class="mi">1</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>先来看下pleg的结构体定义</p>
+</div><p>先来看下pleg的结构体定义</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -352,19 +330,17 @@
 	<span class="c1">// Pods that failed to have their status retrieved during a relist. These pods will be
 </span><span class="c1"></span>	<span class="c1">// retried during the next relisting.
 </span><span class="c1"></span>	<span class="nx">podsToReinspect</span> <span class="kd">map</span><span class="p">[</span><span class="nx">types</span><span class="p">.</span><span class="nx">UID</span><span class="p">]</span><span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">Pod</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<ul>
+</div><ul>
 <li><code>eventChannel chan *PodLifecycleEvent</code>: pleg将产生的event发送到这个channel，供其他消费者消费</li>
 </ul>
-
 <h2 id="pleg的启动">pleg的启动</h2>
-
 <p>kubelet <code>Run</code>方法会启动很多manager，pleg也会在这里启动。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -379,11 +355,12 @@
 	<span class="c1">// Start the pod lifecycle event generator.
 </span><span class="c1"></span>	<span class="nx">kl</span><span class="p">.</span><span class="nx">pleg</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span>
 	<span class="nx">kl</span><span class="p">.</span><span class="nf">syncLoop</span><span class="p">(</span><span class="nx">updates</span><span class="p">,</span> <span class="nx">kl</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">1
+<pre class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -392,17 +369,15 @@
 <pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Start spawns a goroutine to relist periodically.
 </span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">g</span> <span class="o">*</span><span class="nx">GenericPLEG</span><span class="p">)</span> <span class="nf">Start</span><span class="p">()</span> <span class="p">{</span>
 	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="nx">g</span><span class="p">.</span><span class="nx">relist</span><span class="p">,</span> <span class="nx">g</span><span class="p">.</span><span class="nx">relistPeriod</span><span class="p">,</span> <span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p><code>Start</code>启动一个goroutine，每秒(<code>g.relistPeriod</code>)进行一次<code>relist</code>。</p>
-
+</div><p><code>Start</code>启动一个goroutine，每秒(<code>g.relistPeriod</code>)进行一次<code>relist</code>。</p>
 <h2 id="pleg-relist">pleg relist</h2>
-
 <p><code>relist</code>是pleg的核心，通过比较现状与old records，生成event。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt">  1
+<pre class="chroma"><code><span class="lnt">  1
 </span><span class="lnt">  2
 </span><span class="lnt">  3
 </span><span class="lnt">  4
@@ -617,15 +592,14 @@
 
 	<span class="c1">// make sure we retain the list of pods that need reinspecting the next time relist is called
 </span><span class="c1"></span>	<span class="nx">g</span><span class="p">.</span><span class="nx">podsToReinspect</span> <span class="p">=</span> <span class="nx">needsReinspection</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>总结来说，pleg每秒都会通过<code>relist</code>方法，来查看所有pod的状态，对比原来的状态，根据指定的规则生成event，放到<code>eventChannel</code>中。而后，kubelet的另一个核心逻辑<code>syncLoop</code>会从这个channel中消费event，维护系统的状态。</p>
-
+</div><p>总结来说，pleg每秒都会通过<code>relist</code>方法，来查看所有pod的状态，对比原来的状态，根据指定的规则生成event，放到<code>eventChannel</code>中。而后，kubelet的另一个核心逻辑<code>syncLoop</code>会从这个channel中消费event，维护系统的状态。</p>
 <h2 id="snycloop消费pleg-channel">snycLoop消费pleg channel</h2>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -708,13 +682,13 @@
 		<span class="p">}</span>
 		<span class="nx">kl</span><span class="p">.</span><span class="nx">syncLoopMonitor</span><span class="p">.</span><span class="nf">Store</span><span class="p">(</span><span class="nx">kl</span><span class="p">.</span><span class="nx">clock</span><span class="p">.</span><span class="nf">Now</span><span class="p">())</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>syncLoopIteration会从config channel, pleg channel, sync channel, housekeeping channel中获取信息，然后就行消费。我们主要看pleg channel的分支。</p>
+</div><p>syncLoopIteration会从config channel, pleg channel, sync channel, housekeeping channel中获取信息，然后就行消费。我们主要看pleg channel的分支。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -837,13 +811,13 @@
 	<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">housekeepingCh</span><span class="p">:</span>
 		<span class="o">...</span>
 	<span class="k">return</span> <span class="kc">true</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>event type的种类有：</p>
+</div><p>event type的种类有：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -870,13 +844,13 @@
 </span><span class="c1"></span>	<span class="nx">PodSync</span> <span class="nx">PodLifeCycleEventType</span> <span class="p">=</span> <span class="s">&#34;PodSync&#34;</span>
 	<span class="c1">// ContainerChanged - event type when the new state of container is unknown.
 </span><span class="c1"></span>	<span class="nx">ContainerChanged</span> <span class="nx">PodLifeCycleEventType</span> <span class="p">=</span> <span class="s">&#34;ContainerChanged&#34;</span>
-<span class="p">)</span></code></pre></td></tr></table>
+<span class="p">)</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>event的type是在generate event时生成的</p>
+</div><p>event的type是在generate event时生成的</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="lnt"> 1
+<pre class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -931,38 +905,31 @@
 	<span class="k">default</span><span class="p">:</span>
 		<span class="nb">panic</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;unrecognized container state: %v&#34;</span><span class="p">,</span> <span class="nx">newState</span><span class="p">))</span>
 	<span class="p">}</span>
-<span class="p">}</span></code></pre></td></tr></table>
+<span class="p">}</span>
+</code></pre></td></tr></table>
 </div>
-</div>
-<p>如果<code>eventType != ContainerRemoved</code></p>
-
+</div><p>如果<code>eventType != ContainerRemoved</code></p>
 <ul>
 <li>根据event中PodID从pod manager中获取Pod对象</li>
 <li><code>handler.HandlePodSyncs</code>将该pod dispatchWork到对应的pod worker进行UpdatePod操作</li>
 <li><code>podWorkers.UpdatePod</code>会封装UpdatePodOptions对象并发送到UpdatePodOptions Channel</li>
 <li>kubelet syncPod从UpdatePodOptions Channel中获取UpdatePodOptions对象进行Pod sync操作</li>
 </ul>
-
 <p>如果<code>eventType == ContainerDied</code></p>
-
 <ul>
 <li>从event.Data中获取containerID；</li>
 <li>然后调用cleanUpContainersInPod将ContainerID发动到podContainerDeletor Channel</li>
 <li>Kubelet podContainerDeletor负责消费podContainerDeletor Channel中的ContainerID</li>
 <li>podContainerDeletor调用KubeGenericRuntimeManager.removeContainer启动容器remove流程
-
 <ul>
 <li>如果enable了CPU Manager Policy，那么先通过internalLifecycle.PostStopContainer调用CPU Manager对该Container占用的cpus进行释放</li>
 <li>然后调用KubeGenericRuntimeManager.removeContainerLog将/var/logs/containrs/及/var/log/pods/中对应该containerID的log删除</li>
-<li>最后调用docker删除该container
-<br /></li>
-</ul></li>
+<li>最后调用docker删除该container</li>
 </ul>
-
-<p><img src="http://pn9ta8hbk.bkt.clouddn.com/kubelet-pleg.png" alt="pleg core logic digram" /></p>
-
+</li>
+</ul>
+<p><img src="http://pn9ta8hbk.bkt.clouddn.com/kubelet-pleg.png" alt="pleg core logic digram"></p>
 <h2 id="参考">参考</h2>
-
 <ul>
 <li><a href="https://cloud.tencent.com/developer/article/1359236">Kubelet PLEG源码分析</a></li>
 </ul>
@@ -1054,7 +1021,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2019
+    2020
     <span class="heart">
       <i class="iconfont icon-heart"></i>
     </span>
