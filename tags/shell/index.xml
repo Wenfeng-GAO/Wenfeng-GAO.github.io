@@ -6,11 +6,7 @@
     <description>Recent content in shell on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 28 Sep 2017 18:23:26 +0800</lastBuildDate>
-    
-	<atom:link href="https://wenfeng-gao.github.io/tags/shell/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <lastBuildDate>Thu, 28 Sep 2017 18:23:26 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/shell/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Simple Commit-Msg for Git Hook</title>
       <link>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</link>

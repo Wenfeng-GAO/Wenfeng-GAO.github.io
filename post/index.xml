@@ -6,10 +6,15 @@
     <description>Recent content in Posts on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate>
-    
-	<atom:link href="https://wenfeng-gao.github.io/post/index.xml" rel="self" type="application/rss+xml" />
-    
+    <lastBuildDate>Fri, 05 Feb 2021 11:32:21 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>K8s Informer Mechanics (Part I)</title>
+      <link>https://wenfeng-gao.github.io/post/k8s-informer-mechanics/</link>
+      <pubDate>Fri, 05 Feb 2021 11:32:21 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/k8s-informer-mechanics/</guid>
+      <description>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。informer机制是如何工作的呢？</description>
+    </item>
     
     <item>
       <title>What Happened to Kubelet When Pod Is Deleted</title>
@@ -231,7 +236,7 @@ Setup Static IP First of all, make sure your cluster node VM uses the bridge con
       <description>In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&amp;rsquo;t have one.
 Ok, ssh to one of your cluster node, let&amp;rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd.</description>
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQL DataBaseAfter=etcd.</description>
     </item>
     
     <item>

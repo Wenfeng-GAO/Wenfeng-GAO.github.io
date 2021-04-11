@@ -6,11 +6,7 @@
     <description>Recent content in kubelet on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate>
-    
-	<atom:link href="https://wenfeng-gao.github.io/tags/kubelet/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/kubelet/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>What Happened to Kubelet When Pod Is Deleted</title>
       <link>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</link>

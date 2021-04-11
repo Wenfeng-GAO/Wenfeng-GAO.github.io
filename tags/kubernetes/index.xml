@@ -6,10 +6,15 @@
     <description>Recent content in kubernetes on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate>
-    
-	<atom:link href="https://wenfeng-gao.github.io/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
-    
+    <lastBuildDate>Fri, 05 Feb 2021 11:32:21 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>K8s Informer Mechanics (Part I)</title>
+      <link>https://wenfeng-gao.github.io/post/k8s-informer-mechanics/</link>
+      <pubDate>Fri, 05 Feb 2021 11:32:21 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/k8s-informer-mechanics/</guid>
+      <description>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。informer机制是如何工作的呢？</description>
+    </item>
     
     <item>
       <title>What Happened to Kubelet When Pod Is Deleted</title>

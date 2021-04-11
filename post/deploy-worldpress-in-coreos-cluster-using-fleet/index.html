@@ -19,25 +19,14 @@
 <meta name="author" content="Wenfeng" /><meta name="description" content="In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&amp;rsquo;t have one.
 Ok, ssh to one of your cluster node, let&amp;rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd." /><meta name="keywords" content="Hugo, blog, tech" />
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQL DataBaseAfter=etcd." /><meta name="keywords" content="Hugo, blog, tech" />
 
 
 
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-92434611-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-92434611-1');
-</script>
-
-
-
-<meta name="generator" content="Hugo 0.68.3 with theme even" />
+<meta name="generator" content="Hugo 0.80.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/" />
@@ -48,7 +37,8 @@ Step 1 Create MySQL service Create a unit file mysql.service
 <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
 
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+
+<link href="/sass/main.min.2e81bbed97b8b282c1aeb57488cc71c8d8c8ec559f3931531bd396bf31e0d4dd.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
 
 
@@ -56,7 +46,7 @@ Step 1 Create MySQL service Create a unit file mysql.service
 <meta property="og:description" content="In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&rsquo;t have one.
 Ok, ssh to one of your cluster node, let&rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd." />
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQL DataBaseAfter=etcd." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/deploy-worldpress-in-coreos-cluster-using-fleet/" />
 <meta property="article:published_time" content="2016-06-03T18:22:13+08:00" />
@@ -65,19 +55,20 @@ Step 1 Create MySQL service Create a unit file mysql.service
 <meta itemprop="description" content="In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&rsquo;t have one.
 Ok, ssh to one of your cluster node, let&rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd.">
-<meta itemprop="datePublished" content="2016-06-03T18:22:13&#43;08:00" />
-<meta itemprop="dateModified" content="2016-06-03T18:22:13&#43;08:00" />
-<meta itemprop="wordCount" content="168">
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQL DataBaseAfter=etcd.">
+<meta itemprop="datePublished" content="2016-06-03T18:22:13+08:00" />
+<meta itemprop="dateModified" content="2016-06-03T18:22:13+08:00" />
+<meta itemprop="wordCount" content="211">
 
 
 
-<meta itemprop="keywords" content="coreos,docker," /><meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="coreos,docker," />
+<meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Deploy Worldpress in Coreos Cluster Using Fleet"/>
 <meta name="twitter:description" content="In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&rsquo;t have one.
 Ok, ssh to one of your cluster node, let&rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd."/>
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQL DataBaseAfter=etcd."/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -114,12 +105,21 @@ Step 1 Create MySQL service Create a unit file mysql.service
         <li class="mobile-menu-item">About</li>
       </a>
   </ul>
+
+  
+
+
 </nav>
+
   <div class="container" id="mobile-panel">
     <header id="header" class="header">
         <div class="logo-wrapper">
   <a href="/" class="logo">Je pense donc je suis</a>
 </div>
+
+
+
+
 
 <nav class="site-navbar">
   <ul id="menu" class="menu">
@@ -136,6 +136,7 @@ Step 1 Create MySQL service Create a unit file mysql.service
       </li>
   </ul>
 </nav>
+
     </header>
 
     <main id="main" class="main">
@@ -178,18 +179,18 @@ to setup a CoreOS cluster locally if you don&rsquo;t have one.</p>
 </span><span class="lnt">12
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="w"> </span><span class="p">[</span>Unit<span class="p">]</span><span class="w">
-</span><span class="w"></span>Description=MySQL<span class="w"> </span>DataBase<span class="w">
-</span><span class="w"></span>After=etcd.service<span class="w">
-</span><span class="w"></span>After=docker.service<span class="w">
+<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="w"> </span><span class="p">[</span><span class="l">Unit]</span><span class="w">
+</span><span class="w"></span><span class="l">Description=MySQL DataBase</span><span class="w">
+</span><span class="w"></span><span class="l">After=etcd.service</span><span class="w">
+</span><span class="w"></span><span class="l">After=docker.service</span><span class="w">
 </span><span class="w">
-</span><span class="w"></span><span class="p">[</span>Service<span class="p">]</span><span class="w">
-</span><span class="w"></span>TimeoutStartSec=<span class="m">0</span><span class="w">
-</span><span class="w"></span>ExecStartPre=-/usr/bin/docker<span class="w"> </span>kill<span class="w"> </span>mysql<span class="w">
-</span><span class="w"></span>ExecStartPre=-/usr/bin/docker<span class="w"> </span>rm<span class="w"> </span>mysql<span class="w">
-</span><span class="w"></span>ExecStartPre=/usr/bin/docker<span class="w"> </span>pull<span class="w"> </span>mysql<span class="p">:</span><span class="m">5.7</span><span class="w">
-</span><span class="w"></span>ExecStart=/usr/bin/docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>mysql<span class="w"> </span>-e<span class="w"> </span>MYSQL_ROOT_PASSWORD=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>-e<span class="w"> </span>MYSQL_DATABASE=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>-e<span class="w"> </span>MYSQL_USER=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>-e<span class="w"> </span>MYSQL_PASSWORD=<span class="s2">&#34;wordpress&#34;</span><span class="w"> </span>mysql<span class="p">:</span><span class="m">5.7</span><span class="w">
-</span><span class="w"></span>ExecStop=/usr/bin/docker<span class="w"> </span>stop<span class="w"> </span>mysql<span class="w">
+</span><span class="w"></span><span class="p">[</span><span class="l">Service]</span><span class="w">
+</span><span class="w"></span><span class="l">TimeoutStartSec=0</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStartPre=-/usr/bin/docker kill mysql</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStartPre=-/usr/bin/docker rm mysql</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStartPre=/usr/bin/docker pull mysql:5.7</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStart=/usr/bin/docker run --name mysql -e MYSQL_ROOT_PASSWORD=&#34;wordpress&#34; -e MYSQL_DATABASE=&#34;wordpress&#34; -e MYSQL_USER=&#34;wordpress&#34; -e MYSQL_PASSWORD=&#34;wordpress&#34; mysql:5.7</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStop=/usr/bin/docker stop mysql</span><span class="w">
 </span></code></pre></td></tr></table>
 </div>
 </div><p>To start service, run</p>
@@ -218,20 +219,20 @@ to setup a CoreOS cluster locally if you don&rsquo;t have one.</p>
 </span><span class="lnt">14
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="p">[</span>Unit<span class="p">]</span><span class="w">
-</span><span class="w"></span>Description=WordPress<span class="w">
-</span><span class="w"></span>After=mysql.service<span class="w">
+<pre class="chroma"><code class="language-yml" data-lang="yml"><span class="p">[</span><span class="l">Unit]</span><span class="w">
+</span><span class="w"></span><span class="l">Description=WordPress</span><span class="w">
+</span><span class="w"></span><span class="l">After=mysql.service</span><span class="w">
 </span><span class="w">
-</span><span class="w"></span><span class="p">[</span>Service<span class="p">]</span><span class="w">
-</span><span class="w"></span>TimeoutStartSec=<span class="m">0</span><span class="w">
-</span><span class="w"></span>ExecStartPre=-/usr/bin/docker<span class="w"> </span>kill<span class="w"> </span>wordpress<span class="w">
-</span><span class="w"></span>ExecStartPre=-/usr/bin/docker<span class="w"> </span>rm<span class="w"> </span>wordpress<span class="w">
-</span><span class="w"></span>ExecStartPre=/usr/bin/docker<span class="w"> </span>pull<span class="w"> </span>wordpress<span class="w">
-</span><span class="w"></span>ExecStart=/usr/bin/docker<span class="w"> </span>run<span class="w"> </span>--name<span class="w"> </span>wordpress<span class="w"> </span>--link<span class="w"> </span>mysql<span class="w"> </span>-p<span class="w"> </span><span class="m">8880</span><span class="p">:</span><span class="m">80</span><span class="w"> </span>-e<span class="w"> </span>WORDPRESS_DB_PASSWORD=wordpress<span class="w"> </span>-e<span class="w"> </span>WORDPRESS_DB_NAME=wordpress<span class="w"> </span>-e<span class="w"> </span>WORDPRESS_DB_USER=wordpress<span class="w"> </span>wordpress<span class="w">
-</span><span class="w"></span>ExecStop=/usr/bin/docker<span class="w"> </span>stop<span class="w"> </span>wordpress<span class="w">
+</span><span class="w"></span><span class="p">[</span><span class="l">Service]</span><span class="w">
+</span><span class="w"></span><span class="l">TimeoutStartSec=0</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStartPre=-/usr/bin/docker kill wordpress</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStartPre=-/usr/bin/docker rm wordpress</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStartPre=/usr/bin/docker pull wordpress</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStart=/usr/bin/docker run --name wordpress --link mysql -p 8880:80 -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpress -e WORDPRESS_DB_USER=wordpress wordpress</span><span class="w">
+</span><span class="w"></span><span class="l">ExecStop=/usr/bin/docker stop wordpress</span><span class="w">
 </span><span class="w">
-</span><span class="w"></span><span class="p">[</span>X-Fleet<span class="p">]</span><span class="w">
-</span><span class="w"></span>X-ConditionMachineOf=mysql.service<span class="w">
+</span><span class="w"></span><span class="p">[</span><span class="l">X-Fleet]</span><span class="w">
+</span><span class="w"></span><span class="l">X-ConditionMachineOf=mysql.service</span><span class="w">
 </span></code></pre></td></tr></table>
 </div>
 </div><p>Run</p>
@@ -335,13 +336,10 @@ same host with <em>mysql</em> service</li>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2020
-    <span class="heart">
-      <i class="iconfont icon-heart"></i>
-    </span>
-    <span class="author">Wenfeng</span>
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
+
     </footer>
 
     <div class="back-to-top" id="back-to-top">
@@ -352,7 +350,10 @@ same host with <em>mysql</em> service</li>
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
-<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c12618f9a600c40bd024996677e951e64d3487006775aeb22e200c990006c5c7.js"></script>
 
 
 <script type="application/javascript">

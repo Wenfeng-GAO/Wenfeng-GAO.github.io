@@ -6,11 +6,7 @@
     <description>Recent content in docker on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Mon, 14 Oct 2019 15:53:55 +0800</lastBuildDate>
-    
-	<atom:link href="https://wenfeng-gao.github.io/tags/docker/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <lastBuildDate>Mon, 14 Oct 2019 15:53:55 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/docker/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>How to Use async-profiler to Profile Non-root Java Process in Contianer</title>
       <link>https://wenfeng-gao.github.io/post/how-to-use-async-profiler-to-profile-java-in-contianer/</link>
@@ -70,7 +66,7 @@ Setup Static IP First of all, make sure your cluster node VM uses the bridge con
       <description>In this post, I would like to tell you how to deploy a simple WorldPress service with MySQL database in CoreOS cluster in 3 minutes. You may reference my previous blog to setup a CoreOS cluster locally if you don&amp;rsquo;t have one.
 Ok, ssh to one of your cluster node, let&amp;rsquo;s start.
 Step 1 Create MySQL service Create a unit file mysql.service
-1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQLDataBaseAfter=etcd.</description>
+1 2 3 4 5 6 7 8 9 10 11 12  [Unit]Description=MySQL DataBaseAfter=etcd.</description>
     </item>
     
     <item>

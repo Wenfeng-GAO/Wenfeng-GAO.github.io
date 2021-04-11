@@ -6,10 +6,24 @@
     <description>Recent content in Tags on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 26 Mar 2020 04:11:32 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 05 Feb 2021 11:32:21 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>client-go</title>
+      <link>https://wenfeng-gao.github.io/tags/client-go/</link>
+      <pubDate>Fri, 05 Feb 2021 11:32:21 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/tags/client-go/</guid>
+      <description></description>
+    </item>
     
-	<atom:link href="https://wenfeng-gao.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
-    
+    <item>
+      <title>kubernetes</title>
+      <link>https://wenfeng-gao.github.io/tags/kubernetes/</link>
+      <pubDate>Fri, 05 Feb 2021 11:32:21 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/tags/kubernetes/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>kubelet</title>
@@ -17,15 +31,6 @@
       <pubDate>Thu, 26 Mar 2020 04:11:32 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/tags/kubelet/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>kubernetes</title>
-      <link>https://wenfeng-gao.github.io/tags/kubernetes/</link>
-      <pubDate>Thu, 26 Mar 2020 04:11:32 +0800</pubDate>
-      
-      <guid>https://wenfeng-gao.github.io/tags/kubernetes/</guid>
       <description></description>
     </item>
     

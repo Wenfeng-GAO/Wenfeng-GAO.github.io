@@ -25,18 +25,7 @@ Martin Fowler&amp;rsquo;s article Mocks Aren&amp;rsquo;t Stubs makes a lot sense
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-92434611-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-92434611-1');
-</script>
-
-
-
-<meta name="generator" content="Hugo 0.68.3 with theme even" />
+<meta name="generator" content="Hugo 0.80.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/mock-with-mockito/" />
@@ -47,7 +36,8 @@ Martin Fowler&amp;rsquo;s article Mocks Aren&amp;rsquo;t Stubs makes a lot sense
 <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
 
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+
+<link href="/sass/main.min.2e81bbed97b8b282c1aeb57488cc71c8d8c8ec559f3931531bd396bf31e0d4dd.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
 
 
@@ -63,13 +53,14 @@ Martin Fowler&rsquo;s article Mocks Aren&rsquo;t Stubs makes a lot sense explain
 <meta itemprop="description" content="Unit test takes an important role in software development, which ensures the code quality. Mockito is an open-source mocking framework for unit tests in Java. After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito to you.
 Why mock? Mock means using a fake thing instead of the original one to help us test, but why do we need that?
 Martin Fowler&rsquo;s article Mocks Aren&rsquo;t Stubs makes a lot sense explainning why.">
-<meta itemprop="datePublished" content="2016-05-13T18:21:19&#43;08:00" />
-<meta itemprop="dateModified" content="2016-05-13T18:21:19&#43;08:00" />
+<meta itemprop="datePublished" content="2016-05-13T18:21:19+08:00" />
+<meta itemprop="dateModified" content="2016-05-13T18:21:19+08:00" />
 <meta itemprop="wordCount" content="603">
 
 
 
-<meta itemprop="keywords" content="unit-test," /><meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="unit-test," />
+<meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Mock With Mockito"/>
 <meta name="twitter:description" content="Unit test takes an important role in software development, which ensures the code quality. Mockito is an open-source mocking framework for unit tests in Java. After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito to you.
 Why mock? Mock means using a fake thing instead of the original one to help us test, but why do we need that?
@@ -110,12 +101,21 @@ Martin Fowler&rsquo;s article Mocks Aren&rsquo;t Stubs makes a lot sense explain
         <li class="mobile-menu-item">About</li>
       </a>
   </ul>
+
+  
+
+
 </nav>
+
   <div class="container" id="mobile-panel">
     <header id="header" class="header">
         <div class="logo-wrapper">
   <a href="/" class="logo">Je pense donc je suis</a>
 </div>
+
+
+
+
 
 <nav class="site-navbar">
   <ul id="menu" class="menu">
@@ -132,6 +132,7 @@ Martin Fowler&rsquo;s article Mocks Aren&rsquo;t Stubs makes a lot sense explain
       </li>
   </ul>
 </nav>
+
     </header>
 
     <main id="main" class="main">
@@ -363,13 +364,10 @@ or static method(because the child class can&rsquo;t extends parent&rsquo;s priv
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2020
-    <span class="heart">
-      <i class="iconfont icon-heart"></i>
-    </span>
-    <span class="author">Wenfeng</span>
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
+
     </footer>
 
     <div class="back-to-top" id="back-to-top">
@@ -380,7 +378,10 @@ or static method(because the child class can&rsquo;t extends parent&rsquo;s priv
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
-<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c12618f9a600c40bd024996677e951e64d3487006775aeb22e200c990006c5c7.js"></script>
 
 
 <script type="application/javascript">

@@ -25,18 +25,7 @@ If we look at the routing table of Host B, we&amp;rsquo;ll find something like" 
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-92434611-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-92434611-1');
-</script>
-
-
-
-<meta name="generator" content="Hugo 0.68.3 with theme even" />
+<meta name="generator" content="Hugo 0.80.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/a-ping-question/" />
@@ -47,7 +36,8 @@ If we look at the routing table of Host B, we&amp;rsquo;ll find something like" 
 <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
 
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+
+<link href="/sass/main.min.2e81bbed97b8b282c1aeb57488cc71c8d8c8ec559f3931531bd396bf31e0d4dd.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
 
 
@@ -63,13 +53,14 @@ If we look at the routing table of Host B, we&rsquo;ll find something like" />
 <meta itemprop="description" content="Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
 To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
 If we look at the routing table of Host B, we&rsquo;ll find something like">
-<meta itemprop="datePublished" content="2017-07-04T18:22:56&#43;08:00" />
-<meta itemprop="dateModified" content="2017-07-04T18:22:56&#43;08:00" />
+<meta itemprop="datePublished" content="2017-07-04T18:22:56+08:00" />
+<meta itemprop="dateModified" content="2017-07-04T18:22:56+08:00" />
 <meta itemprop="wordCount" content="316">
 
 
 
-<meta itemprop="keywords" content="network," /><meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="network," />
+<meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="A Ping Question"/>
 <meta name="twitter:description" content="Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
 To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
@@ -110,12 +101,21 @@ If we look at the routing table of Host B, we&rsquo;ll find something like"/>
         <li class="mobile-menu-item">About</li>
       </a>
   </ul>
+
+  
+
+
 </nav>
+
   <div class="container" id="mobile-panel">
     <header id="header" class="header">
         <div class="logo-wrapper">
   <a href="/" class="logo">Je pense donc je suis</a>
 </div>
+
+
+
+
 
 <nav class="site-navbar">
   <ul id="menu" class="menu">
@@ -132,6 +132,7 @@ If we look at the routing table of Host B, we&rsquo;ll find something like"/>
       </li>
   </ul>
 </nav>
+
     </header>
 
     <main id="main" class="main">
@@ -199,11 +200,11 @@ no specific rools for destination <code>192.168.11.0/24</code>, so it will go vi
 </code></pre></td></tr></table>
 </div>
 </div><p>And if we ping from <em>Host A</em> to <em>Host B</em> of interface <code>192.168.125.0/24</code>, it goes
-well. However, if we ping to <em>Host B</em>&lsquo;s another interface, it will fail.</p>
+well. However, if we ping to <em>Host B</em>&rsquo;s another interface, it will fail.</p>
 <p>The reason is obvious, <em>Host A</em> send a packet to <code>192.168.126.92</code> and expect a
 response from that destination. Unfortunately, <em>Host B</em> receives the packet but
 can only response through <code>192.168.125.1</code>, which will never match for <em>Host A</em>.</p>
-<p>So in this case, the answer is <strong>NO</strong>. But if <em>Host A</em>&lsquo;s network interface is
+<p>So in this case, the answer is <strong>NO</strong>. But if <em>Host A</em>&rsquo;s network interface is
 in <code>192.168.126.0/24</code>, it can ping the 2 interfaces of <em>Host B</em>, or if <em>Host A</em>
 also has multiple network interfaces, with proper routing table setting, it can
 ping both 2 interfaces of <em>Host B</em> as well.</p>
@@ -294,13 +295,10 @@ ping both 2 interfaces of <em>Host B</em> as well.</p>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2020
-    <span class="heart">
-      <i class="iconfont icon-heart"></i>
-    </span>
-    <span class="author">Wenfeng</span>
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
+
     </footer>
 
     <div class="back-to-top" id="back-to-top">
@@ -311,7 +309,10 @@ ping both 2 interfaces of <em>Host B</em> as well.</p>
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
-<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c12618f9a600c40bd024996677e951e64d3487006775aeb22e200c990006c5c7.js"></script>
 
 
 <script type="application/javascript">

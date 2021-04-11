@@ -6,11 +6,7 @@
     <description>Recent content in mesos on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 18 May 2017 09:56:49 +0800</lastBuildDate>
-    
-	<atom:link href="https://wenfeng-gao.github.io/tags/mesos/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <lastBuildDate>Thu, 18 May 2017 09:56:49 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/mesos/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Mesos Checkpoint Feature &amp; Master Agent Connection</title>
       <link>https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/</link>

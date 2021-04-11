@@ -23,18 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-92434611-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-92434611-1');
-</script>
-
-
-
-<meta name="generator" content="Hugo 0.68.3 with theme even" />
+<meta name="generator" content="Hugo 0.80.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/" />
@@ -45,7 +34,8 @@
 <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
 
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
-<link href="/dist/even.c2a46f00.min.css" rel="stylesheet">
+
+<link href="/sass/main.min.2e81bbed97b8b282c1aeb57488cc71c8d8c8ec559f3931531bd396bf31e0d4dd.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
 
 
@@ -57,13 +47,14 @@
 <meta property="article:modified_time" content="2019-09-29T16:06:44+08:00" />
 <meta itemprop="name" content="Why Does Kubelet Modify File Permissions">
 <meta itemprop="description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted.">
-<meta itemprop="datePublished" content="2019-09-29T16:06:44&#43;08:00" />
-<meta itemprop="dateModified" content="2019-09-29T16:06:44&#43;08:00" />
+<meta itemprop="datePublished" content="2019-09-29T16:06:44+08:00" />
+<meta itemprop="dateModified" content="2019-09-29T16:06:44+08:00" />
 <meta itemprop="wordCount" content="989">
 
 
 
-<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," />
+<meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Why Does Kubelet Modify File Permissions"/>
 <meta name="twitter:description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted."/>
 
@@ -102,12 +93,21 @@
         <li class="mobile-menu-item">About</li>
       </a>
   </ul>
+
+  
+
+
 </nav>
+
   <div class="container" id="mobile-panel">
     <header id="header" class="header">
         <div class="logo-wrapper">
   <a href="/" class="logo">Je pense donc je suis</a>
 </div>
+
+
+
+
 
 <nav class="site-navbar">
   <ul id="menu" class="menu">
@@ -124,6 +124,7 @@
       </li>
   </ul>
 </nav>
+
     </header>
 
     <main id="main" class="main">
@@ -217,7 +218,7 @@ Change: 2019-09-27 11:07:21.387847127 +0800
 </div><h2 id="trouble-shooting">Trouble Shooting</h2>
 <p>I failed finding something valuable after tracking kubelet logs. So I decide to
 search the root cause in kubelet source code.</p>
-<p>Fortunately, I found the code where kubelet does change the files&rsquo; permissions.
+<p>Fortunately, I found the code where kubelet does change the files' permissions.
 <code>pkg/volume/flexvolume/mounter.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
@@ -604,13 +605,10 @@ but still, it didn&rsquo;t explain what&rsquo;s the point to <code>OR 0440</code
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2020
-    <span class="heart">
-      <i class="iconfont icon-heart"></i>
-    </span>
-    <span class="author">Wenfeng</span>
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
+
     </footer>
 
     <div class="back-to-top" id="back-to-top">
@@ -621,7 +619,10 @@ but still, it didn&rsquo;t explain what&rsquo;s the point to <code>OR 0440</code
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
-<script type="text/javascript" src="/dist/even.26188efa.min.js"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c12618f9a600c40bd024996677e951e64d3487006775aeb22e200c990006c5c7.js"></script>
 
 
 <script type="application/javascript">
