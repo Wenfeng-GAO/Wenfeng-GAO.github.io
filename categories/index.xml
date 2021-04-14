@@ -6,7 +6,16 @@
     <description>Recent content in Categories on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 05 Nov 2019 21:24:24 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 13 Apr 2021 10:30:39 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>k8s</title>
+      <link>https://wenfeng-gao.github.io/categories/k8s/</link>
+      <pubDate>Tue, 13 Apr 2021 10:30:39 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/categories/k8s/</guid>
+      <description></description>
+    </item>
+    
     <item>
       <title>go</title>
       <link>https://wenfeng-gao.github.io/categories/go/</link>

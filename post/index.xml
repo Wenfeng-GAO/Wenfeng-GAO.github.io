@@ -6,9 +6,18 @@
     <description>Recent content in Posts on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 05 Feb 2021 11:32:21 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 13 Apr 2021 10:30:39 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>K8s Informer Mechanics (Part I)</title>
+      <title>K8s Informer Mechanics Part II - Reflector</title>
+      <link>https://wenfeng-gao.github.io/post/k8s-informer-mechanics-reflector/</link>
+      <pubDate>Tue, 13 Apr 2021 10:30:39 +0800</pubDate>
+      
+      <guid>https://wenfeng-gao.github.io/post/k8s-informer-mechanics-reflector/</guid>
+      <description>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。</description>
+    </item>
+    
+    <item>
+      <title>K8s Informer Mechanics Part I</title>
       <link>https://wenfeng-gao.github.io/post/k8s-informer-mechanics/</link>
       <pubDate>Fri, 05 Feb 2021 11:32:21 +0800</pubDate>
       

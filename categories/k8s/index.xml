@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>kubernetes on Je pense donc je suis</title>
-    <link>https://wenfeng-gao.github.io/tags/kubernetes/</link>
-    <description>Recent content in kubernetes on Je pense donc je suis</description>
+    <title>k8s on Je pense donc je suis</title>
+    <link>https://wenfeng-gao.github.io/categories/k8s/</link>
+    <description>Recent content in k8s on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Tue, 13 Apr 2021 10:30:39 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/kubernetes/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Tue, 13 Apr 2021 10:30:39 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/categories/k8s/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>K8s Informer Mechanics Part II - Reflector</title>
       <link>https://wenfeng-gao.github.io/post/k8s-informer-mechanics-reflector/</link>
@@ -32,15 +32,6 @@
       
       <guid>https://wenfeng-gao.github.io/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/</guid>
       <description>The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&amp;rsquo;s go through the code module by module while keeping these questions in mind.</description>
-    </item>
-    
-    <item>
-      <title>Why Does Kubelet Modify File Permissions</title>
-      <link>https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/</link>
-      <pubDate>Sun, 29 Sep 2019 16:06:44 +0800</pubDate>
-      
-      <guid>https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/</guid>
-      <description>Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are &lt;em&gt;Running&lt;/em&gt;, I&amp;rsquo;ll put some &lt;strong&gt;readOnly&lt;/strong&gt; files in this volume directory. The intersting part is that these files will become &lt;strong&gt;writable&lt;/strong&gt; every time after kubelet being restarted.</description>
     </item>
     
     <item>
