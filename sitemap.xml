@@ -3,20 +3,55 @@
   
   <url>
     <loc>https://wenfeng-gao.github.io/categories/</loc>
-    <lastmod>2021-04-13T10:30:39+08:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://wenfeng-gao.github.io/tags/client-go/</loc>
-    <lastmod>2021-04-13T10:30:39+08:00</lastmod>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://wenfeng-gao.github.io/</loc>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/</loc>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/categories/readings/</loc>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/</loc>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/%E5%93%B2%E5%AD%A6/</loc>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/post/book_savior_far_away/</loc>
+    <lastmod>2021-04-18T18:25:20+08:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <url>
+    <loc>https://wenfeng-gao.github.io/tags/client-go/</loc>
     <lastmod>2021-04-13T10:30:39+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
@@ -38,20 +73,6 @@
   
   <url>
     <loc>https://wenfeng-gao.github.io/tags/kubernetes/</loc>
-    <lastmod>2021-04-13T10:30:39+08:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://wenfeng-gao.github.io/post/</loc>
-    <lastmod>2021-04-13T10:30:39+08:00</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  
-  <url>
-    <loc>https://wenfeng-gao.github.io/tags/</loc>
     <lastmod>2021-04-13T10:30:39+08:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
