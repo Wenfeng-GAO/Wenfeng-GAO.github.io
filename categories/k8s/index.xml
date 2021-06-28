@@ -13,7 +13,7 @@
       <pubDate>Mon, 28 Jun 2021 11:49:09 +0800</pubDate>
       
       <guid>https://wenfeng-gao.github.io/post/k8s-informer-mechanics-deltafifo/</guid>
-      <description>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。</description>
+      <description>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。</description>
     </item>
     
     <item>

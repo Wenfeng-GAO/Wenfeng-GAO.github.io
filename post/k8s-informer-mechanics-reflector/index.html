@@ -49,7 +49,7 @@
 <meta itemprop="name" content="K8s Informer Mechanics Part II - Reflector">
 <meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"><meta itemprop="datePublished" content="2021-04-13T10:30:39&#43;08:00" />
 <meta itemprop="dateModified" content="2021-04-13T10:30:39&#43;08:00" />
-<meta itemprop="wordCount" content="4060">
+<meta itemprop="wordCount" content="4067">
 <meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="K8s Informer Mechanics Part II - Reflector"/>
 <meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"/>
@@ -183,6 +183,7 @@
 <li><a href="/post/k8s-informer-mechanics/">K8s Informer Mechanics Part I</a></li>
 <li><a href="/post/k8s-informer-mechanics-reflector/">K8s Informer Mechanics Part II - Reflector</a></li>
 <li><a href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></li>
+<li><a href="">K8s Informer Mechanics Part IV - Indexer</a></li>
 </ul>
 <h1 id="正文">正文</h1>
 <blockquote>

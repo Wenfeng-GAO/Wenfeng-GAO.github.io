@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
 
 
-<meta name="author" content="Wenfeng" /><meta name="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。" /><meta name="keywords" content="kubernetes, client-go, informer, sourcecode, reflector, deltafifo, fifo" />
+<meta name="author" content="Wenfeng" /><meta name="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。" /><meta name="keywords" content="kubernetes, client-go, informer, sourcecode, reflector, deltafifo, fifo" />
 
 
 
@@ -40,19 +40,19 @@
 
 
 <meta property="og:title" content="K8s Informer Mechanics Part III - DeltaFIFO" />
-<meta property="og:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。" />
+<meta property="og:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-deltafifo/" /><meta property="article:section" content="post" />
 <meta property="article:published_time" content="2021-06-28T11:49:09&#43;08:00" />
 <meta property="article:modified_time" content="2021-06-28T11:49:09&#43;08:00" />
 
 <meta itemprop="name" content="K8s Informer Mechanics Part III - DeltaFIFO">
-<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"><meta itemprop="datePublished" content="2021-06-28T11:49:09&#43;08:00" />
+<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。"><meta itemprop="datePublished" content="2021-06-28T11:49:09&#43;08:00" />
 <meta itemprop="dateModified" content="2021-06-28T11:49:09&#43;08:00" />
-<meta itemprop="wordCount" content="4176">
+<meta itemprop="wordCount" content="4183">
 <meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="K8s Informer Mechanics Part III - DeltaFIFO"/>
-<meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"/>
+<meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。"/>
 
 <!--[if lte IE 9]>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
@@ -188,6 +188,7 @@
 <li><a href="/post/k8s-informer-mechanics/">K8s Informer Mechanics Part I</a></li>
 <li><a href="/post/k8s-informer-mechanics-reflector/">K8s Informer Mechanics Part II - Reflector</a></li>
 <li><a href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></li>
+<li><a href="">K8s Informer Mechanics Part IV - Indexer</a></li>
 </ul>
 <h2 id="正文">正文</h2>
 <blockquote>
