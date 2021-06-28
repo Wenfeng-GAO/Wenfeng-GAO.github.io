@@ -142,7 +142,27 @@
       </div>
     </header>
 
-    
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#usage-of-mesos-checkpoint-feature">Usage of Mesos Checkpoint Feature</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#dealing-with-partitioned-or-failed-agents">Dealing with Partitioned or Failed Agents</a>
+      <ul>
+        <li><a href="#2-mechanisms-to-track-availability-and-health">2 mechanisms to track availability and health</a></li>
+        <li><a href="#steps-to-remove-disconnected-agent">Steps to remove disconnected agent</a></li>
+      </ul>
+    </li>
+    <li><a href="#dealing-with-partitioned-or-failed-masters">Dealing with Partitioned or Failed Masters</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
     <div class="post-content">
       <p>Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。</p>
 <p>本文将讨论的问题：</p>

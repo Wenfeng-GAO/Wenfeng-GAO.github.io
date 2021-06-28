@@ -130,6 +130,27 @@
           <section id="posts" class="posts">
     <article class="post">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2021-06-28 </span>
+      <div class="post-category">
+          <a href="/categories/k8s/"> k8s </a>
+          </div>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    <div class="post-summary">
+      为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。
+    </div>
+    <div class="read-more">
+      <a href="/post/k8s-informer-mechanics-deltafifo/" class="read-more-link">Read more...</a>
+    </div>
+  </div>
+</article>
+
+    <article class="post">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/book_okr/">OKR工作法【克里斯蒂娜•沃特克/著】</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2021-06-14 </span>
@@ -208,27 +229,6 @@
     </div>
     <div class="read-more">
       <a href="/post/k8s-informer-mechanics/" class="read-more-link">Read more...</a>
-    </div>
-  </div>
-</article>
-
-    <article class="post">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/">What Happened to Kubelet When Pod Is Deleted</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2020-03-26 </span>
-      <div class="post-category">
-          <a href="/categories/k8s/"> k8s </a>
-          </div>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    <div class="post-summary">
-      The source code of Kubelet is quite complicated. In order to better understand it, we start by thinking about an operation we play normally: delete a pod. What will happen to Kubelet and how will it delete containers eventually? Let&rsquo;s go through the code module by module while keeping these questions in mind.
-    </div>
-    <div class="read-more">
-      <a href="/post/source-code-kubelet-what-happened-to-kubelet-when-pod-is-deleted/" class="read-more-link">Read more...</a>
     </div>
   </div>
 </article>

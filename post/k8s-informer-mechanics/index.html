@@ -49,7 +49,7 @@
 <meta itemprop="name" content="K8s Informer Mechanics Part I">
 <meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。informer机制是如何工作的呢？"><meta itemprop="datePublished" content="2021-02-05T11:32:21&#43;08:00" />
 <meta itemprop="dateModified" content="2021-02-05T11:32:21&#43;08:00" />
-<meta itemprop="wordCount" content="2378">
+<meta itemprop="wordCount" content="2385">
 <meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="K8s Informer Mechanics Part I"/>
 <meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。informer机制是如何工作的呢？"/>
@@ -144,7 +144,25 @@
       </div>
     </header>
 
-    
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#informer-mechanics系列">Informer Mechanics系列</a></li>
+      </ul>
+    </li>
+  </ul>
+
+  <ul>
+    <li><a href="#informer的创建">Informer的创建</a></li>
+    <li><a href="#run">Run</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
     <div class="post-content">
       <h1 id="前言">前言</h1>
 <p>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s
@@ -163,6 +181,7 @@
 <ul>
 <li><a href="/post/k8s-informer-mechanics/">K8s Informer Mechanics Part I</a></li>
 <li><a href="/post/k8s-informer-mechanics-reflector/">K8s Informer Mechanics Part II - Reflector</a></li>
+<li><a href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></li>
 </ul>
 <h1 id="正文">正文</h1>
 <blockquote>

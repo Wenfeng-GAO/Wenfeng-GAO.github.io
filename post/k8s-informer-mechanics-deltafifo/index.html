@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>K8s Informer Mechanics Part III - DeltaFIFO - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。" /><meta name="keywords" content="kubernetes, client-go, informer, sourcecode, reflector, deltafifo, fifo" />
+
+
+
+<meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
+
+
+<meta name="generator" content="Hugo 0.83.1 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-deltafifo/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<link href="/sass/main.min.f92fd13721ddf72129410fd8250e73152cc6f2438082b6c0208dc24ee7c13fc4.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="K8s Informer Mechanics Part III - DeltaFIFO" />
+<meta property="og:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-deltafifo/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2021-06-28T11:49:09&#43;08:00" />
+<meta property="article:modified_time" content="2021-06-28T11:49:09&#43;08:00" />
+
+<meta itemprop="name" content="K8s Informer Mechanics Part III - DeltaFIFO">
+<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"><meta itemprop="datePublished" content="2021-06-28T11:49:09&#43;08:00" />
+<meta itemprop="dateModified" content="2021-06-28T11:49:09&#43;08:00" />
+<meta itemprop="wordCount" content="4176">
+<meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="K8s Informer Mechanics Part III - DeltaFIFO"/>
+<meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a><a href="/categories/readings/">
+        <li class="mobile-menu-item">Readings</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+
+  
+
+
+</nav>
+
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+
+
+
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/readings/">Readings</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">K8s Informer Mechanics Part III - DeltaFIFO</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2021-06-28 </span>
+        <div class="post-category">
+            <a href="/categories/k8s/"> k8s </a>
+            </div>
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前言">前言</a>
+      <ul>
+        <li><a href="#informer-mechanics系列">Informer Mechanics系列</a></li>
+      </ul>
+    </li>
+    <li><a href="#正文">正文</a>
+      <ul>
+        <li><a href="#特点">特点</a></li>
+        <li><a href="#接口">接口</a></li>
+        <li><a href="#addupdate">Add/Update</a></li>
+        <li><a href="#delete">Delete</a></li>
+        <li><a href="#replace">Replace</a></li>
+        <li><a href="#resync">Resync</a></li>
+        <li><a href="#pop">Pop</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <h2 id="前言">前言</h2>
+<p>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s
+使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议
+便实现了需求。</p>
+<p>informer机制是如何工作的呢？
+它主要由几个部分组成：</p>
+<ol>
+<li>reflector，通过listwatcher和apiserver建立连接，将监听资源的变化加入DeltaFIFO队列中；</li>
+<li>DeltaFIFO，有去重能力的队列；</li>
+<li>Indexer，带索引的内存Store，提供了增删改查以及索引的能力，informer会不断从DeltaFIFO上pop，并加入Indexer中；</li>
+<li>Processer，用观察者模式实现的回调器</li>
+</ol>
+<p>接下来会出一个informer系列博客，来逐一分析各个模块的代码实现。这篇是这个系列的第三篇，主要分析组成informer机制的重要组件之一DeltaFIFO。</p>
+<h3 id="informer-mechanics系列">Informer Mechanics系列</h3>
+<ul>
+<li><a href="/post/k8s-informer-mechanics/">K8s Informer Mechanics Part I</a></li>
+<li><a href="/post/k8s-informer-mechanics-reflector/">K8s Informer Mechanics Part II - Reflector</a></li>
+<li><a href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></li>
+</ul>
+<h2 id="正文">正文</h2>
+<blockquote>
+<p>Tips：
+以下代码片段有删节，只保留作者认为跟当前讨论内容非常相关的部分。</p>
+</blockquote>
+<h3 id="特点">特点</h3>
+<p>DeltaFIFO是一种特殊的FIFO，特殊之处有主要2点：</p>
+<ol>
+<li>FIFO中的内容（英文叫accumulator）是object的Deltas，而不是object本身</li>
+<li>FIFO的接口外还有Replace和Sync接口来对FIFO内的accumulator进行操作</li>
+</ol>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// DeltaFIFO is like FIFO, but differs in two ways.  One is that the
+</span><span class="c1">// accumulator associated with a given object&#39;s key is not that object
+</span><span class="c1">// but rather a Deltas, which is a slice of Delta values for that
+</span><span class="c1">// object.  Applying an object to a Deltas means to append a Delta
+</span><span class="c1">// except when the potentially appended Delta is a Deleted and the
+</span><span class="c1">// Deltas already ends with a Deleted.  In that case the Deltas does
+</span><span class="c1">// not grow, although the terminal Deleted will be replaced by the new
+</span><span class="c1">// Deleted if the older Deleted&#39;s object is a
+</span><span class="c1">// DeletedFinalStateUnknown.
+</span><span class="c1">//
+</span><span class="c1">// The other difference is that DeltaFIFO has two additional ways that
+</span><span class="c1">// an object can be applied to an accumulator: Replaced and Sync.
+</span><span class="c1">// If EmitDeltaTypeReplaced is not set to true, Sync will be used in
+</span><span class="c1">// replace events for backwards compatibility.  Sync is used for periodic
+</span><span class="c1">// resync events.
+</span><span class="c1">//
+</span><span class="c1">// DeltaFIFO is a producer-consumer queue, where a Reflector is
+</span><span class="c1">// intended to be the producer, and the consumer is whatever calls
+</span><span class="c1">// the Pop() method.
+</span><span class="c1">//
+</span><span class="c1">// DeltaFIFO solves this use case:
+</span><span class="c1">//  * You want to process every object change (delta) at most once.
+</span><span class="c1">//  * When you process an object, you want to see everything
+</span><span class="c1">//    that&#39;s happened to it since you last processed it.
+</span><span class="c1">//  * You want to process the deletion of some of the objects.
+</span><span class="c1">//  * You might want to periodically reprocess objects.
+</span><span class="c1">//
+</span><span class="c1">// DeltaFIFO&#39;s Pop(), Get(), and GetByKey() methods return
+</span><span class="c1">// interface{} to satisfy the Store/Queue interfaces, but they
+</span><span class="c1">// will always return an object of type Deltas. List() returns
+</span><span class="c1">// the newest object from each accumulator in the FIFO.
+</span><span class="c1">//
+</span><span class="c1">// A DeltaFIFO&#39;s knownObjects KeyListerGetter provides the abilities
+</span><span class="c1">// to list Store keys and to get objects by Store key.  The objects in
+</span><span class="c1">// question are called &#34;known objects&#34; and this set of objects
+</span><span class="c1">// modifies the behavior of the Delete, Replace, and Resync methods
+</span><span class="c1">// (each in a different way).
+</span><span class="c1">//
+</span><span class="c1">// A note on threading: If you call Pop() in parallel from multiple
+</span><span class="c1">// threads, you could end up with multiple threads processing slightly
+</span><span class="c1">// different versions of the same object.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">DeltaFIFO</span> <span class="kd">struct</span> <span class="p">{</span>
+	<span class="c1">// lock/cond protects access to &#39;items&#39; and &#39;queue&#39;.
+</span><span class="c1"></span>	<span class="nx">lock</span> <span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
+	<span class="nx">cond</span> <span class="nx">sync</span><span class="p">.</span><span class="nx">Cond</span>
+
+	<span class="c1">// `items` maps a key to a Deltas.
+</span><span class="c1"></span>	<span class="c1">// Each such Deltas has at least one Delta.
+</span><span class="c1"></span>	<span class="nx">items</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">Deltas</span>
+
+	<span class="c1">// `queue` maintains FIFO order of keys for consumption in Pop().
+</span><span class="c1"></span>	<span class="c1">// There are no duplicates in `queue`.
+</span><span class="c1"></span>	<span class="c1">// A key is in `queue` if and only if it is in `items`.
+</span><span class="c1"></span>	<span class="nx">queue</span> <span class="p">[]</span><span class="kt">string</span>
+
+	<span class="c1">// populated is true if the first batch of items inserted by Replace() has been populated
+</span><span class="c1"></span>	<span class="c1">// or Delete/Add/Update/AddIfNotPresent was called first.
+</span><span class="c1"></span>	<span class="nx">populated</span> <span class="kt">bool</span>
+	<span class="c1">// initialPopulationCount is the number of items inserted by the first call of Replace()
+</span><span class="c1"></span>	<span class="nx">initialPopulationCount</span> <span class="kt">int</span>
+
+	<span class="c1">// keyFunc is used to make the key used for queued item
+</span><span class="c1"></span>	<span class="c1">// insertion and retrieval, and should be deterministic.
+</span><span class="c1"></span>	<span class="nx">keyFunc</span> <span class="nx">KeyFunc</span>
+
+	<span class="c1">// knownObjects list keys that are &#34;known&#34; --- affecting Delete(),
+</span><span class="c1"></span>	<span class="c1">// Replace(), and Resync()
+</span><span class="c1"></span>	<span class="nx">knownObjects</span> <span class="nx">KeyListerGetter</span>
+
+	<span class="c1">// Used to indicate a queue is closed so a control loop can exit when a queue is empty.
+</span><span class="c1"></span>	<span class="c1">// Currently, not used to gate any of CRED operations.
+</span><span class="c1"></span>	<span class="nx">closed</span> <span class="kt">bool</span>
+
+	<span class="c1">// emitDeltaTypeReplaced is whether to emit the Replaced or Sync
+</span><span class="c1"></span>	<span class="c1">// DeltaType when Replace() is called (to preserve backwards compat).
+</span><span class="c1"></span>	<span class="nx">emitDeltaTypeReplaced</span> <span class="kt">bool</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">var</span> <span class="p">(</span>
+	<span class="nx">_</span> <span class="p">=</span> <span class="nf">Queue</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">DeltaFIFO</span><span class="p">{})</span> <span class="c1">// DeltaFIFO is a Queue
+</span><span class="c1"></span><span class="p">)</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>DeltaFIFO是一个Queue，那么我们先一次来分析下DeltaFIFO Queue的接口实现。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Queue extends Store with a collection of Store keys to &#34;process&#34;.
+</span><span class="c1">// Every Add, Update, or Delete may put the object&#39;s key in that collection.
+</span><span class="c1">// A Queue has a way to derive the corresponding key given an accumulator.
+</span><span class="c1">// A Queue can be accessed concurrently from multiple goroutines.
+</span><span class="c1">// A Queue can be &#34;closed&#34;, after which Pop operations return an error.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Queue</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="nx">Store</span>
+
+	<span class="c1">// Pop blocks until there is at least one key to process or the
+</span><span class="c1"></span>	<span class="c1">// Queue is closed.  In the latter case Pop returns with an error.
+</span><span class="c1"></span>	<span class="c1">// In the former case Pop atomically picks one key to process,
+</span><span class="c1"></span>	<span class="c1">// removes that (key, accumulator) association from the Store, and
+</span><span class="c1"></span>	<span class="c1">// processes the accumulator.  Pop returns the accumulator that
+</span><span class="c1"></span>	<span class="c1">// was processed and the result of processing.  The PopProcessFunc
+</span><span class="c1"></span>	<span class="c1">// may return an ErrRequeue{inner} and in this case Pop will (a)
+</span><span class="c1"></span>	<span class="c1">// return that (key, accumulator) association to the Queue as part
+</span><span class="c1"></span>	<span class="c1">// of the atomic processing and (b) return the inner error from
+</span><span class="c1"></span>	<span class="c1">// Pop.
+</span><span class="c1"></span>	<span class="nf">Pop</span><span class="p">(</span><span class="nx">PopProcessFunc</span><span class="p">)</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
+
+	<span class="c1">// AddIfNotPresent puts the given accumulator into the Queue (in
+</span><span class="c1"></span>	<span class="c1">// association with the accumulator&#39;s key) if and only if that key
+</span><span class="c1"></span>	<span class="c1">// is not already associated with a non-empty accumulator.
+</span><span class="c1"></span>	<span class="nf">AddIfNotPresent</span><span class="p">(</span><span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+
+	<span class="c1">// HasSynced returns true if the first batch of keys have all been
+</span><span class="c1"></span>	<span class="c1">// popped.  The first batch of keys are those of the first Replace
+</span><span class="c1"></span>	<span class="c1">// operation if that happened before any Add, AddIfNotPresent,
+</span><span class="c1"></span>	<span class="c1">// Update, or Delete; otherwise the first batch is empty.
+</span><span class="c1"></span>	<span class="nf">HasSynced</span><span class="p">()</span> <span class="kt">bool</span>
+
+	<span class="c1">// Close the queue
+</span><span class="c1"></span>	<span class="nf">Close</span><span class="p">()</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>Queue的接口是基于Store接口的拓展。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Store is a generic object storage and processing interface.  A
+</span><span class="c1">// Store holds a map from string keys to accumulators, and has
+</span><span class="c1">// operations to add, update, and delete a given object to/from the
+</span><span class="c1">// accumulator currently associated with a given key.  A Store also
+</span><span class="c1">// knows how to extract the key from a given object, so many operations
+</span><span class="c1">// are given only the object.
+</span><span class="c1">//
+</span><span class="c1">// In the simplest Store implementations each accumulator is simply
+</span><span class="c1">// the last given object, or empty after Delete, and thus the Store&#39;s
+</span><span class="c1">// behavior is simple storage.
+</span><span class="c1">//
+</span><span class="c1">// Reflector knows how to watch a server and update a Store.  This
+</span><span class="c1">// package provides a variety of implementations of Store.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Store</span> <span class="kd">interface</span> <span class="p">{</span>
+
+	<span class="c1">// Add adds the given object to the accumulator associated with the given object&#39;s key
+</span><span class="c1"></span>	<span class="nf">Add</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+
+	<span class="c1">// Update updates the given object in the accumulator associated with the given object&#39;s key
+</span><span class="c1"></span>	<span class="nf">Update</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+
+	<span class="c1">// Delete deletes the given object from the accumulator associated with the given object&#39;s key
+</span><span class="c1"></span>	<span class="nf">Delete</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+
+	<span class="c1">// List returns a list of all the currently non-empty accumulators
+</span><span class="c1"></span>	<span class="nf">List</span><span class="p">()</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{}</span>
+
+	<span class="c1">// ListKeys returns a list of all the keys currently associated with non-empty accumulators
+</span><span class="c1"></span>	<span class="nf">ListKeys</span><span class="p">()</span> <span class="p">[]</span><span class="kt">string</span>
+
+	<span class="c1">// Get returns the accumulator associated with the given object&#39;s key
+</span><span class="c1"></span>	<span class="nf">Get</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+
+	<span class="c1">// GetByKey returns the accumulator associated with the given key
+</span><span class="c1"></span>	<span class="nf">GetByKey</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+
+	<span class="c1">// Replace will delete the contents of the store, using instead the
+</span><span class="c1"></span>	<span class="c1">// given list. Store takes ownership of the list, you should not reference
+</span><span class="c1"></span>	<span class="c1">// it after calling this function.
+</span><span class="c1"></span>	<span class="nf">Replace</span><span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+
+	<span class="c1">// Resync is meaningless in the terms appearing here but has
+</span><span class="c1"></span>	<span class="c1">// meaning in some implementations that have non-trivial
+</span><span class="c1"></span>	<span class="c1">// additional behavior (e.g., DeltaFIFO).
+</span><span class="c1"></span>	<span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<h3 id="接口">接口</h3>
+<p>看到Queue需要实现的接口有：</p>
+<ul>
+<li>Add</li>
+<li>Update</li>
+<li>Delete</li>
+<li>List</li>
+<li>ListKeys</li>
+<li>Get</li>
+<li>GetByKey</li>
+<li>Replace</li>
+<li>Resync</li>
+<li>Pop</li>
+<li>AddIfNotPresent</li>
+<li>HasSyncd</li>
+<li>Close</li>
+</ul>
+<p>下面挑选重要的来分析。</p>
+<h3 id="addupdate">Add/Update</h3>
+<p>Add/Update接口比较简单，主要都是在加锁后调用<code>queueActionLocked</code>方法。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Add inserts an item, and puts it in the queue. The item is only enqueued
+</span><span class="c1">// if it doesn&#39;t already exist in the set.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Add</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Added</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">// Update is just like Add, but makes an Updated Delta.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Update</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Updated</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p>queueActionLocked方法会将Deltas添加进queue和item，并且去重与广播。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// queueActionLocked appends to the delta list for the object.
+</span><span class="c1">// Caller must lock first.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">actionType</span> <span class="nx">DeltaType</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+	<span class="p">}</span>
+	<span class="nx">oldDeltas</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
+	<span class="nx">newDeltas</span> <span class="o">:=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">Delta</span><span class="p">{</span><span class="nx">actionType</span><span class="p">,</span> <span class="nx">obj</span><span class="p">})</span>
+	<span class="nx">newDeltas</span> <span class="p">=</span> <span class="nf">dedupDeltas</span><span class="p">(</span><span class="nx">newDeltas</span><span class="p">)</span>
+
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">newDeltas</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">];</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+			<span class="nx">f</span><span class="p">.</span><span class="nx">queue</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newDeltas</span>
+		<span class="nx">f</span><span class="p">.</span><span class="nx">cond</span><span class="p">.</span><span class="nf">Broadcast</span><span class="p">()</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="c1">// This never happens, because dedupDeltas never returns an empty list
+</span><span class="c1"></span>		<span class="c1">// when given a non-empty list (as it is here).
+</span><span class="c1"></span>		<span class="c1">// If somehow it happens anyway, deal with it but complain.
+</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">oldDeltas</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; ignoring&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+			<span class="k">return</span> <span class="kc">nil</span>
+		<span class="p">}</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; breaking invariant by storing empty Deltas&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+		<span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newDeltas</span>
+		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; broke DeltaFIFO invariant by storing empty Deltas&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<h3 id="delete">Delete</h3>
+<p>Delete接口和Add、Update一样，也是调用queueActionLocked，只是在之前Ignore掉一些已删除的情况。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Delete is just like Add, but makes a Deleted Delta. If the given
+</span><span class="c1">// object does not already exist, it will be ignored. (It may have
+</span><span class="c1">// already been deleted by a Replace (re-list), for example.)  In this
+</span><span class="c1">// method `f.knownObjects`, if not nil, provides (via GetByKey)
+</span><span class="c1">// _additional_ objects that are considered to already exist.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Delete</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+	<span class="p">}</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">];</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+			<span class="c1">// Presumably, this was deleted when a relist happened.
+</span><span class="c1"></span>			<span class="c1">// Don&#39;t provide a second report of the same deletion.
+</span><span class="c1"></span>			<span class="k">return</span> <span class="kc">nil</span>
+		<span class="p">}</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+		<span class="c1">// We only want to skip the &#34;deletion&#34; action if the object doesn&#39;t
+</span><span class="c1"></span>		<span class="c1">// exist in knownObjects and it doesn&#39;t have corresponding item in items.
+</span><span class="c1"></span>		<span class="c1">// Note that even if there is a &#34;deletion&#34; action in items, we can ignore it,
+</span><span class="c1"></span>		<span class="c1">// because it will be deduped automatically in &#34;queueActionLocked&#34;
+</span><span class="c1"></span>		<span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span>
+		<span class="nx">_</span><span class="p">,</span> <span class="nx">itemsExist</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">exists</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">itemsExist</span> <span class="p">{</span>
+			<span class="c1">// Presumably, this was deleted when a relist happened.
+</span><span class="c1"></span>			<span class="c1">// Don&#39;t provide a second report of the same deletion.
+</span><span class="c1"></span>			<span class="k">return</span> <span class="kc">nil</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="c1">// exist in items and/or KnownObjects
+</span><span class="c1"></span>	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<h3 id="replace">Replace</h3>
+<p>正如Replace的注释所说，Replace做了2件事：</p>
+<ol>
+<li>将list中的obj以Sync或Replaced的方式加入队列</li>
+<li>将list中或f.knownObjects中不存在的obj从队列里删除</li>
+</ol>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span><span class="lnt">77
+</span><span class="lnt">78
+</span><span class="lnt">79
+</span><span class="lnt">80
+</span><span class="lnt">81
+</span><span class="lnt">82
+</span><span class="lnt">83
+</span><span class="lnt">84
+</span><span class="lnt">85
+</span><span class="lnt">86
+</span><span class="lnt">87
+</span><span class="lnt">88
+</span><span class="lnt">89
+</span><span class="lnt">90
+</span><span class="lnt">91
+</span><span class="lnt">92
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Replace atomically does two things: (1) it adds the given objects
+</span><span class="c1">// using the Sync or Replace DeltaType and then (2) it does some deletions.
+</span><span class="c1">// In particular: for every pre-existing key K that is not the key of
+</span><span class="c1">// an object in `list` there is the effect of
+</span><span class="c1">// `Delete(DeletedFinalStateUnknown{K, O})` where O is current object
+</span><span class="c1">// of K.  If `f.knownObjects == nil` then the pre-existing keys are
+</span><span class="c1">// those in `f.items` and the current object of K is the `.Newest()`
+</span><span class="c1">// of the Deltas associated with K.  Otherwise the pre-existing keys
+</span><span class="c1">// are those listed by `f.knownObjects` and the current object of K is
+</span><span class="c1">// what `f.knownObjects.GetByKey(K)` returns.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Replace</span><span class="p">(</span><span class="nx">list</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{},</span> <span class="nx">resourceVersion</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">keys</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nx">list</span><span class="p">))</span>
+
+	<span class="c1">// keep backwards compat for old clients
+</span><span class="c1"></span>	<span class="nx">action</span> <span class="o">:=</span> <span class="nx">Sync</span>
+	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">emitDeltaTypeReplaced</span> <span class="p">{</span>
+		<span class="nx">action</span> <span class="p">=</span> <span class="nx">Replaced</span>
+	<span class="p">}</span>
+
+	<span class="c1">// Add Sync/Replaced action for each new item.
+</span><span class="c1"></span>	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">item</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">list</span> <span class="p">{</span>
+		<span class="nx">key</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">item</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+		<span class="p">}</span>
+		<span class="nx">keys</span><span class="p">.</span><span class="nf">Insert</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">action</span><span class="p">,</span> <span class="nx">item</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;couldn&#39;t enqueue object: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="c1">// Do deletion detection against our own list.
+</span><span class="c1"></span>		<span class="nx">queuedDeletions</span> <span class="o">:=</span> <span class="mi">0</span>
+		<span class="k">for</span> <span class="nx">k</span><span class="p">,</span> <span class="nx">oldItem</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span> <span class="p">{</span>
+			<span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Has</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+				<span class="k">continue</span>
+			<span class="p">}</span>
+			<span class="c1">// Delete pre-existing items not in the new list.
+</span><span class="c1"></span>			<span class="c1">// This could happen if watch deletion event was missed while
+</span><span class="c1"></span>			<span class="c1">// disconnected from apiserver.
+</span><span class="c1"></span>			<span class="kd">var</span> <span class="nx">deletedObj</span> <span class="kd">interface</span><span class="p">{}</span>
+			<span class="k">if</span> <span class="nx">n</span> <span class="o">:=</span> <span class="nx">oldItem</span><span class="p">.</span><span class="nf">Newest</span><span class="p">();</span> <span class="nx">n</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+				<span class="nx">deletedObj</span> <span class="p">=</span> <span class="nx">n</span><span class="p">.</span><span class="nx">Object</span>
+			<span class="p">}</span>
+			<span class="nx">queuedDeletions</span><span class="o">++</span>
+			<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">DeletedFinalStateUnknown</span><span class="p">{</span><span class="nx">k</span><span class="p">,</span> <span class="nx">deletedObj</span><span class="p">});</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+				<span class="k">return</span> <span class="nx">err</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+
+		<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">{</span>
+			<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+			<span class="c1">// While there shouldn&#39;t be any queued deletions in the initial
+</span><span class="c1"></span>			<span class="c1">// population of the queue, it&#39;s better to be on the safe side.
+</span><span class="c1"></span>			<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">=</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Len</span><span class="p">()</span> <span class="o">+</span> <span class="nx">queuedDeletions</span>
+		<span class="p">}</span>
+
+		<span class="k">return</span> <span class="kc">nil</span>
+	<span class="p">}</span>
+
+	<span class="c1">// Detect deletions not already in the queue.
+</span><span class="c1"></span>	<span class="nx">knownKeys</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">ListKeys</span><span class="p">()</span>
+	<span class="nx">queuedDeletions</span> <span class="o">:=</span> <span class="mi">0</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">k</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">knownKeys</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Has</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+			<span class="k">continue</span>
+		<span class="p">}</span>
+
+		<span class="nx">deletedObj</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">deletedObj</span> <span class="p">=</span> <span class="kc">nil</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Unexpected error %v during lookup of key %v, placing DeleteFinalStateUnknown marker without object&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
+		<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+			<span class="nx">deletedObj</span> <span class="p">=</span> <span class="kc">nil</span>
+			<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Key %v does not exist in known objects store, placing DeleteFinalStateUnknown marker without object&#34;</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="nx">queuedDeletions</span><span class="o">++</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">DeletedFinalStateUnknown</span><span class="p">{</span><span class="nx">k</span><span class="p">,</span> <span class="nx">deletedObj</span><span class="p">});</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">{</span>
+		<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+		<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">=</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Len</span><span class="p">()</span> <span class="o">+</span> <span class="nx">queuedDeletions</span>
+	<span class="p">}</span>
+
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<h3 id="resync">Resync</h3>
+<p>Resync对于f.knownObjects中的每一个不存在于队列中的Delta，都添加一个Sync类型，如果f.knownObjects为nil，则啥也不做。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Resync adds, with a Sync type of Delta, every object listed by
+</span><span class="c1">// `f.knownObjects` whose key is not already queued for processing.
+</span><span class="c1">// If `f.knownObjects` is `nil` then Resync does nothing.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+
+	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">nil</span>
+	<span class="p">}</span>
+
+	<span class="nx">keys</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">ListKeys</span><span class="p">()</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">k</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">keys</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">syncKeyLocked</span><span class="p">(</span><span class="nx">k</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="nx">err</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">syncKeyLocked</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+	<span class="nx">obj</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Unexpected error %v during lookup of key %v, unable to queue object for sync&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">nil</span>
+	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+		<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Key %v does not exist in known objects store, unable to queue object for sync&#34;</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+		<span class="k">return</span> <span class="kc">nil</span>
+	<span class="p">}</span>
+
+	<span class="c1">// If we are doing Resync() and there is already an event queued for that object,
+</span><span class="c1"></span>	<span class="c1">// we ignore the Resync for it. This is to avoid the race, in which the resync
+</span><span class="c1"></span>	<span class="c1">// comes with the previous value of object (since queueing an event for the object
+</span><span class="c1"></span>	<span class="c1">// doesn&#39;t trigger changing the underlying store &lt;knownObjects&gt;.
+</span><span class="c1"></span>	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">])</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="kc">nil</span>
+	<span class="p">}</span>
+
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Sync</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;couldn&#39;t queue object: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="kc">nil</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<h3 id="pop">Pop</h3>
+<p>Pop从队列里pop出一个Deltas，调用PopProcessFunc回调方法，如果方法失败，可以调用addIfNotPresent重新加入队列，如果队列为空，Pop一直等待。回调函数应避免耗时太长，是的lock影响其他队列操作。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Pop blocks until the queue has some items, and then returns one.  If
+</span><span class="c1">// multiple items are ready, they are returned in the order in which they were
+</span><span class="c1">// added/updated. The item is removed from the queue (and the store) before it
+</span><span class="c1">// is returned, so if you don&#39;t successfully process it, you need to add it back
+</span><span class="c1">// with AddIfNotPresent().
+</span><span class="c1">// process function is called under lock, so it is safe to update data structures
+</span><span class="c1">// in it that need to be in sync with the queue (e.g. knownKeys). The PopProcessFunc
+</span><span class="c1">// may return an instance of ErrRequeue with a nested error to indicate the current
+</span><span class="c1">// item should be requeued (equivalent to calling AddIfNotPresent under the lock).
+</span><span class="c1">// process should avoid expensive I/O operation so that other queue operations, i.e.
+</span><span class="c1">// Add() and Get(), won&#39;t be blocked for too long.
+</span><span class="c1">//
+</span><span class="c1">// Pop returns a &#39;Deltas&#39;, which has a complete list of all the things
+</span><span class="c1">// that happened to the object (deltas) while it was sitting in the queue.
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Pop</span><span class="p">(</span><span class="nx">process</span> <span class="nx">PopProcessFunc</span><span class="p">)</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="k">for</span> <span class="p">{</span>
+		<span class="k">for</span> <span class="nb">len</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+			<span class="c1">// When the queue is empty, invocation of Pop() is blocked until new item is enqueued.
+</span><span class="c1"></span>			<span class="c1">// When Close() is called, the f.closed is set and the condition is broadcasted.
+</span><span class="c1"></span>			<span class="c1">// Which causes this loop to continue and return from the Pop().
+</span><span class="c1"></span>			<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">closed</span> <span class="p">{</span>
+				<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">ErrFIFOClosed</span>
+			<span class="p">}</span>
+
+			<span class="nx">f</span><span class="p">.</span><span class="nx">cond</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span>
+		<span class="p">}</span>
+		<span class="nx">id</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+		<span class="nx">f</span><span class="p">.</span><span class="nx">queue</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+		<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+			<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span><span class="o">--</span>
+		<span class="p">}</span>
+		<span class="nx">item</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
+		<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+			<span class="c1">// This should never happen
+</span><span class="c1"></span>			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Inconceivable! %q was in f.queue but not f.items; ignoring.&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
+			<span class="k">continue</span>
+		<span class="p">}</span>
+		<span class="nb">delete</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
+		<span class="nx">err</span> <span class="o">:=</span> <span class="nf">process</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">err</span><span class="p">.(</span><span class="nx">ErrRequeue</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+			<span class="nx">f</span><span class="p">.</span><span class="nf">addIfNotPresent</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span> <span class="nx">item</span><span class="p">)</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Err</span>
+		<span class="p">}</span>
+		<span class="c1">// Don&#39;t need to copyDeltas here, because we&#39;re transferring
+</span><span class="c1"></span>		<span class="c1">// ownership to the caller.
+</span><span class="c1"></span>		<span class="k">return</span> <span class="nx">item</span><span class="p">,</span> <span class="nx">err</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p>至此，DeltaFIFO的核心方法我们已了然于胸。</p>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2021-06-28
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/kubernetes/">kubernetes</a>
+          <a href="/tags/client-go/">client-go</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/book_okr/">
+            <span class="next-text nav-default">OKR工作法【克里斯蒂娜•沃特克/著】</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+  </span>
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script id="baidu_analytics">
+  var _hmt = _hmt || [];
+  (function() {
+    if (window.location.hostname === 'localhost') return;
+    var hm = document.createElement("script"); hm.async = true;
+    hm.src = "https://hm.baidu.com/hm.js?2394a408cca2a9e611801f76b5dc0267";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+
+
+
+
+
+
+</body>
+</html>

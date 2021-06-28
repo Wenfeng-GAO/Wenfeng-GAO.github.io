@@ -144,7 +144,28 @@
       </div>
     </header>
 
-    
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#start-cpu-manager">Start CPU Manager</a></li>
+    <li><a href="#reconcile">Reconcile</a>
+      <ul>
+        <li><a href="#reconcile方法做了什么事情">Reconcile方法做了什么事情？</a></li>
+        <li><a href="#为什么要做">为什么要做</a></li>
+      </ul>
+    </li>
+    <li><a href="#addcontainerremovecontainer">AddContainer/RemoveContainer</a>
+      <ul>
+        <li><a href="#addcontainer">AddContainer</a></li>
+        <li><a href="#removecontainer">RemoveContainer</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
     <div class="post-content">
       <h1 id="背景">背景</h1>
 <p>Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于<a href="https://www.kernel.org/doc/Documentation/cgroup-v1/cpusets.txt">cpuset</a>的支持，通过很长一段时间的讨论（<a href="https://github.com/kubernetes/kubernetes/issues/10570">[Issue] Determine if we should support cpuset-cpus and cpuset-mem</a>)后，最终通过<a href="https://kubernetes.io/docs/tasks/administer-cluster/cpu-management-policies/">CPU Manager</a>来实现。</p>

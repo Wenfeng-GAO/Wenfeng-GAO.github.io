@@ -144,7 +144,26 @@
       </div>
     </header>
 
-    
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#run-app-with---perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</a>
+      <ul>
+        <li><a href="#linux-perf_events-jit-support">Linux perf_events JIT support</a></li>
+        <li><a href="#v8---perf-basic-prof-support">v8 &ndash;perf-basic-prof support</a></li>
+      </ul>
+    </li>
+    <li><a href="#perf-outside-of-container">Perf outside of container</a></li>
+    <li><a href="#prepare-tmpperf-65875map-file">Prepare <code>/tmp/perf-65875.map</code> file</a></li>
+    <li><a href="#generate-flame-graph">Generate Flame Graph</a></li>
+    <li><a href="#overall-script">Overall script</a></li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
     <div class="post-content">
       <p>In my previous blogs, I&rsquo;ve shared about how to profile Java applications in
 various of methods, now I&rsquo;ll show you how to profile Nodejs apps with

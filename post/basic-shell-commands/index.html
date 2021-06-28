@@ -142,7 +142,19 @@
       </div>
     </header>
 
-    
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#if">if</a></li>
+    <li><a href="#grep">grep</a></li>
+    <li><a href="#sed">sed</a></li>
+    <li><a href="#echo-with-color">echo with color</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
     <div class="post-content">
       <p>公司某个产品的测试环境比较复杂，它需要在 <em>OpenStack</em> 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产品节点通过接收与发送数据包进行测试。</p>
 <p>整个部署与测试流程都需要用Jenkins做自动化测试，而我的任务是将TestAgent节点移植到Docker容器中。用时一个多月，从熟悉源代码的部署与测试流程，到OpenStack的UI界面和CLI命令的基本使用，到OpenStack网络通信的基本理解，到Python的学习与使用(如使用pexpect通过ssh执行shell命令和脚本)， 到shell脚本的熟悉与使用，这个过程中爬过了许多大大小小的坑，也收获了很多东西，这里主要总结一下shell脚本的常用命令。</p>
