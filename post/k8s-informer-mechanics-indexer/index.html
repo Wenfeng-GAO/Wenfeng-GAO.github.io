@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>K8s Informer Mechanics Part IV - Indexer - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第四篇，我们详细分析Indexer模块的代码实现。" /><meta name="keywords" content="kubernetes, client-go, informer, sourcecode, indexer" />
+
+
+
+<meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
+
+
+<meta name="generator" content="Hugo 0.83.1 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-indexer/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<link href="/sass/main.min.f92fd13721ddf72129410fd8250e73152cc6f2438082b6c0208dc24ee7c13fc4.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="K8s Informer Mechanics Part IV - Indexer" />
+<meta property="og:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第四篇，我们详细分析Indexer模块的代码实现。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-indexer/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2021-06-28T12:09:27&#43;08:00" />
+<meta property="article:modified_time" content="2021-06-28T12:10:27&#43;08:00" />
+
+<meta itemprop="name" content="K8s Informer Mechanics Part IV - Indexer">
+<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第四篇，我们详细分析Indexer模块的代码实现。"><meta itemprop="datePublished" content="2021-06-28T12:09:27&#43;08:00" />
+<meta itemprop="dateModified" content="2021-06-28T12:10:27&#43;08:00" />
+<meta itemprop="wordCount" content="2418">
+<meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="K8s Informer Mechanics Part IV - Indexer"/>
+<meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第四篇，我们详细分析Indexer模块的代码实现。"/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a><a href="/categories/readings/">
+        <li class="mobile-menu-item">Readings</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+
+  
+
+
+</nav>
+
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+
+
+
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/readings/">Readings</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">K8s Informer Mechanics Part IV - Indexer</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2021-06-28 </span>
+        <div class="post-category">
+            <a href="/categories/k8s/"> k8s </a>
+            </div>
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content always-active">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#前言">前言</a>
+      <ul>
+        <li><a href="#informer-mechanics系列">Informer Mechanics系列</a></li>
+      </ul>
+    </li>
+    <li><a href="#正文">正文</a>
+      <ul>
+        <li><a href="#indexer-interface">Indexer interface</a></li>
+        <li><a href="#addupdatedelete">Add/Update/Delete</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <h2 id="前言">前言</h2>
+<p>为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s
+使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议
+便实现了需求。</p>
+<p>informer机制是如何工作的呢？
+它主要由几个部分组成：</p>
+<ol>
+<li>reflector，通过listwatcher和apiserver建立连接，将监听资源的变化加入DeltaFIFO队列中；</li>
+<li>DeltaFIFO，有去重能力的队列；</li>
+<li>Indexer，带索引的内存Store，提供了增删改查以及索引的能力，informer会不断从DeltaFIFO上pop，并加入Indexer中；</li>
+<li>Processer，用观察者模式实现的回调器</li>
+</ol>
+<p>接下来会出一个informer系列博客，来逐一分析各个模块的代码实现。这篇是这个系列的第四篇，主要分析组成informer机制的重要组件之一Indexer。</p>
+<h3 id="informer-mechanics系列">Informer Mechanics系列</h3>
+<ul>
+<li><a href="/post/k8s-informer-mechanics/">K8s Informer Mechanics Part I</a></li>
+<li><a href="/post/k8s-informer-mechanics-reflector/">K8s Informer Mechanics Part II - Reflector</a></li>
+<li><a href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></li>
+<li><a href="/post/k8s-informer-mechanics-indexer/">K8s Informer Mechanics Part IV - Indexer</a></li>
+</ul>
+<h2 id="正文">正文</h2>
+<blockquote>
+<p>Tips：
+以下代码片段有删节，只保留作者认为跟当前讨论内容非常相关的部分。</p>
+</blockquote>
+<p>Indexer是informer的核心组件之一，是一个有索引能力的local cache。
+Indexer概念里有一些名词（定义）非常容易混淆，我们首先把他们罗列出来：</p>
+<ul>
+<li>obj存在local cache中所对应的key，由Store中的KeyFunc生成，知道了key我们才能从cache中获取到对应的obj</li>
+<li>Index，代表一个索引，它的key/name由IndexFunc生成，有了name我们才能拿到Index的value，value是一组obj的key</li>
+<li>Indexers，索引器，由使用方提供name到IndexFunc的映射</li>
+<li>Indices，由使用方提供的name到Index的映射，此Index的name由相同name的IndexFunc生成</li>
+</ul>
+<p>使用方提供了一个索引器，Indexers[&ldquo;my-index&rdquo;] = IndexFunc1, 然后将obj加入local cache时便会生成对应的索引。</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="nx">indexKey</span> <span class="o">:=</span> <span class="nf">IndexFunc1</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+<span class="nx">Index</span> <span class="o">:=</span> <span class="nx">Indices</span><span class="p">[</span><span class="s">&#34;my-index&#34;</span><span class="p">]</span>
+<span class="nx">Index</span><span class="p">[</span><span class="nx">indexKey</span><span class="p">]</span> <span class="p">=</span> <span class="p">{</span><span class="nf">KeyFunc</span><span class="p">(</span><span class="nx">obj</span><span class="p">)}</span>
+</code></pre></td></tr></table>
+</div>
+</div><p>之后，通过&quot;my-index&quot; 或 indexKey就可以快速找到一系列的obj。</p>
+<h3 id="indexer-interface">Indexer interface</h3>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span><span class="lnt">71
+</span><span class="lnt">72
+</span><span class="lnt">73
+</span><span class="lnt">74
+</span><span class="lnt">75
+</span><span class="lnt">76
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Indexer extends Store with multiple indices and restricts each
+</span><span class="c1">// accumulator to simply hold the current object (and be empty after
+</span><span class="c1">// Delete).
+</span><span class="c1">//
+</span><span class="c1">// There are three kinds of strings here:
+</span><span class="c1">// 1. a storage key, as defined in the Store interface,
+</span><span class="c1">// 2. a name of an index, and
+</span><span class="c1">// 3. an &#34;indexed value&#34;, which is produced by an IndexFunc and
+</span><span class="c1">//    can be a field value or any other string computed from the object.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Indexer</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="nx">Store</span>
+	<span class="c1">// Index returns the stored objects whose set of indexed values
+</span><span class="c1"></span>	<span class="c1">// intersects the set of indexed values of the given object, for
+</span><span class="c1"></span>	<span class="c1">// the named index
+</span><span class="c1"></span>	<span class="nf">Index</span><span class="p">(</span><span class="nx">indexName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="c1">// IndexKeys returns the storage keys of the stored objects whose
+</span><span class="c1"></span>	<span class="c1">// set of indexed values for the named index includes the given
+</span><span class="c1"></span>	<span class="c1">// indexed value
+</span><span class="c1"></span>	<span class="nf">IndexKeys</span><span class="p">(</span><span class="nx">indexName</span><span class="p">,</span> <span class="nx">indexedValue</span> <span class="kt">string</span><span class="p">)</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="c1">// ListIndexFuncValues returns all the indexed values of the given index
+</span><span class="c1"></span>	<span class="nf">ListIndexFuncValues</span><span class="p">(</span><span class="nx">indexName</span> <span class="kt">string</span><span class="p">)</span> <span class="p">[]</span><span class="kt">string</span>
+	<span class="c1">// ByIndex returns the stored objects whose set of indexed values
+</span><span class="c1"></span>	<span class="c1">// for the named index includes the given indexed value
+</span><span class="c1"></span>	<span class="nf">ByIndex</span><span class="p">(</span><span class="nx">indexName</span><span class="p">,</span> <span class="nx">indexedValue</span> <span class="kt">string</span><span class="p">)</span> <span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="c1">// GetIndexer return the indexers
+</span><span class="c1"></span>	<span class="nf">GetIndexers</span><span class="p">()</span> <span class="nx">Indexers</span>
+
+	<span class="c1">// AddIndexers adds more indexers to this store.  If you call this after you already have data
+</span><span class="c1"></span>	<span class="c1">// in the store, the results are undefined.
+</span><span class="c1"></span>	<span class="nf">AddIndexers</span><span class="p">(</span><span class="nx">newIndexers</span> <span class="nx">Indexers</span><span class="p">)</span> <span class="kt">error</span>
+<span class="p">}</span>
+
+<span class="c1">// IndexFunc knows how to compute the set of indexed values for an object.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">IndexFunc</span> <span class="kd">func</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+
+<span class="c1">// IndexFuncToKeyFuncAdapter adapts an indexFunc to a keyFunc.  This is only useful if your index function returns
+</span><span class="c1">// unique values for every object.  This conversion can create errors when more than one key is found.  You
+</span><span class="c1">// should prefer to make proper key and index functions.
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">IndexFuncToKeyFuncAdapter</span><span class="p">(</span><span class="nx">indexFunc</span> <span class="nx">IndexFunc</span><span class="p">)</span> <span class="nx">KeyFunc</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="kd">func</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">indexKeys</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">indexFunc</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="nx">err</span>
+		<span class="p">}</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">indexKeys</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">1</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;too many keys: %v&#34;</span><span class="p">,</span> <span class="nx">indexKeys</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">indexKeys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+			<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unexpected empty indexKeys&#34;</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="k">return</span> <span class="nx">indexKeys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">nil</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">const</span> <span class="p">(</span>
+	<span class="c1">// NamespaceIndex is the lookup name for the most comment index function, which is to index by the namespace field.
+</span><span class="c1"></span>	<span class="nx">NamespaceIndex</span> <span class="kt">string</span> <span class="p">=</span> <span class="s">&#34;namespace&#34;</span>
+<span class="p">)</span>
+
+<span class="c1">// MetaNamespaceIndexFunc is a default index function that indexes based on an object&#39;s namespace
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">MetaNamespaceIndexFunc</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">meta</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">Accessor</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="k">return</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;&#34;</span><span class="p">},</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;object has no meta: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">return</span> <span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="nx">meta</span><span class="p">.</span><span class="nf">GetNamespace</span><span class="p">()},</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="c1">// Index maps the indexed value to a set of keys in the store that match on that value
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Index</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span>
+
+<span class="c1">// Indexers maps a name to a IndexFunc
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Indexers</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">IndexFunc</span>
+
+<span class="c1">// Indices maps a name to an Index
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Indices</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">Index</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p>可以看到Indexer interface是在Store interface基础上增加了索引相关操作。它对应的实体为<code>cache</code>。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewIndexer returns an Indexer implemented simply with a map and a lock.
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewIndexer</span><span class="p">(</span><span class="nx">keyFunc</span> <span class="nx">KeyFunc</span><span class="p">,</span> <span class="nx">indexers</span> <span class="nx">Indexers</span><span class="p">)</span> <span class="nx">Indexer</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">cache</span><span class="p">{</span>
+		<span class="nx">cacheStorage</span><span class="p">:</span> <span class="nf">NewThreadSafeStore</span><span class="p">(</span><span class="nx">indexers</span><span class="p">,</span> <span class="nx">Indices</span><span class="p">{}),</span>
+		<span class="nx">keyFunc</span><span class="p">:</span>      <span class="nx">keyFunc</span><span class="p">,</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p>主要方法都由cache中的<code>ThreadSafeStore</code>提供。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ThreadSafeStore is an interface that allows concurrent indexed
+</span><span class="c1">// access to a storage backend.  It is like Indexer but does not
+</span><span class="c1">// (necessarily) know how to extract the Store key from a given
+</span><span class="c1">// object.
+</span><span class="c1">//
+</span><span class="c1">// TL;DR caveats: you must not modify anything returned by Get or List as it will break
+</span><span class="c1">// the indexing feature in addition to not being thread safe.
+</span><span class="c1">//
+</span><span class="c1">// The guarantees of thread safety provided by List/Get are only valid if the caller
+</span><span class="c1">// treats returned items as read-only. For example, a pointer inserted in the store
+</span><span class="c1">// through `Add` will be returned as is by `Get`. Multiple clients might invoke `Get`
+</span><span class="c1">// on the same key and modify the pointer in a non-thread-safe way. Also note that
+</span><span class="c1">// modifying objects stored by the indexers (if any) will *not* automatically lead
+</span><span class="c1">// to a re-index. So it&#39;s not a good idea to directly modify the objects returned by
+</span><span class="c1">// Get/List, in general.
+</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ThreadSafeStore</span> <span class="kd">interface</span> <span class="p">{</span>
+	<span class="nf">Add</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span>
+	<span class="nf">Update</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span>
+	<span class="nf">Delete</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span>
+	<span class="nf">Get</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">)</span>
+	<span class="nf">List</span><span class="p">()</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{}</span>
+	<span class="nf">ListKeys</span><span class="p">()</span> <span class="p">[]</span><span class="kt">string</span>
+	<span class="nf">Replace</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">string</span><span class="p">)</span>
+	<span class="nf">Index</span><span class="p">(</span><span class="nx">indexName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">IndexKeys</span><span class="p">(</span><span class="nx">indexName</span><span class="p">,</span> <span class="nx">indexKey</span> <span class="kt">string</span><span class="p">)</span> <span class="p">([]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">ListIndexFuncValues</span><span class="p">(</span><span class="nx">name</span> <span class="kt">string</span><span class="p">)</span> <span class="p">[]</span><span class="kt">string</span>
+	<span class="nf">ByIndex</span><span class="p">(</span><span class="nx">indexName</span><span class="p">,</span> <span class="nx">indexKey</span> <span class="kt">string</span><span class="p">)</span> <span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
+	<span class="nf">GetIndexers</span><span class="p">()</span> <span class="nx">Indexers</span>
+
+	<span class="c1">// AddIndexers adds more indexers to this store.  If you call this after you already have data
+</span><span class="c1"></span>	<span class="c1">// in the store, the results are undefined.
+</span><span class="c1"></span>	<span class="nf">AddIndexers</span><span class="p">(</span><span class="nx">newIndexers</span> <span class="nx">Indexers</span><span class="p">)</span> <span class="kt">error</span>
+	<span class="c1">// Resync is a no-op and is deprecated
+</span><span class="c1"></span>	<span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p><code>ThreadSafeStore</code>需要实现的方法有：</p>
+<ul>
+<li>Add</li>
+<li>Update</li>
+<li>Delete</li>
+<li>Get</li>
+<li>List</li>
+<li>ListKeys</li>
+<li>Replace</li>
+<li>Index</li>
+<li>IndexKeys</li>
+<li>ListIndexFuncValues</li>
+<li>ByIndex</li>
+<li>GetIndexers</li>
+</ul>
+<p>下面挑一些重要的来分析。</p>
+<h3 id="addupdatedelete">Add/Update/Delete</h3>
+<p>Add/Update都是加锁操作后，调用<code>updateIndices</code>来更新索引。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">threadSafeMap</span><span class="p">)</span> <span class="nf">Add</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">oldObject</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="p">=</span> <span class="nx">obj</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nf">updateIndices</span><span class="p">(</span><span class="nx">oldObject</span><span class="p">,</span> <span class="nx">obj</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">threadSafeMap</span><span class="p">)</span> <span class="nf">Update</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">{</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+	<span class="k">defer</span> <span class="nx">c</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+	<span class="nx">oldObject</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="p">=</span> <span class="nx">obj</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nf">updateIndices</span><span class="p">(</span><span class="nx">oldObject</span><span class="p">,</span> <span class="nx">obj</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p>更新、删除索引部分由<code>updateIndices</code>和<code>deleteFromIndices</code>实现。</p>
+<!-- raw HTML omitted -->
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span></code></pre></td>
+<td class="lntd">
+<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// updateIndices modifies the objects location in the managed indexes, if this is an update, you must provide an oldObj
+</span><span class="c1">// updateIndices must be called from a function that already has a lock on the cache
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">threadSafeMap</span><span class="p">)</span> <span class="nf">updateIndices</span><span class="p">(</span><span class="nx">oldObj</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">newObj</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c1">// if we got an old object, we need to remove it before we add it again
+</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">oldObj</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+		<span class="nx">c</span><span class="p">.</span><span class="nf">deleteFromIndices</span><span class="p">(</span><span class="nx">oldObj</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">for</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">indexFunc</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">c</span><span class="p">.</span><span class="nx">indexers</span> <span class="p">{</span>
+		<span class="nx">indexValues</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">indexFunc</span><span class="p">(</span><span class="nx">newObj</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nb">panic</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to calculate an index entry for key %q on index %q: %v&#34;</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
+		<span class="p">}</span>
+		<span class="nx">index</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">indices</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span>
+		<span class="k">if</span> <span class="nx">index</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nx">index</span> <span class="p">=</span> <span class="nx">Index</span><span class="p">{}</span>
+			<span class="nx">c</span><span class="p">.</span><span class="nx">indices</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span> <span class="p">=</span> <span class="nx">index</span>
+		<span class="p">}</span>
+
+		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">indexValue</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">indexValues</span> <span class="p">{</span>
+			<span class="nx">set</span> <span class="o">:=</span> <span class="nx">index</span><span class="p">[</span><span class="nx">indexValue</span><span class="p">]</span>
+			<span class="k">if</span> <span class="nx">set</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+				<span class="nx">set</span> <span class="p">=</span> <span class="nx">sets</span><span class="p">.</span><span class="nx">String</span><span class="p">{}</span>
+				<span class="nx">index</span><span class="p">[</span><span class="nx">indexValue</span><span class="p">]</span> <span class="p">=</span> <span class="nx">set</span>
+			<span class="p">}</span>
+			<span class="nx">set</span><span class="p">.</span><span class="nf">Insert</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// deleteFromIndices removes the object from each of the managed indexes
+</span><span class="c1">// it is intended to be called from a function that already has a lock on the cache
+</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">threadSafeMap</span><span class="p">)</span> <span class="nf">deleteFromIndices</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">for</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">indexFunc</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">c</span><span class="p">.</span><span class="nx">indexers</span> <span class="p">{</span>
+		<span class="nx">indexValues</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">indexFunc</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="nb">panic</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to calculate an index entry for key %q on index %q: %v&#34;</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
+		<span class="p">}</span>
+
+		<span class="nx">index</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">indices</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span>
+		<span class="k">if</span> <span class="nx">index</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+			<span class="k">continue</span>
+		<span class="p">}</span>
+		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">indexValue</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">indexValues</span> <span class="p">{</span>
+			<span class="nx">set</span> <span class="o">:=</span> <span class="nx">index</span><span class="p">[</span><span class="nx">indexValue</span><span class="p">]</span>
+			<span class="k">if</span> <span class="nx">set</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+				<span class="nx">set</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+
+				<span class="c1">// If we don&#39;t delete the set when zero, indices with high cardinality
+</span><span class="c1"></span>				<span class="c1">// short lived resources can cause memory to increase over time from
+</span><span class="c1"></span>				<span class="c1">// unused empty sets. See `kubernetes/kubernetes/issues/84959`.
+</span><span class="c1"></span>				<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">set</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+					<span class="nb">delete</span><span class="p">(</span><span class="nx">index</span><span class="p">,</span> <span class="nx">indexValue</span><span class="p">)</span>
+				<span class="p">}</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></td></tr></table>
+</div>
+</div><!-- raw HTML omitted -->
+<p>至此，Indexer如何实现的我们也了然于胸。</p>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2021-06-28
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/kubernetes/">kubernetes</a>
+          <a href="/tags/client-go/">client-go</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/k8s-informer-mechanics-deltafifo/">
+            <span class="next-text nav-default">K8s Informer Mechanics Part III - DeltaFIFO</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+  </span>
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script id="baidu_analytics">
+  var _hmt = _hmt || [];
+  (function() {
+    if (window.location.hostname === 'localhost') return;
+    var hm = document.createElement("script"); hm.async = true;
+    hm.src = "https://hm.baidu.com/hm.js?2394a408cca2a9e611801f76b5dc0267";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+
+
+
+
+
+
+</body>
+</html>

@@ -130,6 +130,27 @@
           <section id="posts" class="posts">
     <article class="post">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/k8s-informer-mechanics-indexer/">K8s Informer Mechanics Part IV - Indexer</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2021-06-28 </span>
+      <div class="post-category">
+          <a href="/categories/k8s/"> k8s </a>
+          </div>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    <div class="post-summary">
+      为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第四篇，我们详细分析Indexer模块的代码实现。
+    </div>
+    <div class="read-more">
+      <a href="/post/k8s-informer-mechanics-indexer/" class="read-more-link">Read more...</a>
+    </div>
+  </div>
+</article>
+
+    <article class="post">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/k8s-informer-mechanics-deltafifo/">K8s Informer Mechanics Part III - DeltaFIFO</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2021-06-28 </span>
@@ -208,27 +229,6 @@
     </div>
     <div class="read-more">
       <a href="/post/k8s-informer-mechanics-reflector/" class="read-more-link">Read more...</a>
-    </div>
-  </div>
-</article>
-
-    <article class="post">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/k8s-informer-mechanics/">K8s Informer Mechanics Part I</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2021-02-05 </span>
-      <div class="post-category">
-          <a href="/categories/k8s/"> k8s </a>
-          </div>
-    </div>
-  </header>
-  
-  <div class="post-content">
-    <div class="post-summary">
-      为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。informer机制是如何工作的呢？
-    </div>
-    <div class="read-more">
-      <a href="/post/k8s-informer-mechanics/" class="read-more-link">Read more...</a>
     </div>
   </div>
 </article>

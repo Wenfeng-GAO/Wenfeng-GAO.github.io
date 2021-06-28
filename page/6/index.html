@@ -130,6 +130,30 @@
           <section id="posts" class="posts">
     <article class="post">
   <header class="post-header">
+    <h1 class="post-title"><a class="post-link" href="/post/kubernetes-on-coreos/">Kubernetes on Coreos</a></h1>
+    <div class="post-meta">
+      <span class="post-time"> 2017-06-13 </span>
+      <div class="post-category">
+          <a href="/categories/k8s/"> k8s </a>
+          </div>
+    </div>
+  </header>
+  
+  <div class="post-content">
+    <div class="post-summary">
+      Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications.
+ I just follow the guide of CoreOS + Kubernetes Step By Step to deploy Kubernetes cluster on CoreOS.
+Although this guide is detailed, there&rsquo;s still something that will cause misunderstanding and should be paid close attention to. So this post is to help you better follow the guide and setup Kubernetes.
+First of all, according to CoreOS cluster architectures, the CoreOS + Kubernetes Step By Step guide is for Easy development/testing cluster or Production cluster with central services, however, what I have is a Small cluster which was set up in the way Setup CoreOS Cluster with Static IPs, that will make some difference to ETCD_ENDPOINTS environment variable.
+    </div>
+    <div class="read-more">
+      <a href="/post/kubernetes-on-coreos/" class="read-more-link">Read more...</a>
+    </div>
+  </div>
+</article>
+
+    <article class="post">
+  <header class="post-header">
     <h1 class="post-title"><a class="post-link" href="/post/setup-coreos-cluster-with-static-ip/">Setup Coreos Cluster With Static Ip</a></h1>
     <div class="post-meta">
       <span class="post-time"> 2017-06-08 </span>
@@ -206,25 +230,6 @@ So as I made it work finally, it&rsquo;s time to share with others.
     </div>
     <div class="read-more">
       <a href="/post/setup-coreos-cluster-in-virtualbox/" class="read-more-link">Read more...</a>
-    </div>
-  </div>
-</article>
-
-    <article class="post">
-  <header class="post-header">
-    <h1 class="post-title"><a class="post-link" href="/post/docker-bridge-network/">浅谈Docker Bridge网络模式</a></h1>
-    <div class="post-meta">
-      <span class="post-time"> 2016-05-20 </span>
-      
-    </div>
-  </header>
-  
-  <div class="post-content">
-    <div class="post-summary">
-      本文将简单介绍一下Docker的3中网络模式，然后着重介绍bridge模式的数据传输过程，浅谈Docker容器与宿主机 之间，以及与外部世界的
-    </div>
-    <div class="read-more">
-      <a href="/post/docker-bridge-network/" class="read-more-link">Read more...</a>
     </div>
   </div>
 </article>
