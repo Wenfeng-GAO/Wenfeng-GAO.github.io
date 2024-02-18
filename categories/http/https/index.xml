@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>http/https on Je pense donc je suis</title>
+    <link>https://wenfeng-gao.github.io/categories/http/https/</link>
+    <description>Recent content in http/https on Je pense donc je suis</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <atom:link href="https://wenfeng-gao.github.io/categories/http/https/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Every Thing You Need to Know About mTLS</title>
+      <link>https://wenfeng-gao.github.io/post/every-thing-you-need-to-know-about-mtls/</link>
+      <pubDate>Wed, 07 Feb 2024 16:31:52 +0800</pubDate>
+      <guid>https://wenfeng-gao.github.io/post/every-thing-you-need-to-know-about-mtls/</guid>
+      <description>What is mTLS mTLS, or Mutual TLS, is an extension of the Transport Layer Security (TLS) protocol that ensures both the client and the server authenticate each other during the TLS handshake. While traditional TLS only requires the server to present a certificate to prove its identity, mTLS requires both the server and the client to exchange and validate certificates.&#xA;mTLS steps in to address this by establishing a two-way authentication process.</description>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Every Thing You Need to Know About mTLS - Je pense donc je suis</title>
+  <meta name="renderer" content="webkit" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+<meta name="theme-color" content="#f8f5ec" />
+<meta name="msapplication-navbutton-color" content="#f8f5ec">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="#f8f5ec">
+
+
+<meta name="author" content="Wenfeng" /><meta name="description" content="What is mTLS mTLS, or Mutual TLS, is an extension of the Transport Layer Security (TLS) protocol that ensures both the client and the server authenticate each other during the TLS handshake. While traditional TLS only requires the server to present a certificate to prove its identity, mTLS requires both the server and the client to exchange and validate certificates.
+mTLS steps in to address this by establishing a two-way authentication process." /><meta name="keywords" content="https, mTLS" />
+
+
+
+<meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
+
+
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
+
+
+<link rel="canonical" href="https://wenfeng-gao.github.io/post/every-thing-you-need-to-know-about-mtls/" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/manifest.json">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<link href="/sass/main.min.f92fd13721ddf72129410fd8250e73152cc6f2438082b6c0208dc24ee7c13fc4.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.css" integrity="sha256-7TyXnr2YU040zfSP+rEcz29ggW4j56/ujTPwjMzyqFY=" crossorigin="anonymous">
+
+
+<meta property="og:title" content="Every Thing You Need to Know About mTLS" />
+<meta property="og:description" content="What is mTLS mTLS, or Mutual TLS, is an extension of the Transport Layer Security (TLS) protocol that ensures both the client and the server authenticate each other during the TLS handshake. While traditional TLS only requires the server to present a certificate to prove its identity, mTLS requires both the server and the client to exchange and validate certificates.
+mTLS steps in to address this by establishing a two-way authentication process." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://wenfeng-gao.github.io/post/every-thing-you-need-to-know-about-mtls/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2024-02-07T16:31:52+08:00" />
+<meta property="article:modified_time" content="2024-02-07T16:31:52+08:00" />
+
+<meta itemprop="name" content="Every Thing You Need to Know About mTLS">
+<meta itemprop="description" content="What is mTLS mTLS, or Mutual TLS, is an extension of the Transport Layer Security (TLS) protocol that ensures both the client and the server authenticate each other during the TLS handshake. While traditional TLS only requires the server to present a certificate to prove its identity, mTLS requires both the server and the client to exchange and validate certificates.
+mTLS steps in to address this by establishing a two-way authentication process."><meta itemprop="datePublished" content="2024-02-07T16:31:52+08:00" />
+<meta itemprop="dateModified" content="2024-02-07T16:31:52+08:00" />
+<meta itemprop="wordCount" content="1850">
+<meta itemprop="keywords" content="https,mTLS," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="Every Thing You Need to Know About mTLS"/>
+<meta name="twitter:description" content="What is mTLS mTLS, or Mutual TLS, is an extension of the Transport Layer Security (TLS) protocol that ensures both the client and the server authenticate each other during the TLS handshake. While traditional TLS only requires the server to present a certificate to prove its identity, mTLS requires both the server and the client to exchange and validate certificates.
+mTLS steps in to address this by establishing a two-way authentication process."/>
+
+<!--[if lte IE 9]>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/classlist/1.1.20170427/classList.min.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]>
+  <script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+
+</head>
+<body>
+  <div id="mobile-navbar" class="mobile-navbar">
+  <div class="mobile-header-logo">
+    <a href="/" class="logo">Je pense donc je suis</a>
+  </div>
+  <div class="mobile-navbar-icon">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+</div>
+<nav id="mobile-menu" class="mobile-menu slideout-menu">
+  <ul class="mobile-menu-list">
+    <a href="/">
+        <li class="mobile-menu-item">Home</li>
+      </a><a href="/post/">
+        <li class="mobile-menu-item">Archives</li>
+      </a><a href="/tags/">
+        <li class="mobile-menu-item">Tags</li>
+      </a><a href="/categories/">
+        <li class="mobile-menu-item">Categories</li>
+      </a><a href="/categories/readings/">
+        <li class="mobile-menu-item">Readings</li>
+      </a><a href="/page/about/">
+        <li class="mobile-menu-item">About</li>
+      </a>
+  </ul>
+
+  
+
+
+</nav>
+
+  <div class="container" id="mobile-panel">
+    <header id="header" class="header">
+        <div class="logo-wrapper">
+  <a href="/" class="logo">Je pense donc je suis</a>
+</div>
+
+
+
+
+
+<nav class="site-navbar">
+  <ul id="menu" class="menu">
+    <li class="menu-item">
+        <a class="menu-item-link" href="/">Home</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/post/">Archives</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/tags/">Tags</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/">Categories</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/categories/readings/">Readings</a>
+      </li><li class="menu-item">
+        <a class="menu-item-link" href="/page/about/">About</a>
+      </li>
+  </ul>
+</nav>
+
+    </header>
+
+    <main id="main" class="main">
+      <div class="content-wrapper">
+        <div id="content" class="content">
+          <article class="post">
+    
+    <header class="post-header">
+      <h1 class="post-title">Every Thing You Need to Know About mTLS</h1>
+
+      <div class="post-meta">
+        <span class="post-time"> 2024-02-07 </span>
+        <div class="post-category">
+            <a href="/categories/http/https/"> http/https </a>
+            </div>
+        <span id="busuanzi_container_page_pv" class="more-meta"> <span id="busuanzi_value_page_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> times read </span>
+      </div>
+    </header>
+
+    <div class="post-toc" id="post-toc">
+  <h2 class="post-toc-title">Contents</h2>
+  <div class="post-toc-content">
+    <nav id="TableOfContents">
+  <ul>
+    <li><a href="#what-is-mtls">What is mTLS</a>
+      <ul>
+        <li><a href="#understanding-tls">Understanding TLS</a></li>
+        <li><a href="#how-mtls-works">How mTLS works</a></li>
+      </ul>
+    </li>
+    <li><a href="#how-to-create-self-signed-certificate-with-openssl">How to create self-signed certificate with OpenSSL</a>
+      <ul>
+        <li><a href="#step-1---create-root-ca-certificate-and-key"><strong>Step #1 - Create Root CA Certificate and Key</strong></a></li>
+        <li><a href="#step-2---create-server-certificate-and-key"><strong>Step #2 - Create Server Certificate and Key</strong></a></li>
+        <li><a href="#step-3---create-client-certificate-and-key"><strong>Step #3 - Create Client Certificate and Key</strong></a></li>
+        <li><a href="#step-4---inspect-the-certificates"><strong>Step #4 - Inspect the Certificates</strong></a></li>
+      </ul>
+    </li>
+    <li><a href="#how-to-setup-https-server-and-client-with-tls-certificate">How to setup HTTPS server and client with TLS certificate</a>
+      <ul>
+        <li><a href="#simple-https-server-with-mtls">Simple HTTPS server with mTLS</a></li>
+        <li><a href="#simple-https-client-with-mtls">Simple HTTPS client with mTLS</a></li>
+      </ul>
+    </li>
+    <li><a href="#references">References</a></li>
+  </ul>
+</nav>
+  </div>
+</div>
+    <div class="post-content">
+      <h2 id="what-is-mtls">What is mTLS</h2>
+<p>mTLS, or Mutual TLS, is an extension of the Transport Layer Security (TLS) protocol that ensures both the client and the server authenticate each other during the TLS handshake. While traditional TLS only requires the server to present a certificate to prove its identity, mTLS requires both the server and the client to exchange and validate certificates.</p>
+<p>mTLS steps in to address this by establishing a two-way authentication process. Both the server and the client authenticate each other using digital certificates, ensuring that both parties are who they claim to be. This mutual authentication creates a trusted communication channel resistant to impersonation and man-in-the-middle attacks.</p>
+<h3 id="understanding-tls">Understanding TLS</h3>
+<p>To appreciate mTLS, it&rsquo;s essential to have a fundamental understanding of TLS. TLS is the successor to Secure Sockets Layer (SSL) and works by encrypting the data transmitted between a web server and a web browser, making it unreadable to eavesdroppers. The TLS protocol involves the following key steps:</p>
+<ol>
+<li><strong>Handshake</strong>: The client and server establish a connection and agree on the version of TLS and the encryption algorithms (cipher suite) to use.</li>
+<li><strong>Server Authentication</strong>: The server presents a certificate (usually signed by a trusted CA) to prove its identity to the client.</li>
+<li><strong>Key Exchange</strong>: The client and server generate session keys for encryption, often using asymmetric encryption to securely exchange these keys.</li>
+<li><strong>Secure Communication</strong>: With the session keys in place, the client and server can communicate securely with symmetric encryption, where both sides encrypt and decrypt data using shared secret keys.</li>
+</ol>
+<p>TLS ensures that any data transmitted between the client and server remains confidential and is not tampered with, providing integrity and privacy.</p>
+<h3 id="how-mtls-works">How mTLS works</h3>
+<p>mTLS enhances the standard TLS handshake process by adding an additional step where the client also presents its certificate to the server for authentication. Here&rsquo;s how the mTLS handshake typically works:</p>
+<ol>
+<li><strong>Initiation</strong>: The client begins the TLS handshake by sending a &ldquo;ClientHello&rdquo; message, indicating its willingness to establish a connection.</li>
+<li><strong>Server Certificate</strong>: The server responds with a &ldquo;ServerHello&rdquo; message, followed by its certificate and a &ldquo;CertificateRequest&rdquo; message, which signals that the client must also provide a certificate.</li>
+<li><strong>Client Certificate</strong>: The client then sends its certificate to the server. If the client does not have a certificate or the certificate is invalid, the server may terminate the connection.</li>
+<li><strong>Verification</strong>: The server verifies the client&rsquo;s certificate, ensuring it is signed by a trusted CA and has not expired or been revoked.</li>
+<li><strong>Key Exchange and Secure Communication</strong>: Like in the standard TLS handshake, the server and client exchange keys, and secure communication begins.</li>
+</ol>
+<p>During this process, both the client and the server perform cryptographic checks to ensure the other&rsquo;s certificate is valid and trustworthy. If either party&rsquo;s certificate fails validation, the handshake is aborted, and the communication is not established, thus preventing unauthorized access.</p>
+<h2 id="how-to-create-self-signed-certificate-with-openssl">How to create self-signed certificate with OpenSSL</h2>
+<p>Script to generate self-signed certificate.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span><span class="lnt">63
+</span><span class="lnt">64
+</span><span class="lnt">65
+</span><span class="lnt">66
+</span><span class="lnt">67
+</span><span class="lnt">68
+</span><span class="lnt">69
+</span><span class="lnt">70
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Set the validity duration</span>
+</span></span><span class="line"><span class="cl"><span class="nv">DAYS</span><span class="o">=</span><span class="m">36500</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Set the desired CN and SAN for the server and client</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SERVER_CN</span><span class="o">=</span><span class="s2">&#34;server_common_name&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">SERVER_SAN</span><span class="o">=</span><span class="s2">&#34;DNS:server.example.com,IP:127.0.0.1&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">CLIENT_CN</span><span class="o">=</span><span class="s2">&#34;client_common_name&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">CLIENT_SAN</span><span class="o">=</span><span class="s2">&#34;DNS:client.example.com,IP:127.0.0.1&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a configuration file for adding SAN - Server</span>
+</span></span><span class="line"><span class="cl">cat &gt; server_ext.cnf <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">basicConstraints=CA:FALSE
+</span></span></span><span class="line"><span class="cl"><span class="s">nsCertType=server
+</span></span></span><span class="line"><span class="cl"><span class="s">nsComment=&#34;OpenSSL Generated Server Certificate&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">subjectKeyIdentifier=hash
+</span></span></span><span class="line"><span class="cl"><span class="s">authorityKeyIdentifier=keyid,issuer:always
+</span></span></span><span class="line"><span class="cl"><span class="s">keyUsage=nonRepudiation, digitalSignature, keyEncipherment
+</span></span></span><span class="line"><span class="cl"><span class="s">extendedKeyUsage=serverAuth
+</span></span></span><span class="line"><span class="cl"><span class="s">subjectAltName=$SERVER_SAN
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Create a configuration file for adding SAN - Client</span>
+</span></span><span class="line"><span class="cl">cat &gt; client_ext.cnf <span class="s">&lt;&lt;EOF
+</span></span></span><span class="line"><span class="cl"><span class="s">basicConstraints=CA:FALSE
+</span></span></span><span class="line"><span class="cl"><span class="s">nsCertType=client, email
+</span></span></span><span class="line"><span class="cl"><span class="s">nsComment=&#34;OpenSSL Generated Client Certificate&#34;
+</span></span></span><span class="line"><span class="cl"><span class="s">subjectKeyIdentifier=hash
+</span></span></span><span class="line"><span class="cl"><span class="s">authorityKeyIdentifier=keyid,issuer:always
+</span></span></span><span class="line"><span class="cl"><span class="s">keyUsage=nonRepudiation, digitalSignature, keyEncipherment
+</span></span></span><span class="line"><span class="cl"><span class="s">extendedKeyUsage=clientAuth, emailProtection
+</span></span></span><span class="line"><span class="cl"><span class="s">subjectAltName=$CLIENT_SAN
+</span></span></span><span class="line"><span class="cl"><span class="s">EOF</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Generate the CA key and certificate</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating CA key...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl genrsa -out ca.key <span class="m">2048</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating CA certificate...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl req -x509 -new -nodes -key ca.key -sha256 -days <span class="nv">$DAYS</span> -out ca.crt -subj <span class="s2">&#34;/CN=YourCAName&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Generate the server key and CSR</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating server key...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl genrsa -out server.key <span class="m">2048</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating server CSR...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl req -new -key server.key -out server.csr -subj <span class="s2">&#34;/CN=</span><span class="nv">$SERVER_CN</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Generate the server certificate and sign it with the CA</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating server certificate...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days <span class="nv">$DAYS</span> -sha256 -extfile server_ext.cnf
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Generate the client key and CSR</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating client key...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl genrsa -out client.key <span class="m">2048</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating client CSR...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl req -new -key client.key -out client.csr -subj <span class="s2">&#34;/CN=</span><span class="nv">$CLIENT_CN</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Generate the client certificate and sign it with the CA</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Generating client certificate...&#34;</span>
+</span></span><span class="line"><span class="cl">openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out client.crt -days <span class="nv">$DAYS</span> -sha256 -extfile client_ext.cnf
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># Cleanup CSR files and config files as they are no longer needed</span>
+</span></span><span class="line"><span class="cl">rm server.csr client.csr server_ext.cnf client_ext.cnf
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;Certificate generation completed.&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;CA, server, and client certificates are in the current directory.&#34;</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="step-1---create-root-ca-certificate-and-key"><strong>Step #1 - Create Root CA Certificate and Key</strong></h3>
+<h4 id="step-11---generate-root-ca-private-key"><strong>Step 1.1 - Generate Root CA Private Key:</strong></h4>
+<p>We’ll generate a RSA type private key that is 2048 bits in length. Longer the key, harder it becomes to crack the key, and therefore more secure.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl genrsa -out ca-key.pem 2048
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="step-12---generate-root-ca-certificate"><strong>Step 1.2 - Generate Root CA Certificate</strong></h4>
+<p>Now, let’s generate the CA certificate using the CA private key generated in the previous step. The certificate will be valid for next 365 days.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl req -new -x509 -nodes -days 365 -key ca-key.pem -out ca-cert.pem
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The above command will prompt you for additional details about your company, org, internal domain name of the CA for which the certificate is being requested.</p>
+<h3 id="step-2---create-server-certificate-and-key"><strong>Step #2 - Create Server Certificate and Key</strong></h3>
+<h4 id="step-21---generate-server-private-key-and-server-csr"><strong>Step 2.1 - Generate Server Private Key and Server CSR</strong></h4>
+<p>The following command will create a new server private key and a server certificate signing request(CSR).</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl req -newkey rsa:2048 -nodes -days 365 \
+</span></span><span class="line"><span class="cl">   -keyout server-key.pem \
+</span></span><span class="line"><span class="cl">   -out server-req.pem
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>The above command will prompt you for additional details about your company, org, internal domain name of the server for which the certificate is being requested.</p>
+<h4 id="step-22---server-certificate-creation-and-signing-using-ca-key"><strong>Step 2.2 - Server Certificate Creation and Signing using CA Key.</strong></h4>
+<p>We’ll use the CAKey and CA cert file to sign the server CSR.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span><span class="lnt">7
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl x509 -req -days 365 -set_serial 01 \
+</span></span><span class="line"><span class="cl">   -in server-req.pem \
+</span></span><span class="line"><span class="cl">   -out server-cert.pem \
+</span></span><span class="line"><span class="cl">   -CA ca-cert.pem \
+</span></span><span class="line"><span class="cl">   -CAkey ca-key.pem \
+</span></span><span class="line"><span class="cl">   -extensions SAN   \
+</span></span><span class="line"><span class="cl">   -extfile &lt;(printf &#34;\n[SAN]\nsubjectAltName=DNS:localhost\nextendedKeyUsage=serverAuth&#34;)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Just providing <code>CommonName or CN</code> in the CSR is not enough. Using CN is obsolete. You should add the <code>SubjectAlternateName or SAN</code> extension to the certificate. Otherwise, you may get an error shown below when using the certificate without the SAN extension.</p>
+<p><code>x509: certificate relies on legacy Common Name field, use SANs instead</code></p>
+<p>For added security, we should restrict the certificate to be used by a SSL/TLS/HTTPS server application only and not by any SSL/TLS/HTTPS client application. For this purpose, we’ll use the <code>ExtendedKeyUsage</code> key with a value of <code>serverAuth</code></p>
+<h3 id="step-3---create-client-certificate-and-key"><strong>Step #3 - Create Client Certificate and Key</strong></h3>
+<h4 id="step-31---generate-client-private-key-and-client-csr"><strong>Step 3.1 - Generate Client Private Key and Client CSR</strong></h4>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl req -newkey rsa:2048 -nodes -days 365 \
+</span></span><span class="line"><span class="cl">   -keyout client-key.pem \
+</span></span><span class="line"><span class="cl">   -out client-req.pem
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h4 id="step-32---client-certificate-creation-and-signing-using-ca-key"><strong>Step 3.2 - Client Certificate Creation and Signing using CA Key</strong></h4>
+<p>We’ll use the CAKey and CA cert file to sign the client CSR.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span><span class="lnt">3
+</span><span class="lnt">4
+</span><span class="lnt">5
+</span><span class="lnt">6
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">openssl x509 -req -days 365 -set_serial 01  \
+</span></span><span class="line"><span class="cl">   -in client-req.pem    -out client-cert.pem  \
+</span></span><span class="line"><span class="cl">   -CA ca-cert.pem   \
+</span></span><span class="line"><span class="cl">   -CAkey ca-key.pem   \
+</span></span><span class="line"><span class="cl">   -extensions SAN  \
+</span></span><span class="line"><span class="cl">   -extfile &lt;(printf &#34;\n[SAN]\nsubjectAltName=DNS:localhost\nextendedKeyUsage=clientAuth&#34;)
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>For added security, we should restrict the certificate to be used by a SSL/TLS/HTTPS client application only and not by any SSL/TLS/HTTPS server application. For this purpose, we’ll use the <code>ExtendedKeyUsage</code> key with a value of <code>clientAuth</code></p>
+<h3 id="step-4---inspect-the-certificates"><strong>Step #4 - Inspect the Certificates</strong></h3>
+<p>Use the following command to dump the certificates and visually inspect various fields in the certificate.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">$ openssl x509 -in client-cert.pem -noout -text
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Use following command to verify the certificate is correct.</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">$ openssl verify -CAfile ca-cert.pem client-cert.pem
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h2 id="how-to-setup-https-server-and-client-with-tls-certificate">How to setup HTTPS server and client with TLS certificate</h2>
+<h3 id="simple-https-server-with-mtls">Simple HTTPS server with mTLS</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;crypto/tls&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;crypto/x509&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;net/http&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;os&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;path/filepath&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CACertFilePath</span> <span class="p">=</span> <span class="s">&#34;certs/ca.crt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CertFilePath</span>   <span class="p">=</span> <span class="s">&#34;certs/server.crt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">KeyFilePath</span>    <span class="p">=</span> <span class="s">&#34;certs/server.key&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pwd</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Getwd</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CACertFilePath</span> <span class="p">=</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">pwd</span><span class="p">,</span> <span class="nx">CACertFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CertFilePath</span> <span class="p">=</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">pwd</span><span class="p">,</span> <span class="nx">CertFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">cer</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">tls</span><span class="p">.</span><span class="nf">LoadX509KeyPair</span><span class="p">(</span><span class="nx">CertFilePath</span><span class="p">,</span> <span class="nx">KeyFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">certPool</span> <span class="o">:=</span> <span class="nx">x509</span><span class="p">.</span><span class="nf">NewCertPool</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">caCertPEM</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">ReadFile</span><span class="p">(</span><span class="nx">CACertFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">!</span><span class="nx">certPool</span><span class="p">.</span><span class="nf">AppendCertsFromPEM</span><span class="p">(</span><span class="nx">caCertPEM</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="s">&#34;failed to append ca cert&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">config</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">tls</span><span class="p">.</span><span class="nx">Config</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">Certificates</span><span class="p">:</span> <span class="p">[]</span><span class="nx">tls</span><span class="p">.</span><span class="nx">Certificate</span><span class="p">{</span><span class="nx">cer</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">ClientCAs</span><span class="p">:</span>    <span class="nx">certPool</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">ClientAuth</span><span class="p">:</span>   <span class="nx">tls</span><span class="p">.</span><span class="nx">RequireAndVerifyClientCert</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">server</span> <span class="o">:=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Server</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">Addr</span><span class="p">:</span>      <span class="s">&#34;:4443&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">TLSConfig</span><span class="p">:</span> <span class="nx">config</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">Handler</span><span class="p">:</span>   <span class="nx">http</span><span class="p">.</span><span class="nf">HandlerFunc</span><span class="p">(</span><span class="nx">HelloServer</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">server</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">err</span> <span class="p">=</span> <span class="nx">server</span><span class="p">.</span><span class="nf">ListenAndServeTLS</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">HelloServer</span><span class="p">(</span><span class="nx">w</span> <span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span> <span class="nx">req</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">w</span><span class="p">.</span><span class="nf">Write</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&#34;This is an example server.\n&#34;</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><h3 id="simple-https-client-with-mtls">Simple HTTPS client with mTLS</h3>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span><span class="lnt">11
+</span><span class="lnt">12
+</span><span class="lnt">13
+</span><span class="lnt">14
+</span><span class="lnt">15
+</span><span class="lnt">16
+</span><span class="lnt">17
+</span><span class="lnt">18
+</span><span class="lnt">19
+</span><span class="lnt">20
+</span><span class="lnt">21
+</span><span class="lnt">22
+</span><span class="lnt">23
+</span><span class="lnt">24
+</span><span class="lnt">25
+</span><span class="lnt">26
+</span><span class="lnt">27
+</span><span class="lnt">28
+</span><span class="lnt">29
+</span><span class="lnt">30
+</span><span class="lnt">31
+</span><span class="lnt">32
+</span><span class="lnt">33
+</span><span class="lnt">34
+</span><span class="lnt">35
+</span><span class="lnt">36
+</span><span class="lnt">37
+</span><span class="lnt">38
+</span><span class="lnt">39
+</span><span class="lnt">40
+</span><span class="lnt">41
+</span><span class="lnt">42
+</span><span class="lnt">43
+</span><span class="lnt">44
+</span><span class="lnt">45
+</span><span class="lnt">46
+</span><span class="lnt">47
+</span><span class="lnt">48
+</span><span class="lnt">49
+</span><span class="lnt">50
+</span><span class="lnt">51
+</span><span class="lnt">52
+</span><span class="lnt">53
+</span><span class="lnt">54
+</span><span class="lnt">55
+</span><span class="lnt">56
+</span><span class="lnt">57
+</span><span class="lnt">58
+</span><span class="lnt">59
+</span><span class="lnt">60
+</span><span class="lnt">61
+</span><span class="lnt">62
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;crypto/tls&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;crypto/x509&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;fmt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;io&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;net/http&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;os&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;path/filepath&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">var</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CACertFilePath</span> <span class="p">=</span> <span class="s">&#34;certs/ca.crt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CertFilePath</span>   <span class="p">=</span> <span class="s">&#34;certs/client.crt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">KeyFilePath</span>    <span class="p">=</span> <span class="s">&#34;certs/client.key&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">msg</span> <span class="o">:=</span> <span class="nf">httpsClient</span><span class="p">(</span><span class="s">&#34;https://localhost:4443&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Msg: &#34;</span><span class="p">,</span> <span class="nb">string</span><span class="p">(</span><span class="nx">msg</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">httpsClient</span><span class="p">(</span><span class="nx">url</span> <span class="kt">string</span><span class="p">)</span> <span class="p">[]</span><span class="kt">byte</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pwd</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Getwd</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CACertFilePath</span> <span class="p">=</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">pwd</span><span class="p">,</span> <span class="nx">CACertFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">CertFilePath</span> <span class="p">=</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">pwd</span><span class="p">,</span> <span class="nx">CertFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">clientTLSCert</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">tls</span><span class="p">.</span><span class="nf">LoadX509KeyPair</span><span class="p">(</span><span class="nx">CertFilePath</span><span class="p">,</span> <span class="nx">KeyFilePath</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Configure the client to trust TLS server certs issued by a CA.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">certPool</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">x509</span><span class="p">.</span><span class="nf">SystemCertPool</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">caCertPEM</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">ReadFile</span><span class="p">(</span><span class="nx">CACertFilePath</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">certPool</span><span class="p">.</span><span class="nf">AppendCertsFromPEM</span><span class="p">(</span><span class="nx">caCertPEM</span><span class="p">);</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="s">&#34;invalid cert in CA PEM&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">tlsConfig</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">tls</span><span class="p">.</span><span class="nx">Config</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">RootCAs</span><span class="p">:</span>      <span class="nx">certPool</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">Certificates</span><span class="p">:</span> <span class="p">[]</span><span class="nx">tls</span><span class="p">.</span><span class="nx">Certificate</span><span class="p">{</span><span class="nx">clientTLSCert</span><span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">tr</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Transport</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">TLSClientConfig</span><span class="p">:</span> <span class="nx">tlsConfig</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">client</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">http</span><span class="p">.</span><span class="nx">Client</span><span class="p">{</span><span class="nx">Transport</span><span class="p">:</span> <span class="nx">tr</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">url</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">panic</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">Body</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Response status:&#34;</span><span class="p">,</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">Status</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">msg</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">io</span><span class="p">.</span><span class="nf">ReadAll</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Body</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">msg</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Run the client and server, you will get the response log like:</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">Response status: 200 OK
+</span></span><span class="line"><span class="cl">Msg:  This is an example server.
+</span></span></code></pre></td></tr></table>
+</div>
+</div><p>Use Wireshark to capture packages, and you’ll find:</p>
+<p><img src="/post/every-thing-you-need-to-know-about-mtls/wireshark.png" alt="https"></p>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://www.bastionxp.com/mutual-tls">Mutual TLS Authentication - Everything you need to know</a></li>
+<li><a href="https://www.bastionxp.com/blog/how-to-create-self-signed-ssl-tls-x.509-certificates-using-openssl/">How to create self-signed SSL TLS X.509 certificates using OpenSSL</a></li>
+<li><a href="https://gist.github.com/soarez/9688998">How to setup your own CA with OpenSSL</a></li>
+<li><a href="https://www.bastionxp.com/blog/golang-https-web-server-self-signed-ssl-tls-x509-certificate/">How to setup HTTPS web server in Golang with self-signed SSL TLS certificate</a></li>
+<li><a href="https://www.bastionxp.com/blog/golang-https-client-self-signed-ssl-tls-x509-certificate/">How to setup HTTPS client in Golang with self-signed SSL TLS client certificate</a></li>
+<li><a href="https://gist.github.com/Wenfeng-GAO/4a279370caca2132da317ac3c8fe29d6">Go HTTPS server with mTLS</a></li>
+</ul>
+
+    </div>
+
+    <div class="post-copyright">
+  <p class="copyright-item">
+    <span class="item-title">Author</span>
+    <span class="item-content">Wenfeng</span>
+  </p>
+  <p class="copyright-item">
+    <span class="item-title">LastMod</span>
+    <span class="item-content">
+        2024-02-07
+        
+    </span>
+  </p>
+  
+  
+</div>
+<footer class="post-footer">
+      <div class="post-tags">
+          <a href="/tags/https/">https</a>
+          <a href="/tags/mtls/">mTLS</a>
+          </div>
+      <nav class="post-nav">
+        
+        <a class="next" href="/post/k8s-informer-mechanics-indexer/">
+            <span class="next-text nav-default">K8s Informer Mechanics Part IV - Indexer</span>
+            <span class="next-text nav-mobile">Next</span>
+            <i class="iconfont icon-right"></i>
+          </a>
+      </nav>
+    </footer>
+  </article>
+        </div>
+        <div id="disqus_thread"></div>
+    <script type="text/javascript">
+    (function() {
+      
+      
+      if (window.location.hostname === 'localhost') return;
+
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      var disqus_shortname = 'https-wenfeng-gao-github-io';
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+  
+
+  
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="social-links">
+      <a href="mailto:elricfeng@gmail.com" class="iconfont icon-email" title="email"></a>
+      <a href="https://stackoverflow.com/users/4262814/wenfeng" class="iconfont icon-stack-overflow" title="stack-overflow"></a>
+      <a href="https://twitter.com/Elricfeng" class="iconfont icon-twitter" title="twitter"></a>
+      <a href="https://github.com/Wenfeng-GAO" class="iconfont icon-github" title="github"></a>
+  <a href="https://wenfeng-gao.github.io/index.xml" type="application/rss+xml" class="iconfont icon-rss" title="rss"></a>
+</div>
+
+<div class="copyright">
+  <span class="power-by">
+    Powered by <a class="hexo-link" href="https://gohugo.io">Hugo</a>
+  </span>
+  <span class="division">|</span>
+  <span class="theme-info">
+    Theme - 
+    <a class="theme-link" href="https://github.com/olOwOlo/hugo-theme-even">Even</a>
+  </span>
+
+  <div class="busuanzi-footer">
+    <span id="busuanzi_container_site_pv"> site pv: <span id="busuanzi_value_site_pv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+      <span class="division">|</span>
+    <span id="busuanzi_container_site_uv"> site uv: <span id="busuanzi_value_site_uv"><img src="/img/spinner.svg" alt="spinner.svg"/></span> </span>
+  </div>
+
+  <span class="copyright-year">
+    &copy; 
+    2017 - 
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+  </span>
+</div>
+
+    </footer>
+
+    <div class="back-to-top" id="back-to-top">
+      <i class="iconfont icon-up"></i>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/slideout@1.0.1/dist/slideout.min.js" integrity="sha256-t+zJ/g8/KXIJMjSVQdnibt4dlaDxc9zXr/9oNPeWqdg=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.1.20/dist/jquery.fancybox.min.js" integrity="sha256-XVLffZaxoWfGUEbdzuLi7pwaUJv1cecsQJQqGLe7axY=" crossorigin="anonymous"></script>
+
+
+
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
+
+
+<script>
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-92434611-1', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<script id="baidu_analytics">
+  var _hmt = _hmt || [];
+  (function() {
+    if (window.location.hostname === 'localhost') return;
+    var hm = document.createElement("script"); hm.async = true;
+    hm.src = "https://hm.baidu.com/hm.js?2394a408cca2a9e611801f76b5dc0267";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+
+
+
+
+
+
+</body>
+</html>
