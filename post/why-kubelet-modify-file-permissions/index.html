@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/why-kubelet-modify-file-permissions/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2019-09-29T16:06:44&#43;08:00" />
-<meta property="article:modified_time" content="2019-09-29T16:06:44&#43;08:00" />
+<meta property="article:published_time" content="2019-09-29T16:06:44+08:00" />
+<meta property="article:modified_time" content="2019-09-29T16:06:44+08:00" />
 
 <meta itemprop="name" content="Why Does Kubelet Modify File Permissions">
-<meta itemprop="description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted."><meta itemprop="datePublished" content="2019-09-29T16:06:44&#43;08:00" />
-<meta itemprop="dateModified" content="2019-09-29T16:06:44&#43;08:00" />
+<meta itemprop="description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted."><meta itemprop="datePublished" content="2019-09-29T16:06:44+08:00" />
+<meta itemprop="dateModified" content="2019-09-29T16:06:44+08:00" />
 <meta itemprop="wordCount" content="989">
-<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Why Does Kubelet Modify File Permissions"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="Why Does Kubelet Modify File Permissions"/>
 <meta name="twitter:description" content="Recently, I found an interesting effect. I have some pods which use flexVolume, and after pods are Running, I&rsquo;ll put some readOnly files in this volume directory. The intersting part is that these files will become writable every time after kubelet being restarted."/>
 
 <!--[if lte IE 9]>
@@ -146,7 +145,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li><a href="#background">Background</a></li>
@@ -167,7 +166,7 @@ time after kubelet being restarted.</p>
 </ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -175,20 +174,20 @@ time after kubelet being restarted.</p>
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">-rw-r--r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test1
----------- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test2
--r----x--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test3
----x--x--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test4
--r--r----- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test5
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:05 test6
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">-rw-r--r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test1
+</span></span><span class="line"><span class="cl">---------- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test2
+</span></span><span class="line"><span class="cl">-r----x--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test3
+</span></span><span class="line"><span class="cl">---x--x--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test4
+</span></span><span class="line"><span class="cl">-r--r----- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test5
+</span></span><span class="line"><span class="cl">-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:05 test6
+</span></span></code></pre></td></tr></table>
 </div>
 </div><ul>
 <li>After kubelet restarts</li>
 </ul>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -196,17 +195,17 @@ time after kubelet being restarted.</p>
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">-rw-rw-r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test1
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test2
--rw-rwx--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test3
--rwxrwx--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test4
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test5
--rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:05 test6
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">-rw-rw-r-- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test1
+</span></span><span class="line"><span class="cl">-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test2
+</span></span><span class="line"><span class="cl">-rw-rwx--- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test3
+</span></span><span class="line"><span class="cl">-rwxrwx--x <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test4
+</span></span><span class="line"><span class="cl">-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:03 test5
+</span></span><span class="line"><span class="cl">-rw-rw---- <span class="m">1</span> root <span class="m">2000</span> <span class="m">0</span> Sep <span class="m">27</span> 11:05 test6
+</span></span></code></pre></td></tr></table>
 </div>
 </div><div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -216,24 +215,24 @@ time after kubelet being restarted.</p>
 </span><span class="lnt">8
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">  File: ‘test1’
-  Size: <span class="m">0</span>         	Blocks: <span class="m">0</span>          IO Block: <span class="m">4096</span>   regular empty file
-Device: fd01h/64769d	Inode: <span class="m">404813664</span>   Links: <span class="m">1</span>
-Access: <span class="o">(</span>0664/-rw-rw-r--<span class="o">)</span>  Uid: <span class="o">(</span>    0/    root<span class="o">)</span>   Gid: <span class="o">(</span> 2000/ UNKNOWN<span class="o">)</span>
-Access: 2019-09-27 11:03:57.045523223 +0800
-Modify: 2019-09-27 11:03:57.045523223 +0800
-Change: 2019-09-27 11:07:21.387847127 +0800
- Birth: -
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">  File: ‘test1’
+</span></span><span class="line"><span class="cl">  Size: <span class="m">0</span>         	Blocks: <span class="m">0</span>          IO Block: <span class="m">4096</span>   regular empty file
+</span></span><span class="line"><span class="cl">Device: fd01h/64769d	Inode: <span class="m">404813664</span>   Links: <span class="m">1</span>
+</span></span><span class="line"><span class="cl">Access: <span class="o">(</span>0664/-rw-rw-r--<span class="o">)</span>  Uid: <span class="o">(</span>    0/    root<span class="o">)</span>   Gid: <span class="o">(</span> 2000/ UNKNOWN<span class="o">)</span>
+</span></span><span class="line"><span class="cl">Access: 2019-09-27 11:03:57.045523223 +0800
+</span></span><span class="line"><span class="cl">Modify: 2019-09-27 11:03:57.045523223 +0800
+</span></span><span class="line"><span class="cl">Change: 2019-09-27 11:07:21.387847127 +0800
+</span></span><span class="line"><span class="cl"> Birth: -
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="trouble-shooting">Trouble Shooting</h2>
 <p>I failed finding something valuable after tracking kubelet logs. So I decide to
 search the root cause in kubelet source code.</p>
-<p>Fortunately, I found the code where kubelet does change the files' permissions.
+<p>Fortunately, I found the code where kubelet does change the files&rsquo; permissions.
 <code>pkg/volume/flexvolume/mounter.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -291,63 +290,63 @@ search the root cause in kubelet source code.</p>
 </span><span class="lnt">56
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// SetUpAt creates new directory.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">flexVolumeMounter</span><span class="p">)</span> <span class="nf">SetUpAt</span><span class="p">(</span><span class="nx">dir</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">fsGroup</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="c1">// Mount only once.
-</span><span class="c1"></span>	<span class="nx">alreadyMounted</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">prepareForMount</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">mounter</span><span class="p">,</span> <span class="nx">dir</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-	<span class="k">if</span> <span class="nx">alreadyMounted</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span>
-
-	<span class="nx">call</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">NewDriverCall</span><span class="p">(</span><span class="nx">mountCmd</span><span class="p">)</span>
-
-	<span class="c1">// Interface parameters
-</span><span class="c1"></span>	<span class="nx">call</span><span class="p">.</span><span class="nf">Append</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
-
-	<span class="nx">extraOptions</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span>
-
-	<span class="c1">// pod metadata
-</span><span class="c1"></span>	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyPodName</span><span class="p">]</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podName</span>
-	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyPodNamespace</span><span class="p">]</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podNamespace</span>
-	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyPodUID</span><span class="p">]</span> <span class="p">=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">podUID</span><span class="p">)</span>
-	<span class="c1">// service account metadata
-</span><span class="c1"></span>	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyServiceAccountName</span><span class="p">]</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podServiceAccountName</span>
-
-	<span class="c1">// Extract secret and pass it as options.
-</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">addSecretsToOptions</span><span class="p">(</span><span class="nx">extraOptions</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">spec</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podNamespace</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">driverName</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">host</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-
-	<span class="c1">// Implicit parameters
-</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">fsGroup</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionFSGroup</span><span class="p">]</span> <span class="p">=</span> <span class="nx">strconv</span><span class="p">.</span><span class="nf">FormatInt</span><span class="p">(</span><span class="nb">int64</span><span class="p">(</span><span class="o">*</span><span class="nx">fsGroup</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
-	<span class="p">}</span>
-
-	<span class="nx">call</span><span class="p">.</span><span class="nf">AppendSpec</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">spec</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">host</span><span class="p">,</span> <span class="nx">extraOptions</span><span class="p">)</span>
-
-	<span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">call</span><span class="p">.</span><span class="nf">Run</span><span class="p">()</span>
-	<span class="k">if</span> <span class="nf">isCmdNotSupportedErr</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
-		<span class="nx">err</span> <span class="p">=</span> <span class="p">(</span><span class="o">*</span><span class="nx">mounterDefaults</span><span class="p">)(</span><span class="nx">f</span><span class="p">).</span><span class="nf">SetUpAt</span><span class="p">(</span><span class="nx">dir</span><span class="p">,</span> <span class="nx">fsGroup</span><span class="p">)</span>
-	<span class="p">}</span>
-
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-
-	<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">readOnly</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">capabilities</span><span class="p">.</span><span class="nx">FSGroup</span> <span class="p">{</span>
-			<span class="nx">volume</span><span class="p">.</span><span class="nf">SetVolumeOwnership</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span> <span class="nx">fsGroup</span><span class="p">)</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// SetUpAt creates new directory.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">flexVolumeMounter</span><span class="p">)</span> <span class="nf">SetUpAt</span><span class="p">(</span><span class="nx">dir</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">fsGroup</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Mount only once.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">alreadyMounted</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">prepareForMount</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">mounter</span><span class="p">,</span> <span class="nx">dir</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">alreadyMounted</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">call</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nf">NewDriverCall</span><span class="p">(</span><span class="nx">mountCmd</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Interface parameters
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">call</span><span class="p">.</span><span class="nf">Append</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">extraOptions</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// pod metadata
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyPodName</span><span class="p">]</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podName</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyPodNamespace</span><span class="p">]</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podNamespace</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyPodUID</span><span class="p">]</span> <span class="p">=</span> <span class="nb">string</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">podUID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// service account metadata
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionKeyServiceAccountName</span><span class="p">]</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podServiceAccountName</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Extract secret and pass it as options.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">addSecretsToOptions</span><span class="p">(</span><span class="nx">extraOptions</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">spec</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">podNamespace</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">driverName</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">host</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Implicit parameters
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="nx">fsGroup</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">extraOptions</span><span class="p">[</span><span class="nx">optionFSGroup</span><span class="p">]</span> <span class="p">=</span> <span class="nx">strconv</span><span class="p">.</span><span class="nf">FormatInt</span><span class="p">(</span><span class="nb">int64</span><span class="p">(</span><span class="o">*</span><span class="nx">fsGroup</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">call</span><span class="p">.</span><span class="nf">AppendSpec</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">spec</span><span class="p">,</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">host</span><span class="p">,</span> <span class="nx">extraOptions</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">call</span><span class="p">.</span><span class="nf">Run</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nf">isCmdNotSupportedErr</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">err</span> <span class="p">=</span> <span class="p">(</span><span class="o">*</span><span class="nx">mounterDefaults</span><span class="p">)(</span><span class="nx">f</span><span class="p">).</span><span class="nf">SetUpAt</span><span class="p">(</span><span class="nx">dir</span><span class="p">,</span> <span class="nx">fsGroup</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dir</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">readOnly</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">plugin</span><span class="p">.</span><span class="nx">capabilities</span><span class="p">.</span><span class="nx">FSGroup</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">volume</span><span class="p">.</span><span class="nf">SetVolumeOwnership</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span> <span class="nx">fsGroup</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>The key point is on <em>line N. 51</em>, which will <code>SetVolumeOwnership</code> when volume is not <code>readOnly</code>
 and pod seted <code>FSGroup</code>.</p>
@@ -356,7 +355,7 @@ permissions by <code>OR 0440</code>.
 <code>pkg/volume/volume_linux.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -420,75 +419,75 @@ permissions by <code>OR 0440</code>.
 </span><span class="lnt">62
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">const</span> <span class="p">(</span>
-	<span class="nx">rwMask</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">FileMode</span><span class="p">(</span><span class="mo">0660</span><span class="p">)</span>
-	<span class="nx">roMask</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">FileMode</span><span class="p">(</span><span class="mo">0440</span><span class="p">)</span>
-<span class="p">)</span>
-
-<span class="c1">// SetVolumeOwnership modifies the given volume to be owned by
-</span><span class="c1">// fsGroup, and sets SetGid so that newly created files are owned by
-</span><span class="c1">// fsGroup. If fsGroup is nil nothing is done.
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">SetVolumeOwnership</span><span class="p">(</span><span class="nx">mounter</span> <span class="nx">Mounter</span><span class="p">,</span> <span class="nx">fsGroup</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-
-	<span class="k">if</span> <span class="nx">fsGroup</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span>
-
-	<span class="k">return</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Walk</span><span class="p">(</span><span class="nx">mounter</span><span class="p">.</span><span class="nf">GetPath</span><span class="p">(),</span> <span class="kd">func</span><span class="p">(</span><span class="nx">path</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">info</span> <span class="nx">os</span><span class="p">.</span><span class="nx">FileInfo</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="p">}</span>
-
-		<span class="c1">// chown and chmod pass through to the underlying file for symlinks.
-</span><span class="c1"></span>		<span class="c1">// Symlinks have a mode of 777 but this really doesn&#39;t mean anything.
-</span><span class="c1"></span>		<span class="c1">// The permissions of the underlying file are what matter.
-</span><span class="c1"></span>		<span class="c1">// However, if one reads the mode of a symlink then chmods the symlink
-</span><span class="c1"></span>		<span class="c1">// with that mode, it changes the mode of the underlying file, overridden
-</span><span class="c1"></span>		<span class="c1">// the defaultMode and permissions initialized by the volume plugin, which
-</span><span class="c1"></span>		<span class="c1">// is not what we want; thus, we skip chown/chmod for symlinks.
-</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">info</span><span class="p">.</span><span class="nf">Mode</span><span class="p">()</span><span class="o">&amp;</span><span class="nx">os</span><span class="p">.</span><span class="nx">ModeSymlink</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-
-		<span class="nx">stat</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">info</span><span class="p">.</span><span class="nf">Sys</span><span class="p">().(</span><span class="o">*</span><span class="nx">syscall</span><span class="p">.</span><span class="nx">Stat_t</span><span class="p">)</span>
-		<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-
-		<span class="k">if</span> <span class="nx">stat</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Got nil stat_t for path %v while setting ownership of volume&#34;</span><span class="p">,</span> <span class="nx">path</span><span class="p">)</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-
-		<span class="nx">err</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Chown</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nx">stat</span><span class="p">.</span><span class="nx">Uid</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="o">*</span><span class="nx">fsGroup</span><span class="p">))</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Chown failed on %v: %v&#34;</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-
-		<span class="nx">mask</span> <span class="o">:=</span> <span class="nx">rwMask</span>
-		<span class="k">if</span> <span class="nx">mounter</span><span class="p">.</span><span class="nf">GetAttributes</span><span class="p">().</span><span class="nx">ReadOnly</span> <span class="p">{</span>
-			<span class="nx">mask</span> <span class="p">=</span> <span class="nx">roMask</span>
-		<span class="p">}</span>
-
-		<span class="k">if</span> <span class="nx">info</span><span class="p">.</span><span class="nf">IsDir</span><span class="p">()</span> <span class="p">{</span>
-			<span class="nx">mask</span> <span class="o">|=</span> <span class="nx">os</span><span class="p">.</span><span class="nx">ModeSetgid</span>
-		<span class="p">}</span>
-
-		<span class="nx">err</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Chmod</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">info</span><span class="p">.</span><span class="nf">Mode</span><span class="p">()|</span><span class="nx">mask</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Chmod failed on %v: %v&#34;</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">})</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">const</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">rwMask</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">FileMode</span><span class="p">(</span><span class="mo">0660</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">roMask</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">FileMode</span><span class="p">(</span><span class="mo">0440</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// SetVolumeOwnership modifies the given volume to be owned by
+</span></span></span><span class="line"><span class="cl"><span class="c1">// fsGroup, and sets SetGid so that newly created files are owned by
+</span></span></span><span class="line"><span class="cl"><span class="c1">// fsGroup. If fsGroup is nil nothing is done.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">SetVolumeOwnership</span><span class="p">(</span><span class="nx">mounter</span> <span class="nx">Mounter</span><span class="p">,</span> <span class="nx">fsGroup</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">fsGroup</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">filepath</span><span class="p">.</span><span class="nf">Walk</span><span class="p">(</span><span class="nx">mounter</span><span class="p">.</span><span class="nf">GetPath</span><span class="p">(),</span> <span class="kd">func</span><span class="p">(</span><span class="nx">path</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">info</span> <span class="nx">os</span><span class="p">.</span><span class="nx">FileInfo</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="c1">// chown and chmod pass through to the underlying file for symlinks.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// Symlinks have a mode of 777 but this really doesn&#39;t mean anything.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// The permissions of the underlying file are what matter.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// However, if one reads the mode of a symlink then chmods the symlink
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// with that mode, it changes the mode of the underlying file, overridden
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// the defaultMode and permissions initialized by the volume plugin, which
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// is not what we want; thus, we skip chown/chmod for symlinks.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="nx">info</span><span class="p">.</span><span class="nf">Mode</span><span class="p">()</span><span class="o">&amp;</span><span class="nx">os</span><span class="p">.</span><span class="nx">ModeSymlink</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">stat</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">info</span><span class="p">.</span><span class="nf">Sys</span><span class="p">().(</span><span class="o">*</span><span class="nx">syscall</span><span class="p">.</span><span class="nx">Stat_t</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">stat</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Got nil stat_t for path %v while setting ownership of volume&#34;</span><span class="p">,</span> <span class="nx">path</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">err</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Chown</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nx">stat</span><span class="p">.</span><span class="nx">Uid</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="o">*</span><span class="nx">fsGroup</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Chown failed on %v: %v&#34;</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">mask</span> <span class="o">:=</span> <span class="nx">rwMask</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">mounter</span><span class="p">.</span><span class="nf">GetAttributes</span><span class="p">().</span><span class="nx">ReadOnly</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">mask</span> <span class="p">=</span> <span class="nx">roMask</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">info</span><span class="p">.</span><span class="nf">IsDir</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">mask</span> <span class="o">|=</span> <span class="nx">os</span><span class="p">.</span><span class="nx">ModeSetgid</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">err</span> <span class="p">=</span> <span class="nx">os</span><span class="p">.</span><span class="nf">Chmod</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span> <span class="nx">info</span><span class="p">.</span><span class="nf">Mode</span><span class="p">()|</span><span class="nx">mask</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Chmod failed on %v: %v&#34;</span><span class="p">,</span> <span class="nx">path</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">})</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>And in <code>PodSecurityContext</code> struct, we can find the comments which already point
 out this case.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -504,21 +503,21 @@ out this case.</p>
 </span><span class="lnt">14
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">PodSecurityContext</span> <span class="kd">struct</span> <span class="p">{</span>
-    <span class="o">...</span>
-    <span class="c1">// A special supplemental group that applies to all containers in a pod.
-</span><span class="c1"></span>    <span class="c1">// Some volume types allow the Kubelet to change the ownership of that volume
-</span><span class="c1"></span>    <span class="c1">// to be owned by the pod:
-</span><span class="c1"></span>    <span class="c1">//
-</span><span class="c1"></span>    <span class="c1">// 1. The owning GID will be the FSGroup
-</span><span class="c1"></span>    <span class="c1">// 2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
-</span><span class="c1"></span>    <span class="c1">// 3. The permission bits are OR&#39;d with rw-rw----
-</span><span class="c1"></span>    <span class="c1">//
-</span><span class="c1"></span>    <span class="c1">// If unset, the Kubelet will not modify the ownership and permissions of any volume.
-</span><span class="c1"></span>    <span class="c1">// +optional
-</span><span class="c1"></span>    <span class="nx">FSGroup</span> <span class="o">*</span><span class="kt">int64</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">PodSecurityContext</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="o">...</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// A special supplemental group that applies to all containers in a pod.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// Some volume types allow the Kubelet to change the ownership of that volume
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// to be owned by the pod:
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 1. The owning GID will be the FSGroup
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// 3. The permission bits are OR&#39;d with rw-rw----
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// If unset, the Kubelet will not modify the ownership and permissions of any volume.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="c1">// +optional
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="nx">FSGroup</span> <span class="o">*</span><span class="kt">int64</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>And as it says, <em>Some volume types allow the Kubelet to change the ownership of
 that volume</em>, and I found <code>hostPath</code> won&rsquo;t change the ownership of volume.</p>
@@ -616,7 +615,7 @@ but still, it didn&rsquo;t explain what&rsquo;s the point to <code>OR 0440</code
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -633,10 +632,10 @@ but still, it didn&rsquo;t explain what&rsquo;s the point to <code>OR 0440</code
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

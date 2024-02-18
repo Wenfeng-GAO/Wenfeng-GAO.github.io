@@ -25,7 +25,7 @@ If we look at the routing table of Host B, we&amp;rsquo;ll find something like" 
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/a-ping-question/" />
@@ -47,17 +47,16 @@ To be clearer, we assume that Host A has a unique network interface 192.168.11.0
 If we look at the routing table of Host B, we&rsquo;ll find something like" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/a-ping-question/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2017-07-04T18:22:56&#43;08:00" />
-<meta property="article:modified_time" content="2017-07-04T18:22:56&#43;08:00" />
+<meta property="article:published_time" content="2017-07-04T18:22:56+08:00" />
+<meta property="article:modified_time" content="2017-07-04T18:22:56+08:00" />
 
 <meta itemprop="name" content="A Ping Question">
 <meta itemprop="description" content="Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
 To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
-If we look at the routing table of Host B, we&rsquo;ll find something like"><meta itemprop="datePublished" content="2017-07-04T18:22:56&#43;08:00" />
-<meta itemprop="dateModified" content="2017-07-04T18:22:56&#43;08:00" />
+If we look at the routing table of Host B, we&rsquo;ll find something like"><meta itemprop="datePublished" content="2017-07-04T18:22:56+08:00" />
+<meta itemprop="dateModified" content="2017-07-04T18:22:56+08:00" />
 <meta itemprop="wordCount" content="316">
-<meta itemprop="keywords" content="network," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="A Ping Question"/>
+<meta itemprop="keywords" content="network," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="A Ping Question"/>
 <meta name="twitter:description" content="Recently, I focus on OpenStack things where an interesting network question comes out: If a host machine has multiple network interfaces, is it possible to ping all of them from another host?
 To be clearer, we assume that Host A has a unique network interface 192.168.11.0/24, Host B has 2 interfaces: 192.168.125.0/24 and 192.168.126.0/24. Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
 If we look at the routing table of Host B, we&rsquo;ll find something like"/>
@@ -152,7 +151,7 @@ If we look at the routing table of Host B, we&rsquo;ll find something like"/>
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents"></nav>
   </div>
 </div>
@@ -167,7 +166,7 @@ Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
 <p>If we look at the routing table of <em>Host B</em>, we&rsquo;ll find something like</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -177,32 +176,32 @@ Meanwhile, the 3 interfaces are connected by a router, as the graph illustrated.
 </span><span class="lnt">8
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>root@eta-bmc2 ~<span class="o">]</span><span class="c1"># route -n</span>
-Kernel IP routing table
-Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
-192.168.128.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth3
-192.168.125.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
-192.168.126.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth2
-192.168.127.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth1
-0.0.0.0         192.168.125.1   0.0.0.0         UG    <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="o">[</span>root@eta-bmc2 ~<span class="o">]</span><span class="c1"># route -n</span>
+</span></span><span class="line"><span class="cl">Kernel IP routing table
+</span></span><span class="line"><span class="cl">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+</span></span><span class="line"><span class="cl">192.168.128.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth3
+</span></span><span class="line"><span class="cl">192.168.125.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
+</span></span><span class="line"><span class="cl">192.168.126.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth2
+</span></span><span class="line"><span class="cl">192.168.127.0   0.0.0.0         255.255.255.0   U     <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth1
+</span></span><span class="line"><span class="cl">0.0.0.0         192.168.125.1   0.0.0.0         UG    <span class="m">0</span>      <span class="m">0</span>        <span class="m">0</span> eth0
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>If we ping from <em>Host B</em> to <em>Host A</em>, <em>Host B</em> looks up its routing table and find
 no specific rools for destination <code>192.168.11.0/24</code>, so it will go via gateway
 <code>192.168.125.1</code>.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>root@eta-bmc2 ~<span class="o">]</span><span class="c1"># tracepath 192.168.11.20</span>
- 1:  192.168.125.1 <span class="o">(</span>192.168.125.1<span class="o">)</span>                          1.437ms
- 2:  testagent <span class="o">(</span>192.168.11.20<span class="o">)</span>                              3.174ms reached
-     Resume: pmtu <span class="m">65535</span> hops <span class="m">2</span> back <span class="m">63</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="line"><span class="cl"><span class="o">[</span>root@eta-bmc2 ~<span class="o">]</span><span class="c1"># tracepath 192.168.11.20</span>
+</span></span><span class="line"><span class="cl"> 1:  192.168.125.1 <span class="o">(</span>192.168.125.1<span class="o">)</span>                          1.437ms
+</span></span><span class="line"><span class="cl"> 2:  testagent <span class="o">(</span>192.168.11.20<span class="o">)</span>                              3.174ms reached
+</span></span><span class="line"><span class="cl">     Resume: pmtu <span class="m">65535</span> hops <span class="m">2</span> back <span class="m">63</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>And if we ping from <em>Host A</em> to <em>Host B</em> of interface <code>192.168.125.0/24</code>, it goes
 well. However, if we ping to <em>Host B</em>&rsquo;s another interface, it will fail.</p>
@@ -300,7 +299,7 @@ ping both 2 interfaces of <em>Host B</em> as well.</p>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -317,10 +316,10 @@ ping both 2 interfaces of <em>Host B</em> as well.</p>
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

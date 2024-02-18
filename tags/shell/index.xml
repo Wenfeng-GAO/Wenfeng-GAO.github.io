@@ -6,26 +6,21 @@
     <description>Recent content in shell on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 28 Sep 2017 18:23:26 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/shell/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 28 Sep 2017 18:23:26 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/shell/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Simple Commit-Msg for Git Hook</title>
       <link>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</link>
       <pubDate>Thu, 28 Sep 2017 18:23:26 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/simple-commit-msg-hook/</guid>
-      <description>Although I am the only contributor of my own Github project, I still want my commit message to be tidier.
-I wish all the commit messages will follow the pattern like:
-[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit.  However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.</description>
+      <description>Although I am the only contributor of my own Github project, I still want my commit message to be tidier.&#xA;I wish all the commit messages will follow the pattern like:&#xA;[Example]: This is an Example. [Exercise]: This ia an Exercise. [Problem]: A problem solved. [Other]: Maybe a merge commit. However, I usually remember to follow this pattern after the commit, that&amp;rsquo;s really disappointed. So I decided to write a simple hook to prevent this kind of Amnesia.</description>
     </item>
-    
     <item>
       <title>Basic Shell Commands</title>
       <link>https://wenfeng-gao.github.io/post/basic-shell-commands/</link>
       <pubDate>Sat, 29 Jul 2017 18:23:09 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/basic-shell-commands/</guid>
       <description>公司某个产品的测试环境比较复杂，它需要在 OpenStack 上创建3个节点，其中2个节点安装产品并实现高可用(HA)，第3个节点（TestAgent节点）与产</description>
     </item>
-    
   </channel>
 </rss>

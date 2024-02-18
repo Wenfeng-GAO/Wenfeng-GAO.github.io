@@ -6,17 +6,14 @@
     <description>Recent content in react on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 06 Dec 2017 18:23:43 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/react/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 06 Dec 2017 18:23:43 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/react/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>A Little Taste on React</title>
       <link>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</link>
       <pubDate>Wed, 06 Dec 2017 18:23:43 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/a-little-taste-on-react/</guid>
-      <description>I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:
- So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.
- &amp;ldquo;Maybe I should listen to this guy&amp;rsquo;s suggestion&amp;rdquo;, I said to myself, so I spent a week to understand what is React and how to use it.</description>
+      <description>I have some experience on Android development, and recently for some reason I want to try React Native. As the RN official tutorial said:&#xA;So to understand the basic structure of a React Native app, you need to understand some of the basic React concepts, like JSX, components, state, and props.&#xA;&amp;ldquo;Maybe I should listen to this guy&amp;rsquo;s suggestion&amp;rdquo;, I said to myself, so I spent a week to understand what is React and how to use it.</description>
     </item>
-    
   </channel>
 </rss>

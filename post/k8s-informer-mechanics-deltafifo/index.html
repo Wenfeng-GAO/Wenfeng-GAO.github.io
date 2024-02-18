@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-deltafifo/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-deltafifo/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2021-06-28T11:49:09&#43;08:00" />
-<meta property="article:modified_time" content="2021-06-28T11:49:09&#43;08:00" />
+<meta property="article:published_time" content="2021-06-28T11:49:09+08:00" />
+<meta property="article:modified_time" content="2021-06-28T11:49:09+08:00" />
 
 <meta itemprop="name" content="K8s Informer Mechanics Part III - DeltaFIFO">
-<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。"><meta itemprop="datePublished" content="2021-06-28T11:49:09&#43;08:00" />
-<meta itemprop="dateModified" content="2021-06-28T11:49:09&#43;08:00" />
+<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。"><meta itemprop="datePublished" content="2021-06-28T11:49:09+08:00" />
+<meta itemprop="dateModified" content="2021-06-28T11:49:09+08:00" />
 <meta itemprop="wordCount" content="4183">
-<meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="K8s Informer Mechanics Part III - DeltaFIFO"/>
+<meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="K8s Informer Mechanics Part III - DeltaFIFO"/>
 <meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第三篇，我们详细分析DeltaFIFO模块的代码实现。"/>
 
 <!--[if lte IE 9]>
@@ -146,7 +145,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li><a href="#前言">前言</a>
@@ -204,7 +203,7 @@
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -283,102 +282,102 @@
 </span><span class="lnt">77
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// DeltaFIFO is like FIFO, but differs in two ways.  One is that the
-</span><span class="c1">// accumulator associated with a given object&#39;s key is not that object
-</span><span class="c1">// but rather a Deltas, which is a slice of Delta values for that
-</span><span class="c1">// object.  Applying an object to a Deltas means to append a Delta
-</span><span class="c1">// except when the potentially appended Delta is a Deleted and the
-</span><span class="c1">// Deltas already ends with a Deleted.  In that case the Deltas does
-</span><span class="c1">// not grow, although the terminal Deleted will be replaced by the new
-</span><span class="c1">// Deleted if the older Deleted&#39;s object is a
-</span><span class="c1">// DeletedFinalStateUnknown.
-</span><span class="c1">//
-</span><span class="c1">// The other difference is that DeltaFIFO has two additional ways that
-</span><span class="c1">// an object can be applied to an accumulator: Replaced and Sync.
-</span><span class="c1">// If EmitDeltaTypeReplaced is not set to true, Sync will be used in
-</span><span class="c1">// replace events for backwards compatibility.  Sync is used for periodic
-</span><span class="c1">// resync events.
-</span><span class="c1">//
-</span><span class="c1">// DeltaFIFO is a producer-consumer queue, where a Reflector is
-</span><span class="c1">// intended to be the producer, and the consumer is whatever calls
-</span><span class="c1">// the Pop() method.
-</span><span class="c1">//
-</span><span class="c1">// DeltaFIFO solves this use case:
-</span><span class="c1">//  * You want to process every object change (delta) at most once.
-</span><span class="c1">//  * When you process an object, you want to see everything
-</span><span class="c1">//    that&#39;s happened to it since you last processed it.
-</span><span class="c1">//  * You want to process the deletion of some of the objects.
-</span><span class="c1">//  * You might want to periodically reprocess objects.
-</span><span class="c1">//
-</span><span class="c1">// DeltaFIFO&#39;s Pop(), Get(), and GetByKey() methods return
-</span><span class="c1">// interface{} to satisfy the Store/Queue interfaces, but they
-</span><span class="c1">// will always return an object of type Deltas. List() returns
-</span><span class="c1">// the newest object from each accumulator in the FIFO.
-</span><span class="c1">//
-</span><span class="c1">// A DeltaFIFO&#39;s knownObjects KeyListerGetter provides the abilities
-</span><span class="c1">// to list Store keys and to get objects by Store key.  The objects in
-</span><span class="c1">// question are called &#34;known objects&#34; and this set of objects
-</span><span class="c1">// modifies the behavior of the Delete, Replace, and Resync methods
-</span><span class="c1">// (each in a different way).
-</span><span class="c1">//
-</span><span class="c1">// A note on threading: If you call Pop() in parallel from multiple
-</span><span class="c1">// threads, you could end up with multiple threads processing slightly
-</span><span class="c1">// different versions of the same object.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">DeltaFIFO</span> <span class="kd">struct</span> <span class="p">{</span>
-	<span class="c1">// lock/cond protects access to &#39;items&#39; and &#39;queue&#39;.
-</span><span class="c1"></span>	<span class="nx">lock</span> <span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
-	<span class="nx">cond</span> <span class="nx">sync</span><span class="p">.</span><span class="nx">Cond</span>
-
-	<span class="c1">// `items` maps a key to a Deltas.
-</span><span class="c1"></span>	<span class="c1">// Each such Deltas has at least one Delta.
-</span><span class="c1"></span>	<span class="nx">items</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">Deltas</span>
-
-	<span class="c1">// `queue` maintains FIFO order of keys for consumption in Pop().
-</span><span class="c1"></span>	<span class="c1">// There are no duplicates in `queue`.
-</span><span class="c1"></span>	<span class="c1">// A key is in `queue` if and only if it is in `items`.
-</span><span class="c1"></span>	<span class="nx">queue</span> <span class="p">[]</span><span class="kt">string</span>
-
-	<span class="c1">// populated is true if the first batch of items inserted by Replace() has been populated
-</span><span class="c1"></span>	<span class="c1">// or Delete/Add/Update/AddIfNotPresent was called first.
-</span><span class="c1"></span>	<span class="nx">populated</span> <span class="kt">bool</span>
-	<span class="c1">// initialPopulationCount is the number of items inserted by the first call of Replace()
-</span><span class="c1"></span>	<span class="nx">initialPopulationCount</span> <span class="kt">int</span>
-
-	<span class="c1">// keyFunc is used to make the key used for queued item
-</span><span class="c1"></span>	<span class="c1">// insertion and retrieval, and should be deterministic.
-</span><span class="c1"></span>	<span class="nx">keyFunc</span> <span class="nx">KeyFunc</span>
-
-	<span class="c1">// knownObjects list keys that are &#34;known&#34; --- affecting Delete(),
-</span><span class="c1"></span>	<span class="c1">// Replace(), and Resync()
-</span><span class="c1"></span>	<span class="nx">knownObjects</span> <span class="nx">KeyListerGetter</span>
-
-	<span class="c1">// Used to indicate a queue is closed so a control loop can exit when a queue is empty.
-</span><span class="c1"></span>	<span class="c1">// Currently, not used to gate any of CRED operations.
-</span><span class="c1"></span>	<span class="nx">closed</span> <span class="kt">bool</span>
-
-	<span class="c1">// emitDeltaTypeReplaced is whether to emit the Replaced or Sync
-</span><span class="c1"></span>	<span class="c1">// DeltaType when Replace() is called (to preserve backwards compat).
-</span><span class="c1"></span>	<span class="nx">emitDeltaTypeReplaced</span> <span class="kt">bool</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// DeltaFIFO is like FIFO, but differs in two ways.  One is that the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// accumulator associated with a given object&#39;s key is not that object
+</span></span></span><span class="line"><span class="cl"><span class="c1">// but rather a Deltas, which is a slice of Delta values for that
+</span></span></span><span class="line"><span class="cl"><span class="c1">// object.  Applying an object to a Deltas means to append a Delta
+</span></span></span><span class="line"><span class="cl"><span class="c1">// except when the potentially appended Delta is a Deleted and the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Deltas already ends with a Deleted.  In that case the Deltas does
+</span></span></span><span class="line"><span class="cl"><span class="c1">// not grow, although the terminal Deleted will be replaced by the new
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Deleted if the older Deleted&#39;s object is a
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DeletedFinalStateUnknown.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// The other difference is that DeltaFIFO has two additional ways that
+</span></span></span><span class="line"><span class="cl"><span class="c1">// an object can be applied to an accumulator: Replaced and Sync.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// If EmitDeltaTypeReplaced is not set to true, Sync will be used in
+</span></span></span><span class="line"><span class="cl"><span class="c1">// replace events for backwards compatibility.  Sync is used for periodic
+</span></span></span><span class="line"><span class="cl"><span class="c1">// resync events.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DeltaFIFO is a producer-consumer queue, where a Reflector is
+</span></span></span><span class="line"><span class="cl"><span class="c1">// intended to be the producer, and the consumer is whatever calls
+</span></span></span><span class="line"><span class="cl"><span class="c1">// the Pop() method.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DeltaFIFO solves this use case:
+</span></span></span><span class="line"><span class="cl"><span class="c1">//  * You want to process every object change (delta) at most once.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//  * When you process an object, you want to see everything
+</span></span></span><span class="line"><span class="cl"><span class="c1">//    that&#39;s happened to it since you last processed it.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//  * You want to process the deletion of some of the objects.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//  * You might want to periodically reprocess objects.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DeltaFIFO&#39;s Pop(), Get(), and GetByKey() methods return
+</span></span></span><span class="line"><span class="cl"><span class="c1">// interface{} to satisfy the Store/Queue interfaces, but they
+</span></span></span><span class="line"><span class="cl"><span class="c1">// will always return an object of type Deltas. List() returns
+</span></span></span><span class="line"><span class="cl"><span class="c1">// the newest object from each accumulator in the FIFO.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// A DeltaFIFO&#39;s knownObjects KeyListerGetter provides the abilities
+</span></span></span><span class="line"><span class="cl"><span class="c1">// to list Store keys and to get objects by Store key.  The objects in
+</span></span></span><span class="line"><span class="cl"><span class="c1">// question are called &#34;known objects&#34; and this set of objects
+</span></span></span><span class="line"><span class="cl"><span class="c1">// modifies the behavior of the Delete, Replace, and Resync methods
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (each in a different way).
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// A note on threading: If you call Pop() in parallel from multiple
+</span></span></span><span class="line"><span class="cl"><span class="c1">// threads, you could end up with multiple threads processing slightly
+</span></span></span><span class="line"><span class="cl"><span class="c1">// different versions of the same object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">DeltaFIFO</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// lock/cond protects access to &#39;items&#39; and &#39;queue&#39;.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">lock</span> <span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">cond</span> <span class="nx">sync</span><span class="p">.</span><span class="nx">Cond</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// `items` maps a key to a Deltas.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Each such Deltas has at least one Delta.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">items</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">Deltas</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// `queue` maintains FIFO order of keys for consumption in Pop().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// There are no duplicates in `queue`.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// A key is in `queue` if and only if it is in `items`.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">queue</span> <span class="p">[]</span><span class="kt">string</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// populated is true if the first batch of items inserted by Replace() has been populated
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// or Delete/Add/Update/AddIfNotPresent was called first.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">populated</span> <span class="kt">bool</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// initialPopulationCount is the number of items inserted by the first call of Replace()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">initialPopulationCount</span> <span class="kt">int</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// keyFunc is used to make the key used for queued item
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// insertion and retrieval, and should be deterministic.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">keyFunc</span> <span class="nx">KeyFunc</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// knownObjects list keys that are &#34;known&#34; --- affecting Delete(),
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Replace(), and Resync()
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">knownObjects</span> <span class="nx">KeyListerGetter</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Used to indicate a queue is closed so a control loop can exit when a queue is empty.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Currently, not used to gate any of CRED operations.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">closed</span> <span class="kt">bool</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// emitDeltaTypeReplaced is whether to emit the Replaced or Sync
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// DeltaType when Replace() is called (to preserve backwards compat).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">emitDeltaTypeReplaced</span> <span class="kt">bool</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">var</span> <span class="p">(</span>
-	<span class="nx">_</span> <span class="p">=</span> <span class="nf">Queue</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">DeltaFIFO</span><span class="p">{})</span> <span class="c1">// DeltaFIFO is a Queue
-</span><span class="c1"></span><span class="p">)</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">var</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">_</span> <span class="p">=</span> <span class="nf">Queue</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">DeltaFIFO</span><span class="p">{})</span> <span class="c1">// DeltaFIFO is a Queue
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>DeltaFIFO是一个Queue，那么我们先一次来分析下DeltaFIFO Queue的接口实现。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -414,47 +413,47 @@
 </span><span class="lnt">34
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Queue extends Store with a collection of Store keys to &#34;process&#34;.
-</span><span class="c1">// Every Add, Update, or Delete may put the object&#39;s key in that collection.
-</span><span class="c1">// A Queue has a way to derive the corresponding key given an accumulator.
-</span><span class="c1">// A Queue can be accessed concurrently from multiple goroutines.
-</span><span class="c1">// A Queue can be &#34;closed&#34;, after which Pop operations return an error.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Queue</span> <span class="kd">interface</span> <span class="p">{</span>
-	<span class="nx">Store</span>
-
-	<span class="c1">// Pop blocks until there is at least one key to process or the
-</span><span class="c1"></span>	<span class="c1">// Queue is closed.  In the latter case Pop returns with an error.
-</span><span class="c1"></span>	<span class="c1">// In the former case Pop atomically picks one key to process,
-</span><span class="c1"></span>	<span class="c1">// removes that (key, accumulator) association from the Store, and
-</span><span class="c1"></span>	<span class="c1">// processes the accumulator.  Pop returns the accumulator that
-</span><span class="c1"></span>	<span class="c1">// was processed and the result of processing.  The PopProcessFunc
-</span><span class="c1"></span>	<span class="c1">// may return an ErrRequeue{inner} and in this case Pop will (a)
-</span><span class="c1"></span>	<span class="c1">// return that (key, accumulator) association to the Queue as part
-</span><span class="c1"></span>	<span class="c1">// of the atomic processing and (b) return the inner error from
-</span><span class="c1"></span>	<span class="c1">// Pop.
-</span><span class="c1"></span>	<span class="nf">Pop</span><span class="p">(</span><span class="nx">PopProcessFunc</span><span class="p">)</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
-
-	<span class="c1">// AddIfNotPresent puts the given accumulator into the Queue (in
-</span><span class="c1"></span>	<span class="c1">// association with the accumulator&#39;s key) if and only if that key
-</span><span class="c1"></span>	<span class="c1">// is not already associated with a non-empty accumulator.
-</span><span class="c1"></span>	<span class="nf">AddIfNotPresent</span><span class="p">(</span><span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
-
-	<span class="c1">// HasSynced returns true if the first batch of keys have all been
-</span><span class="c1"></span>	<span class="c1">// popped.  The first batch of keys are those of the first Replace
-</span><span class="c1"></span>	<span class="c1">// operation if that happened before any Add, AddIfNotPresent,
-</span><span class="c1"></span>	<span class="c1">// Update, or Delete; otherwise the first batch is empty.
-</span><span class="c1"></span>	<span class="nf">HasSynced</span><span class="p">()</span> <span class="kt">bool</span>
-
-	<span class="c1">// Close the queue
-</span><span class="c1"></span>	<span class="nf">Close</span><span class="p">()</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Queue extends Store with a collection of Store keys to &#34;process&#34;.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Every Add, Update, or Delete may put the object&#39;s key in that collection.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// A Queue has a way to derive the corresponding key given an accumulator.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// A Queue can be accessed concurrently from multiple goroutines.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// A Queue can be &#34;closed&#34;, after which Pop operations return an error.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">Queue</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">Store</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Pop blocks until there is at least one key to process or the
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Queue is closed.  In the latter case Pop returns with an error.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// In the former case Pop atomically picks one key to process,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// removes that (key, accumulator) association from the Store, and
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// processes the accumulator.  Pop returns the accumulator that
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// was processed and the result of processing.  The PopProcessFunc
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// may return an ErrRequeue{inner} and in this case Pop will (a)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// return that (key, accumulator) association to the Queue as part
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// of the atomic processing and (b) return the inner error from
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Pop.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Pop</span><span class="p">(</span><span class="nx">PopProcessFunc</span><span class="p">)</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// AddIfNotPresent puts the given accumulator into the Queue (in
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// association with the accumulator&#39;s key) if and only if that key
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// is not already associated with a non-empty accumulator.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">AddIfNotPresent</span><span class="p">(</span><span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// HasSynced returns true if the first batch of keys have all been
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// popped.  The first batch of keys are those of the first Replace
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// operation if that happened before any Add, AddIfNotPresent,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Update, or Delete; otherwise the first batch is empty.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">HasSynced</span><span class="p">()</span> <span class="kt">bool</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Close the queue
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Close</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>Queue的接口是基于Store接口的拓展。</p>
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -502,53 +501,53 @@
 </span><span class="lnt">46
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Store is a generic object storage and processing interface.  A
-</span><span class="c1">// Store holds a map from string keys to accumulators, and has
-</span><span class="c1">// operations to add, update, and delete a given object to/from the
-</span><span class="c1">// accumulator currently associated with a given key.  A Store also
-</span><span class="c1">// knows how to extract the key from a given object, so many operations
-</span><span class="c1">// are given only the object.
-</span><span class="c1">//
-</span><span class="c1">// In the simplest Store implementations each accumulator is simply
-</span><span class="c1">// the last given object, or empty after Delete, and thus the Store&#39;s
-</span><span class="c1">// behavior is simple storage.
-</span><span class="c1">//
-</span><span class="c1">// Reflector knows how to watch a server and update a Store.  This
-</span><span class="c1">// package provides a variety of implementations of Store.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Store</span> <span class="kd">interface</span> <span class="p">{</span>
-
-	<span class="c1">// Add adds the given object to the accumulator associated with the given object&#39;s key
-</span><span class="c1"></span>	<span class="nf">Add</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
-
-	<span class="c1">// Update updates the given object in the accumulator associated with the given object&#39;s key
-</span><span class="c1"></span>	<span class="nf">Update</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
-
-	<span class="c1">// Delete deletes the given object from the accumulator associated with the given object&#39;s key
-</span><span class="c1"></span>	<span class="nf">Delete</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
-
-	<span class="c1">// List returns a list of all the currently non-empty accumulators
-</span><span class="c1"></span>	<span class="nf">List</span><span class="p">()</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{}</span>
-
-	<span class="c1">// ListKeys returns a list of all the keys currently associated with non-empty accumulators
-</span><span class="c1"></span>	<span class="nf">ListKeys</span><span class="p">()</span> <span class="p">[]</span><span class="kt">string</span>
-
-	<span class="c1">// Get returns the accumulator associated with the given object&#39;s key
-</span><span class="c1"></span>	<span class="nf">Get</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
-
-	<span class="c1">// GetByKey returns the accumulator associated with the given key
-</span><span class="c1"></span>	<span class="nf">GetByKey</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
-
-	<span class="c1">// Replace will delete the contents of the store, using instead the
-</span><span class="c1"></span>	<span class="c1">// given list. Store takes ownership of the list, you should not reference
-</span><span class="c1"></span>	<span class="c1">// it after calling this function.
-</span><span class="c1"></span>	<span class="nf">Replace</span><span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
-
-	<span class="c1">// Resync is meaningless in the terms appearing here but has
-</span><span class="c1"></span>	<span class="c1">// meaning in some implementations that have non-trivial
-</span><span class="c1"></span>	<span class="c1">// additional behavior (e.g., DeltaFIFO).
-</span><span class="c1"></span>	<span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Store is a generic object storage and processing interface.  A
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Store holds a map from string keys to accumulators, and has
+</span></span></span><span class="line"><span class="cl"><span class="c1">// operations to add, update, and delete a given object to/from the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// accumulator currently associated with a given key.  A Store also
+</span></span></span><span class="line"><span class="cl"><span class="c1">// knows how to extract the key from a given object, so many operations
+</span></span></span><span class="line"><span class="cl"><span class="c1">// are given only the object.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// In the simplest Store implementations each accumulator is simply
+</span></span></span><span class="line"><span class="cl"><span class="c1">// the last given object, or empty after Delete, and thus the Store&#39;s
+</span></span></span><span class="line"><span class="cl"><span class="c1">// behavior is simple storage.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Reflector knows how to watch a server and update a Store.  This
+</span></span></span><span class="line"><span class="cl"><span class="c1">// package provides a variety of implementations of Store.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">Store</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Add adds the given object to the accumulator associated with the given object&#39;s key
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Add</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Update updates the given object in the accumulator associated with the given object&#39;s key
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Update</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Delete deletes the given object from the accumulator associated with the given object&#39;s key
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Delete</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// List returns a list of all the currently non-empty accumulators
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">List</span><span class="p">()</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// ListKeys returns a list of all the keys currently associated with non-empty accumulators
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">ListKeys</span><span class="p">()</span> <span class="p">[]</span><span class="kt">string</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Get returns the accumulator associated with the given object&#39;s key
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Get</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// GetByKey returns the accumulator associated with the given key
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">GetByKey</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">item</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">exists</span> <span class="kt">bool</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Replace will delete the contents of the store, using instead the
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// given list. Store takes ownership of the list, you should not reference
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// it after calling this function.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Replace</span><span class="p">([]</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Resync is meaningless in the terms appearing here but has
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// meaning in some implementations that have non-trivial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// additional behavior (e.g., DeltaFIFO).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <h3 id="接口">接口</h3>
@@ -574,7 +573,7 @@
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -592,30 +591,30 @@
 </span><span class="lnt">16
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Add inserts an item, and puts it in the queue. The item is only enqueued
-</span><span class="c1">// if it doesn&#39;t already exist in the set.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Add</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
-	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Added</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="c1">// Update is just like Add, but makes an Updated Delta.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Update</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
-	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Updated</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Add inserts an item, and puts it in the queue. The item is only enqueued
+</span></span></span><span class="line"><span class="cl"><span class="c1">// if it doesn&#39;t already exist in the set.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Add</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Added</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Update is just like Add, but makes an Updated Delta.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Update</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Updated</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <p>queueActionLocked方法会将Deltas添加进queue和item，并且去重与广播。</p>
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -648,38 +647,38 @@
 </span><span class="lnt">31
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// queueActionLocked appends to the delta list for the object.
-</span><span class="c1">// Caller must lock first.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">actionType</span> <span class="nx">DeltaType</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
-	<span class="p">}</span>
-	<span class="nx">oldDeltas</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
-	<span class="nx">newDeltas</span> <span class="o">:=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">Delta</span><span class="p">{</span><span class="nx">actionType</span><span class="p">,</span> <span class="nx">obj</span><span class="p">})</span>
-	<span class="nx">newDeltas</span> <span class="p">=</span> <span class="nf">dedupDeltas</span><span class="p">(</span><span class="nx">newDeltas</span><span class="p">)</span>
-
-	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">newDeltas</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">];</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
-			<span class="nx">f</span><span class="p">.</span><span class="nx">queue</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
-		<span class="p">}</span>
-		<span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newDeltas</span>
-		<span class="nx">f</span><span class="p">.</span><span class="nx">cond</span><span class="p">.</span><span class="nf">Broadcast</span><span class="p">()</span>
-	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-		<span class="c1">// This never happens, because dedupDeltas never returns an empty list
-</span><span class="c1"></span>		<span class="c1">// when given a non-empty list (as it is here).
-</span><span class="c1"></span>		<span class="c1">// If somehow it happens anyway, deal with it but complain.
-</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">oldDeltas</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; ignoring&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; breaking invariant by storing empty Deltas&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
-		<span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newDeltas</span>
-		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; broke DeltaFIFO invariant by storing empty Deltas&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// queueActionLocked appends to the delta list for the object.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Caller must lock first.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">actionType</span> <span class="nx">DeltaType</span><span class="p">,</span> <span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">oldDeltas</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">newDeltas</span> <span class="o">:=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">Delta</span><span class="p">{</span><span class="nx">actionType</span><span class="p">,</span> <span class="nx">obj</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">newDeltas</span> <span class="p">=</span> <span class="nf">dedupDeltas</span><span class="p">(</span><span class="nx">newDeltas</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">newDeltas</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">];</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">f</span><span class="p">.</span><span class="nx">queue</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newDeltas</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">f</span><span class="p">.</span><span class="nx">cond</span><span class="p">.</span><span class="nf">Broadcast</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// This never happens, because dedupDeltas never returns an empty list
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// when given a non-empty list (as it is here).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// If somehow it happens anyway, deal with it but complain.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="nx">oldDeltas</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; ignoring&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; breaking invariant by storing empty Deltas&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span> <span class="p">=</span> <span class="nx">newDeltas</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Impossible dedupDeltas for id=%q: oldDeltas=%#+v, obj=%#+v; broke DeltaFIFO invariant by storing empty Deltas&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">,</span> <span class="nx">oldDeltas</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <h3 id="delete">Delete</h3>
@@ -687,7 +686,7 @@
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -725,43 +724,43 @@
 </span><span class="lnt">36
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Delete is just like Add, but makes a Deleted Delta. If the given
-</span><span class="c1">// object does not already exist, it will be ignored. (It may have
-</span><span class="c1">// already been deleted by a Replace (re-list), for example.)  In this
-</span><span class="c1">// method `f.knownObjects`, if not nil, provides (via GetByKey)
-</span><span class="c1">// _additional_ objects that are considered to already exist.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Delete</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
-	<span class="p">}</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
-	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">];</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
-			<span class="c1">// Presumably, this was deleted when a relist happened.
-</span><span class="c1"></span>			<span class="c1">// Don&#39;t provide a second report of the same deletion.
-</span><span class="c1"></span>			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-		<span class="c1">// We only want to skip the &#34;deletion&#34; action if the object doesn&#39;t
-</span><span class="c1"></span>		<span class="c1">// exist in knownObjects and it doesn&#39;t have corresponding item in items.
-</span><span class="c1"></span>		<span class="c1">// Note that even if there is a &#34;deletion&#34; action in items, we can ignore it,
-</span><span class="c1"></span>		<span class="c1">// because it will be deduped automatically in &#34;queueActionLocked&#34;
-</span><span class="c1"></span>		<span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span>
-		<span class="nx">_</span><span class="p">,</span> <span class="nx">itemsExist</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">exists</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">itemsExist</span> <span class="p">{</span>
-			<span class="c1">// Presumably, this was deleted when a relist happened.
-</span><span class="c1"></span>			<span class="c1">// Don&#39;t provide a second report of the same deletion.
-</span><span class="c1"></span>			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-
-	<span class="c1">// exist in items and/or KnownObjects
-</span><span class="c1"></span>	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Delete is just like Add, but makes a Deleted Delta. If the given
+</span></span></span><span class="line"><span class="cl"><span class="c1">// object does not already exist, it will be ignored. (It may have
+</span></span></span><span class="line"><span class="cl"><span class="c1">// already been deleted by a Replace (re-list), for example.)  In this
+</span></span></span><span class="line"><span class="cl"><span class="c1">// method `f.knownObjects`, if not nil, provides (via GetByKey)
+</span></span></span><span class="line"><span class="cl"><span class="c1">// _additional_ objects that are considered to already exist.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Delete</span><span class="p">(</span><span class="nx">obj</span> <span class="kd">interface</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">];</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// Presumably, this was deleted when a relist happened.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// Don&#39;t provide a second report of the same deletion.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// We only want to skip the &#34;deletion&#34; action if the object doesn&#39;t
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// exist in knownObjects and it doesn&#39;t have corresponding item in items.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// Note that even if there is a &#34;deletion&#34; action in items, we can ignore it,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// because it will be deduped automatically in &#34;queueActionLocked&#34;
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">_</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">_</span><span class="p">,</span> <span class="nx">itemsExist</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">exists</span> <span class="o">&amp;&amp;</span> <span class="p">!</span><span class="nx">itemsExist</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// Presumably, this was deleted when a relist happened.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// Don&#39;t provide a second report of the same deletion.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// exist in items and/or KnownObjects
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">return</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <h3 id="replace">Replace</h3>
@@ -773,7 +772,7 @@
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -867,99 +866,99 @@
 </span><span class="lnt">92
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Replace atomically does two things: (1) it adds the given objects
-</span><span class="c1">// using the Sync or Replace DeltaType and then (2) it does some deletions.
-</span><span class="c1">// In particular: for every pre-existing key K that is not the key of
-</span><span class="c1">// an object in `list` there is the effect of
-</span><span class="c1">// `Delete(DeletedFinalStateUnknown{K, O})` where O is current object
-</span><span class="c1">// of K.  If `f.knownObjects == nil` then the pre-existing keys are
-</span><span class="c1">// those in `f.items` and the current object of K is the `.Newest()`
-</span><span class="c1">// of the Deltas associated with K.  Otherwise the pre-existing keys
-</span><span class="c1">// are those listed by `f.knownObjects` and the current object of K is
-</span><span class="c1">// what `f.knownObjects.GetByKey(K)` returns.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Replace</span><span class="p">(</span><span class="nx">list</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{},</span> <span class="nx">resourceVersion</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-	<span class="nx">keys</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nx">list</span><span class="p">))</span>
-
-	<span class="c1">// keep backwards compat for old clients
-</span><span class="c1"></span>	<span class="nx">action</span> <span class="o">:=</span> <span class="nx">Sync</span>
-	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">emitDeltaTypeReplaced</span> <span class="p">{</span>
-		<span class="nx">action</span> <span class="p">=</span> <span class="nx">Replaced</span>
-	<span class="p">}</span>
-
-	<span class="c1">// Add Sync/Replaced action for each new item.
-</span><span class="c1"></span>	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">item</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">list</span> <span class="p">{</span>
-		<span class="nx">key</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">item</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
-		<span class="p">}</span>
-		<span class="nx">keys</span><span class="p">.</span><span class="nf">Insert</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">action</span><span class="p">,</span> <span class="nx">item</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;couldn&#39;t enqueue object: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-
-	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="c1">// Do deletion detection against our own list.
-</span><span class="c1"></span>		<span class="nx">queuedDeletions</span> <span class="o">:=</span> <span class="mi">0</span>
-		<span class="k">for</span> <span class="nx">k</span><span class="p">,</span> <span class="nx">oldItem</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span> <span class="p">{</span>
-			<span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Has</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
-				<span class="k">continue</span>
-			<span class="p">}</span>
-			<span class="c1">// Delete pre-existing items not in the new list.
-</span><span class="c1"></span>			<span class="c1">// This could happen if watch deletion event was missed while
-</span><span class="c1"></span>			<span class="c1">// disconnected from apiserver.
-</span><span class="c1"></span>			<span class="kd">var</span> <span class="nx">deletedObj</span> <span class="kd">interface</span><span class="p">{}</span>
-			<span class="k">if</span> <span class="nx">n</span> <span class="o">:=</span> <span class="nx">oldItem</span><span class="p">.</span><span class="nf">Newest</span><span class="p">();</span> <span class="nx">n</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-				<span class="nx">deletedObj</span> <span class="p">=</span> <span class="nx">n</span><span class="p">.</span><span class="nx">Object</span>
-			<span class="p">}</span>
-			<span class="nx">queuedDeletions</span><span class="o">++</span>
-			<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">DeletedFinalStateUnknown</span><span class="p">{</span><span class="nx">k</span><span class="p">,</span> <span class="nx">deletedObj</span><span class="p">});</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-				<span class="k">return</span> <span class="nx">err</span>
-			<span class="p">}</span>
-		<span class="p">}</span>
-
-		<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">{</span>
-			<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
-			<span class="c1">// While there shouldn&#39;t be any queued deletions in the initial
-</span><span class="c1"></span>			<span class="c1">// population of the queue, it&#39;s better to be on the safe side.
-</span><span class="c1"></span>			<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">=</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Len</span><span class="p">()</span> <span class="o">+</span> <span class="nx">queuedDeletions</span>
-		<span class="p">}</span>
-
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span>
-
-	<span class="c1">// Detect deletions not already in the queue.
-</span><span class="c1"></span>	<span class="nx">knownKeys</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">ListKeys</span><span class="p">()</span>
-	<span class="nx">queuedDeletions</span> <span class="o">:=</span> <span class="mi">0</span>
-	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">k</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">knownKeys</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Has</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
-			<span class="k">continue</span>
-		<span class="p">}</span>
-
-		<span class="nx">deletedObj</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">deletedObj</span> <span class="p">=</span> <span class="kc">nil</span>
-			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Unexpected error %v during lookup of key %v, placing DeleteFinalStateUnknown marker without object&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
-		<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
-			<span class="nx">deletedObj</span> <span class="p">=</span> <span class="kc">nil</span>
-			<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Key %v does not exist in known objects store, placing DeleteFinalStateUnknown marker without object&#34;</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
-		<span class="p">}</span>
-		<span class="nx">queuedDeletions</span><span class="o">++</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">DeletedFinalStateUnknown</span><span class="p">{</span><span class="nx">k</span><span class="p">,</span> <span class="nx">deletedObj</span><span class="p">});</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-
-	<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">{</span>
-		<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
-		<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">=</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Len</span><span class="p">()</span> <span class="o">+</span> <span class="nx">queuedDeletions</span>
-	<span class="p">}</span>
-
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Replace atomically does two things: (1) it adds the given objects
+</span></span></span><span class="line"><span class="cl"><span class="c1">// using the Sync or Replace DeltaType and then (2) it does some deletions.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// In particular: for every pre-existing key K that is not the key of
+</span></span></span><span class="line"><span class="cl"><span class="c1">// an object in `list` there is the effect of
+</span></span></span><span class="line"><span class="cl"><span class="c1">// `Delete(DeletedFinalStateUnknown{K, O})` where O is current object
+</span></span></span><span class="line"><span class="cl"><span class="c1">// of K.  If `f.knownObjects == nil` then the pre-existing keys are
+</span></span></span><span class="line"><span class="cl"><span class="c1">// those in `f.items` and the current object of K is the `.Newest()`
+</span></span></span><span class="line"><span class="cl"><span class="c1">// of the Deltas associated with K.  Otherwise the pre-existing keys
+</span></span></span><span class="line"><span class="cl"><span class="c1">// are those listed by `f.knownObjects` and the current object of K is
+</span></span></span><span class="line"><span class="cl"><span class="c1">// what `f.knownObjects.GetByKey(K)` returns.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Replace</span><span class="p">(</span><span class="nx">list</span> <span class="p">[]</span><span class="kd">interface</span><span class="p">{},</span> <span class="nx">resourceVersion</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">keys</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="nx">sets</span><span class="p">.</span><span class="nx">String</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nx">list</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// keep backwards compat for old clients
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">action</span> <span class="o">:=</span> <span class="nx">Sync</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">emitDeltaTypeReplaced</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">action</span> <span class="p">=</span> <span class="nx">Replaced</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Add Sync/Replaced action for each new item.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">item</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">list</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">key</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">item</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">keys</span><span class="p">.</span><span class="nf">Insert</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">action</span><span class="p">,</span> <span class="nx">item</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;couldn&#39;t enqueue object: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Do deletion detection against our own list.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">queuedDeletions</span> <span class="o">:=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="nx">k</span><span class="p">,</span> <span class="nx">oldItem</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Has</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// Delete pre-existing items not in the new list.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// This could happen if watch deletion event was missed while
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// disconnected from apiserver.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="kd">var</span> <span class="nx">deletedObj</span> <span class="kd">interface</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">n</span> <span class="o">:=</span> <span class="nx">oldItem</span><span class="p">.</span><span class="nf">Newest</span><span class="p">();</span> <span class="nx">n</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">deletedObj</span> <span class="p">=</span> <span class="nx">n</span><span class="p">.</span><span class="nx">Object</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">queuedDeletions</span><span class="o">++</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">DeletedFinalStateUnknown</span><span class="p">{</span><span class="nx">k</span><span class="p">,</span> <span class="nx">deletedObj</span><span class="p">});</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// While there shouldn&#39;t be any queued deletions in the initial
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// population of the queue, it&#39;s better to be on the safe side.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">=</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Len</span><span class="p">()</span> <span class="o">+</span> <span class="nx">queuedDeletions</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Detect deletions not already in the queue.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">knownKeys</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">ListKeys</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">queuedDeletions</span> <span class="o">:=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">k</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">knownKeys</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Has</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">deletedObj</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">deletedObj</span> <span class="p">=</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Unexpected error %v during lookup of key %v, placing DeleteFinalStateUnknown marker without object&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">deletedObj</span> <span class="p">=</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Key %v does not exist in known objects store, placing DeleteFinalStateUnknown marker without object&#34;</span><span class="p">,</span> <span class="nx">k</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">queuedDeletions</span><span class="o">++</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Deleted</span><span class="p">,</span> <span class="nx">DeletedFinalStateUnknown</span><span class="p">{</span><span class="nx">k</span><span class="p">,</span> <span class="nx">deletedObj</span><span class="p">});</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">!</span><span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">f</span><span class="p">.</span><span class="nx">populated</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">=</span> <span class="nx">keys</span><span class="p">.</span><span class="nf">Len</span><span class="p">()</span> <span class="o">+</span> <span class="nx">queuedDeletions</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <h3 id="resync">Resync</h3>
@@ -967,7 +966,7 @@
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -1016,54 +1015,54 @@
 </span><span class="lnt">47
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Resync adds, with a Sync type of Delta, every object listed by
-</span><span class="c1">// `f.knownObjects` whose key is not already queued for processing.
-</span><span class="c1">// If `f.knownObjects` is `nil` then Resync does nothing.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-
-	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span>
-
-	<span class="nx">keys</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">ListKeys</span><span class="p">()</span>
-	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">k</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">keys</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">syncKeyLocked</span><span class="p">(</span><span class="nx">k</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">syncKeyLocked</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">obj</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Unexpected error %v during lookup of key %v, unable to queue object for sync&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
-		<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Key %v does not exist in known objects store, unable to queue object for sync&#34;</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span>
-
-	<span class="c1">// If we are doing Resync() and there is already an event queued for that object,
-</span><span class="c1"></span>	<span class="c1">// we ignore the Resync for it. This is to avoid the race, in which the resync
-</span><span class="c1"></span>	<span class="c1">// comes with the previous value of object (since queueing an event for the object
-</span><span class="c1"></span>	<span class="c1">// doesn&#39;t trigger changing the underlying store &lt;knownObjects&gt;.
-</span><span class="c1"></span>	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
-	<span class="p">}</span>
-	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">])</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}</span>
-
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Sync</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;couldn&#39;t queue object: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Resync adds, with a Sync type of Delta, every object listed by
+</span></span></span><span class="line"><span class="cl"><span class="c1">// `f.knownObjects` whose key is not already queued for processing.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// If `f.knownObjects` is `nil` then Resync does nothing.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Resync</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span> <span class="o">==</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">keys</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">ListKeys</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">k</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">keys</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">syncKeyLocked</span><span class="p">(</span><span class="nx">k</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">syncKeyLocked</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">obj</span><span class="p">,</span> <span class="nx">exists</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">knownObjects</span><span class="p">.</span><span class="nf">GetByKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Unexpected error %v during lookup of key %v, unable to queue object for sync&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">!</span><span class="nx">exists</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">klog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Key %v does not exist in known objects store, unable to queue object for sync&#34;</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// If we are doing Resync() and there is already an event queued for that object,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// we ignore the Resync for it. This is to avoid the race, in which the resync
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// comes with the previous value of object (since queueing an event for the object
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// doesn&#39;t trigger changing the underlying store &lt;knownObjects&gt;.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">id</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">KeyOf</span><span class="p">(</span><span class="nx">obj</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">KeyError</span><span class="p">{</span><span class="nx">obj</span><span class="p">,</span> <span class="nx">err</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">])</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nf">queueActionLocked</span><span class="p">(</span><span class="nx">Sync</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;couldn&#39;t queue object: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <h3 id="pop">Pop</h3>
@@ -1071,7 +1070,7 @@
 <!-- raw HTML omitted -->
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -1123,57 +1122,57 @@
 </span><span class="lnt">50
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Pop blocks until the queue has some items, and then returns one.  If
-</span><span class="c1">// multiple items are ready, they are returned in the order in which they were
-</span><span class="c1">// added/updated. The item is removed from the queue (and the store) before it
-</span><span class="c1">// is returned, so if you don&#39;t successfully process it, you need to add it back
-</span><span class="c1">// with AddIfNotPresent().
-</span><span class="c1">// process function is called under lock, so it is safe to update data structures
-</span><span class="c1">// in it that need to be in sync with the queue (e.g. knownKeys). The PopProcessFunc
-</span><span class="c1">// may return an instance of ErrRequeue with a nested error to indicate the current
-</span><span class="c1">// item should be requeued (equivalent to calling AddIfNotPresent under the lock).
-</span><span class="c1">// process should avoid expensive I/O operation so that other queue operations, i.e.
-</span><span class="c1">// Add() and Get(), won&#39;t be blocked for too long.
-</span><span class="c1">//
-</span><span class="c1">// Pop returns a &#39;Deltas&#39;, which has a complete list of all the things
-</span><span class="c1">// that happened to the object (deltas) while it was sitting in the queue.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Pop</span><span class="p">(</span><span class="nx">process</span> <span class="nx">PopProcessFunc</span><span class="p">)</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-	<span class="k">for</span> <span class="p">{</span>
-		<span class="k">for</span> <span class="nb">len</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
-			<span class="c1">// When the queue is empty, invocation of Pop() is blocked until new item is enqueued.
-</span><span class="c1"></span>			<span class="c1">// When Close() is called, the f.closed is set and the condition is broadcasted.
-</span><span class="c1"></span>			<span class="c1">// Which causes this loop to continue and return from the Pop().
-</span><span class="c1"></span>			<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">closed</span> <span class="p">{</span>
-				<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">ErrFIFOClosed</span>
-			<span class="p">}</span>
-
-			<span class="nx">f</span><span class="p">.</span><span class="nx">cond</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span>
-		<span class="p">}</span>
-		<span class="nx">id</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-		<span class="nx">f</span><span class="p">.</span><span class="nx">queue</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-		<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
-			<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span><span class="o">--</span>
-		<span class="p">}</span>
-		<span class="nx">item</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
-		<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
-			<span class="c1">// This should never happen
-</span><span class="c1"></span>			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Inconceivable! %q was in f.queue but not f.items; ignoring.&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
-			<span class="k">continue</span>
-		<span class="p">}</span>
-		<span class="nb">delete</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
-		<span class="nx">err</span> <span class="o">:=</span> <span class="nf">process</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">err</span><span class="p">.(</span><span class="nx">ErrRequeue</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
-			<span class="nx">f</span><span class="p">.</span><span class="nf">addIfNotPresent</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span> <span class="nx">item</span><span class="p">)</span>
-			<span class="nx">err</span> <span class="p">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Err</span>
-		<span class="p">}</span>
-		<span class="c1">// Don&#39;t need to copyDeltas here, because we&#39;re transferring
-</span><span class="c1"></span>		<span class="c1">// ownership to the caller.
-</span><span class="c1"></span>		<span class="k">return</span> <span class="nx">item</span><span class="p">,</span> <span class="nx">err</span>
-	<span class="p">}</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Pop blocks until the queue has some items, and then returns one.  If
+</span></span></span><span class="line"><span class="cl"><span class="c1">// multiple items are ready, they are returned in the order in which they were
+</span></span></span><span class="line"><span class="cl"><span class="c1">// added/updated. The item is removed from the queue (and the store) before it
+</span></span></span><span class="line"><span class="cl"><span class="c1">// is returned, so if you don&#39;t successfully process it, you need to add it back
+</span></span></span><span class="line"><span class="cl"><span class="c1">// with AddIfNotPresent().
+</span></span></span><span class="line"><span class="cl"><span class="c1">// process function is called under lock, so it is safe to update data structures
+</span></span></span><span class="line"><span class="cl"><span class="c1">// in it that need to be in sync with the queue (e.g. knownKeys). The PopProcessFunc
+</span></span></span><span class="line"><span class="cl"><span class="c1">// may return an instance of ErrRequeue with a nested error to indicate the current
+</span></span></span><span class="line"><span class="cl"><span class="c1">// item should be requeued (equivalent to calling AddIfNotPresent under the lock).
+</span></span></span><span class="line"><span class="cl"><span class="c1">// process should avoid expensive I/O operation so that other queue operations, i.e.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Add() and Get(), won&#39;t be blocked for too long.
+</span></span></span><span class="line"><span class="cl"><span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Pop returns a &#39;Deltas&#39;, which has a complete list of all the things
+</span></span></span><span class="line"><span class="cl"><span class="c1">// that happened to the object (deltas) while it was sitting in the queue.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">f</span> <span class="o">*</span><span class="nx">DeltaFIFO</span><span class="p">)</span> <span class="nf">Pop</span><span class="p">(</span><span class="nx">process</span> <span class="nx">PopProcessFunc</span><span class="p">)</span> <span class="p">(</span><span class="kd">interface</span><span class="p">{},</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">f</span><span class="p">.</span><span class="nx">lock</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="nb">len</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// When the queue is empty, invocation of Pop() is blocked until new item is enqueued.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// When Close() is called, the f.closed is set and the condition is broadcasted.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// Which causes this loop to continue and return from the Pop().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">closed</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">ErrFIFOClosed</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">			<span class="nx">f</span><span class="p">.</span><span class="nx">cond</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">id</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">f</span><span class="p">.</span><span class="nx">queue</span> <span class="p">=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">queue</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">f</span><span class="p">.</span><span class="nx">initialPopulationCount</span><span class="o">--</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">item</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">[</span><span class="nx">id</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// This should never happen
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="nx">klog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Inconceivable! %q was in f.queue but not f.items; ignoring.&#34;</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nb">delete</span><span class="p">(</span><span class="nx">f</span><span class="p">.</span><span class="nx">items</span><span class="p">,</span> <span class="nx">id</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">err</span> <span class="o">:=</span> <span class="nf">process</span><span class="p">(</span><span class="nx">item</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">e</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">err</span><span class="p">.(</span><span class="nx">ErrRequeue</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">f</span><span class="p">.</span><span class="nf">addIfNotPresent</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span> <span class="nx">item</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">err</span> <span class="p">=</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Don&#39;t need to copyDeltas here, because we&#39;re transferring
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// ownership to the caller.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">return</span> <span class="nx">item</span><span class="p">,</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><!-- raw HTML omitted -->
 <p>至此，DeltaFIFO的核心方法我们已了然于胸。</p>
@@ -1265,7 +1264,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -1282,10 +1281,10 @@
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

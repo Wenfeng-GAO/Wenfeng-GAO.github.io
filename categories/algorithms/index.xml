@@ -6,24 +6,21 @@
     <description>Recent content in algorithms on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 16 Oct 2019 10:49:40 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/categories/algorithms/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 16 Oct 2019 10:49:40 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/categories/algorithms/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Implemetation of Min Heap</title>
       <link>https://wenfeng-gao.github.io/post/implemetation-of-min-heap/</link>
       <pubDate>Wed, 16 Oct 2019 10:49:40 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/implemetation-of-min-heap/</guid>
       <description>Heap is a basic and important data structure in computer science, I&amp;rsquo;ll share my simple implementation by interger slice in Go, as well as Go&amp;rsquo;s native library&amp;rsquo;s implementation.</description>
     </item>
-    
     <item>
       <title>8 Classical Sorting Algorithms</title>
       <link>https://wenfeng-gao.github.io/post/8-classical-sorting-algorithms/</link>
       <pubDate>Sun, 29 Sep 2019 23:17:50 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/8-classical-sorting-algorithms/</guid>
       <description>In this article, I&amp;rsquo;ll review the following 8 classical sorting algorithms, and implement them in Go.</description>
     </item>
-    
   </channel>
 </rss>

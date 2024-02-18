@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimite" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/core-dump-file-size-limit-in-docker/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2018-05-15T18:24:30&#43;08:00" />
-<meta property="article:modified_time" content="2018-05-15T18:24:30&#43;08:00" />
+<meta property="article:published_time" content="2018-05-15T18:24:30+08:00" />
+<meta property="article:modified_time" content="2018-05-15T18:24:30+08:00" />
 
 <meta itemprop="name" content="Core Dump File Size Limit in Docker">
-<meta itemprop="description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimite"><meta itemprop="datePublished" content="2018-05-15T18:24:30&#43;08:00" />
-<meta itemprop="dateModified" content="2018-05-15T18:24:30&#43;08:00" />
+<meta itemprop="description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimite"><meta itemprop="datePublished" content="2018-05-15T18:24:30+08:00" />
+<meta itemprop="dateModified" content="2018-05-15T18:24:30+08:00" />
 <meta itemprop="wordCount" content="1414">
-<meta itemprop="keywords" content="docker," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Core Dump File Size Limit in Docker"/>
+<meta itemprop="keywords" content="docker," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="Core Dump File Size Limit in Docker"/>
 <meta name="twitter:description" content="Background 工作中遇到这样一个问题，运行环境为Docker容器，由于设置了容器的磁盘大小，但是没有设置core dump file的大小（默认为unlimite"/>
 
 <!--[if lte IE 9]>
@@ -144,7 +143,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li>
@@ -169,15 +168,15 @@
 <p>Systemd&rsquo;s default behavior is to generate core dumps for all processes in <code>/var/lib/systemd/coredump</code>. This behavior can be overridden by creating a configuration snippet in the <code>/etc/systemd/coredump.conf.d/</code> directory with the following content.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">/etc/systemd/coredump.conf.d/custom.conf
-<span class="o">[</span>Coredump<span class="o">]</span>
-<span class="nv">Storage</span><span class="o">=</span>none
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">/etc/systemd/coredump.conf.d/custom.conf
+</span></span><span class="line"><span class="cl"><span class="o">[</span>Coredump<span class="o">]</span>
+</span></span><span class="line"><span class="cl"><span class="nv">Storage</span><span class="o">=</span>none
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>然后重载<code>systemd</code>的配置</p>
 <pre><code>systemctl daemon-reload
@@ -202,7 +201,7 @@
 <p>首先我们执行一个简单的线程</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -212,47 +211,47 @@
 </span><span class="lnt">8
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-python" data-lang="python"><span class="n">test</span><span class="o">.</span><span class="n">py</span>
-<span class="c1">#!/usr/bin/env python</span>
-
-<span class="kn">import</span> <span class="nn">time</span>
-
-<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-        <span class="k">print</span> <span class="s1">&#39;hi&#39;</span>
-        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="line"><span class="cl"><span class="n">test</span><span class="o">.</span><span class="n">py</span>
+</span></span><span class="line"><span class="cl"><span class="c1">#!/usr/bin/env python</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="nn">time</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">        <span class="nb">print</span> <span class="s1">&#39;hi&#39;</span>
+</span></span><span class="line"><span class="cl">        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>然后通过<code>ps -ef</code>找到这个进程的<code>PID</code>，执行<code>gdb -p PID</code>，然而这时，问题又来了:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">Attaching to process <span class="m">145</span>
-ptrace: Operation not permitted.
-<span class="o">(</span>gdb<span class="o">)</span> generate-core-file
-You can<span class="err">&#39;</span>t <span class="k">do</span> that without a process to debug.
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">Attaching to process <span class="m">145</span>
+</span></span><span class="line"><span class="cl">ptrace: Operation not permitted.
+</span></span><span class="line"><span class="cl"><span class="o">(</span>gdb<span class="o">)</span> generate-core-file
+</span></span><span class="line"><span class="cl">You can<span class="err">&#39;</span>t <span class="k">do</span> that without a process to debug.
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>而通过这个开了又关关了又开的长长的GitHub Issue <a href="https://github.com/moby/moby/issues/7276">apparmor denies ptrace to docker-default profile #7276</a>，我大概知道，还是找个别的方法更省力。</p>
 <h4 id="method-2-kill--abrt-pid-succeed">Method 2: <code>kill -ABRT PID</code> [succeed]</h4>
 <p>通过<code>man</code>文档，我们知道这几个<code>signal</code>可以产生core dump文件：</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">   SIGQUIT       <span class="m">3</span>       Core    Quit from keyboard
-   SIGILL        <span class="m">4</span>       Core    Illegal Instruction
-   SIGABRT       <span class="m">6</span>       Core    Abort signal from abort<span class="o">(</span>3<span class="o">)</span>
-   SIGFPE        <span class="m">8</span>       Core    Floating-point exception
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">   SIGQUIT       <span class="m">3</span>       Core    Quit from keyboard
+</span></span><span class="line"><span class="cl">   SIGILL        <span class="m">4</span>       Core    Illegal Instruction
+</span></span><span class="line"><span class="cl">   SIGABRT       <span class="m">6</span>       Core    Abort signal from abort<span class="o">(</span>3<span class="o">)</span>
+</span></span><span class="line"><span class="cl">   SIGFPE        <span class="m">8</span>       Core    Floating-point exception
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>这时我们发现，当<code>ulimit -c</code>设为<code>0</code>时，确实不会产生core dump文件；</p>
 <p>而当我们把<code>ulimit -c</code>设为<code>4</code>时，产生了core dump，使用<code>gdb ./test.py core.PID</code> debug时，却发现了这样的warning。</p>
@@ -355,7 +354,7 @@ You can<span class="err">&#39;</span>t <span class="k">do</span> that without a 
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -372,10 +371,10 @@ You can<span class="err">&#39;</span>t <span class="k">do</span> that without a 
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

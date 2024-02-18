@@ -6,15 +6,14 @@
     <description>Recent content in coroutine on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 21 Feb 2018 18:24:14 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/coroutine/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 21 Feb 2018 18:24:14 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/coroutine/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Coroutine With Gevent</title>
       <link>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</link>
       <pubDate>Wed, 21 Feb 2018 18:24:14 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</guid>
       <description>背景 工作中用到gevent。 gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。 使用过程中，带着某些问</description>
     </item>
-    
   </channel>
 </rss>

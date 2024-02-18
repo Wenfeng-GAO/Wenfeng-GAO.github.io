@@ -6,26 +6,21 @@
     <description>Recent content in python on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Wed, 21 Feb 2018 18:24:14 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 21 Feb 2018 18:24:14 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Coroutine With Gevent</title>
       <link>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</link>
       <pubDate>Wed, 21 Feb 2018 18:24:14 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/coroutine-with-gevent/</guid>
       <description>背景 工作中用到gevent。 gevent是一个基于libev的并发库。它为各种并发和网络相关的任务提供了整洁的API。 使用过程中，带着某些问</description>
     </item>
-    
     <item>
       <title>Python Yield Keyword</title>
       <link>https://wenfeng-gao.github.io/post/python-yield-keyword/</link>
       <pubDate>Tue, 06 Feb 2018 18:23:56 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/python-yield-keyword/</guid>
-      <description>Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&amp;rsquo;s no similar thing in Java or C language.
-So in this post, I&amp;rsquo;ll try to explain and conclude what the yield keyword does.
-In fact, the same question was posed on stackoverflow, which gains 5951 votes.</description>
+      <description>Yield keyword is an important feature in Python language, in order to understand coroutine in Python, we need to understand yield and generator first. However, this feature also makes the Python newbies like me confused a lot, as there&amp;rsquo;s no similar thing in Java or C language.&#xA;So in this post, I&amp;rsquo;ll try to explain and conclude what the yield keyword does.&#xA;In fact, the same question was posed on stackoverflow, which gains 5951 votes.</description>
     </item>
-    
   </channel>
 </rss>

@@ -6,17 +6,14 @@
     <description>Recent content in unit-test on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Fri, 13 May 2016 18:21:19 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/unit-test/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 13 May 2016 18:21:19 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/unit-test/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Mock With Mockito</title>
       <link>https://wenfeng-gao.github.io/post/mock-with-mockito/</link>
       <pubDate>Fri, 13 May 2016 18:21:19 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/mock-with-mockito/</guid>
-      <description>Unit test takes an important role in software development, which ensures the code quality. Mockito is an open-source mocking framework for unit tests in Java. After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito to you.
-Why mock? Mock means using a fake thing instead of the original one to help us test, but why do we need that?
-Martin Fowler&amp;rsquo;s article Mocks Aren&amp;rsquo;t Stubs makes a lot sense explainning why.</description>
+      <description>Unit test takes an important role in software development, which ensures the code quality. Mockito is an open-source mocking framework for unit tests in Java. After trying, I found it very nice and easy to use, so this blog aims to introducing Mockito to you.&#xA;Why mock? Mock means using a fake thing instead of the original one to help us test, but why do we need that?&#xA;Martin Fowler&amp;rsquo;s article Mocks Aren&amp;rsquo;t Stubs makes a lot sense explainning why.</description>
     </item>
-    
   </channel>
 </rss>

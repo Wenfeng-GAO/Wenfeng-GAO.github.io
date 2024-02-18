@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-reflector/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s-informer-mechanics-reflector/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2021-04-13T10:30:39&#43;08:00" />
-<meta property="article:modified_time" content="2021-04-13T10:30:39&#43;08:00" />
+<meta property="article:published_time" content="2021-04-13T10:30:39+08:00" />
+<meta property="article:modified_time" content="2021-04-13T10:30:39+08:00" />
 
 <meta itemprop="name" content="K8s Informer Mechanics Part II - Reflector">
-<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"><meta itemprop="datePublished" content="2021-04-13T10:30:39&#43;08:00" />
-<meta itemprop="dateModified" content="2021-04-13T10:30:39&#43;08:00" />
+<meta itemprop="description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"><meta itemprop="datePublished" content="2021-04-13T10:30:39+08:00" />
+<meta itemprop="dateModified" content="2021-04-13T10:30:39+08:00" />
 <meta itemprop="wordCount" content="4067">
-<meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="K8s Informer Mechanics Part II - Reflector"/>
+<meta itemprop="keywords" content="kubernetes,client-go," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="K8s Informer Mechanics Part II - Reflector"/>
 <meta name="twitter:description" content="为了能实时从apiserver获取资源的状态及变化，又最大限度得降低apiserver工作负载，k8s 使用了一种叫informer的机制，通过精妙的设计，无需任何中间件，只依靠最简单的http协议 便实现了需求。作为介绍Informer机制系列文章的第二篇，我们详细分析Reflector模块的代码实现。"/>
 
 <!--[if lte IE 9]>
@@ -146,7 +145,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li>
@@ -194,7 +193,7 @@
 <p>先来看Relector的结构体。 其中<code>expectedType</code>等确定监听的资源类型，<code>listerWatcher</code>用来对资源list和watch。<code>store</code>是Reflector需要更新同步的内部store，一般会传入<code>DeltaFIFO</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -218,34 +217,34 @@
 </span><span class="lnt">22
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Reflector watches a specified resource and causes all changes to be reflected in the given store.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Reflector</span> <span class="kd">struct</span> <span class="p">{</span>
-	<span class="c1">// The name of the type we expect to place in the store. The name
-</span><span class="c1"></span>	<span class="c1">// will be the stringification of expectedGVK if provided, and the
-</span><span class="c1"></span>	<span class="c1">// stringification of expectedType otherwise. It is for display
-</span><span class="c1"></span>	<span class="c1">// only, and should not be used for parsing or comparison.
-</span><span class="c1"></span>	<span class="nx">expectedTypeName</span> <span class="kt">string</span>
-	<span class="c1">// An example object of the type we expect to place in the store.
-</span><span class="c1"></span>	<span class="c1">// Only the type needs to be right, except that when that is
-</span><span class="c1"></span>	<span class="c1">// `unstructured.Unstructured` the object&#39;s `&#34;apiVersion&#34;` and
-</span><span class="c1"></span>	<span class="c1">// `&#34;kind&#34;` must also be right.
-</span><span class="c1"></span>	<span class="nx">expectedType</span> <span class="nx">reflect</span><span class="p">.</span><span class="nx">Type</span>
-	<span class="c1">// The GVK of the object we expect to place in the store if unstructured.
-</span><span class="c1"></span>	<span class="nx">expectedGVK</span> <span class="o">*</span><span class="nx">schema</span><span class="p">.</span><span class="nx">GroupVersionKind</span>
-	<span class="c1">// The destination to sync up with the watch source
-</span><span class="c1"></span>	<span class="nx">store</span> <span class="nx">Store</span>
-	<span class="c1">// listerWatcher is used to perform lists and watches.
-</span><span class="c1"></span>	<span class="nx">listerWatcher</span> <span class="nx">ListerWatcher</span>
-
-	<span class="nx">resyncPeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span>
-	<span class="c1">// ShouldResync is invoked periodically and whenever it returns `true` the Store&#39;s Resync operation is invoked
-</span><span class="c1"></span><span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Reflector watches a specified resource and causes all changes to be reflected in the given store.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">Reflector</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// The name of the type we expect to place in the store. The name
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// will be the stringification of expectedGVK if provided, and the
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// stringification of expectedType otherwise. It is for display
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// only, and should not be used for parsing or comparison.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">expectedTypeName</span> <span class="kt">string</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// An example object of the type we expect to place in the store.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// Only the type needs to be right, except that when that is
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// `unstructured.Unstructured` the object&#39;s `&#34;apiVersion&#34;` and
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// `&#34;kind&#34;` must also be right.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">expectedType</span> <span class="nx">reflect</span><span class="p">.</span><span class="nx">Type</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// The GVK of the object we expect to place in the store if unstructured.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">expectedGVK</span> <span class="o">*</span><span class="nx">schema</span><span class="p">.</span><span class="nx">GroupVersionKind</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// The destination to sync up with the watch source
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">store</span> <span class="nx">Store</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// listerWatcher is used to perform lists and watches.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">listerWatcher</span> <span class="nx">ListerWatcher</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">resyncPeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// ShouldResync is invoked periodically and whenever it returns `true` the Store&#39;s Resync operation is invoked
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>看下创建Reflector的方法以及需要传入的参数。可以看到创建Reflector时需要传入<code>listWatcher</code>和<code>DeltaFIFO</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -280,40 +279,40 @@
 </span><span class="lnt">33
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewReflector creates a new Reflector object which will keep the
-</span><span class="c1">// given store up to date with the server&#39;s contents for the given
-</span><span class="c1">// resource. Reflector promises to only put things in the store that
-</span><span class="c1">// have the type of expectedType, unless expectedType is nil. If
-</span><span class="c1">// resyncPeriod is non-zero, then the reflector will periodically
-</span><span class="c1">// consult its ShouldResync function to determine whether to invoke
-</span><span class="c1">// the Store&#39;s Resync operation; `ShouldResync==nil` means always
-</span><span class="c1">// &#34;yes&#34;.  This enables you to use reflectors to periodically process
-</span><span class="c1">// everything as well as incrementally processing the things that
-</span><span class="c1">// change.
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewReflector</span><span class="p">(</span><span class="nx">lw</span> <span class="nx">ListerWatcher</span><span class="p">,</span> <span class="nx">expectedType</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">store</span> <span class="nx">Store</span><span class="p">,</span> <span class="nx">resyncPeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="o">*</span><span class="nx">Reflector</span> <span class="p">{</span>
-	<span class="k">return</span> <span class="nf">NewNamedReflector</span><span class="p">(</span><span class="nx">naming</span><span class="p">.</span><span class="nf">GetNameFromCallsite</span><span class="p">(</span><span class="nx">internalPackages</span><span class="o">...</span><span class="p">),</span> <span class="nx">lw</span><span class="p">,</span> <span class="nx">expectedType</span><span class="p">,</span> <span class="nx">store</span><span class="p">,</span> <span class="nx">resyncPeriod</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="c1">// NewNamedReflector same as NewReflector, but with a specified name for logging
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewNamedReflector</span><span class="p">(</span><span class="nx">name</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">lw</span> <span class="nx">ListerWatcher</span><span class="p">,</span> <span class="nx">expectedType</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">store</span> <span class="nx">Store</span><span class="p">,</span> <span class="nx">resyncPeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="o">*</span><span class="nx">Reflector</span> <span class="p">{</span>
-	<span class="nx">realClock</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">clock</span><span class="p">.</span><span class="nx">RealClock</span><span class="p">{}</span>
-	<span class="nx">r</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">Reflector</span><span class="p">{</span>
-		<span class="nx">name</span><span class="p">:</span>          <span class="nx">name</span><span class="p">,</span>
-		<span class="nx">listerWatcher</span><span class="p">:</span> <span class="nx">lw</span><span class="p">,</span>
-		<span class="nx">store</span><span class="p">:</span>         <span class="nx">store</span><span class="p">,</span>
-		<span class="c1">// We used to make the call every 1sec (1 QPS), the goal here is to achieve ~98% traffic reduction when
-</span><span class="c1"></span>		<span class="c1">// API server is not healthy. With these parameters, backoff will stop at [30,60) sec interval which is
-</span><span class="c1"></span>		<span class="c1">// 0.22 QPS. If we don&#39;t backoff for 2min, assume API server is healthy and we reset the backoff.
-</span><span class="c1"></span>		<span class="nx">backoffManager</span><span class="p">:</span>         <span class="nx">wait</span><span class="p">.</span><span class="nf">NewExponentialBackoffManager</span><span class="p">(</span><span class="mi">800</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">,</span> <span class="mi">30</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Minute</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nx">realClock</span><span class="p">),</span>
-		<span class="nx">initConnBackoffManager</span><span class="p">:</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">NewExponentialBackoffManager</span><span class="p">(</span><span class="mi">800</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">,</span> <span class="mi">30</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Minute</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nx">realClock</span><span class="p">),</span>
-		<span class="nx">resyncPeriod</span><span class="p">:</span>           <span class="nx">resyncPeriod</span><span class="p">,</span>
-		<span class="nx">clock</span><span class="p">:</span>                  <span class="nx">realClock</span><span class="p">,</span>
-		<span class="nx">watchErrorHandler</span><span class="p">:</span>      <span class="nf">WatchErrorHandler</span><span class="p">(</span><span class="nx">DefaultWatchErrorHandler</span><span class="p">),</span>
-	<span class="p">}</span>
-	<span class="nx">r</span><span class="p">.</span><span class="nf">setExpectedType</span><span class="p">(</span><span class="nx">expectedType</span><span class="p">)</span>
-	<span class="k">return</span> <span class="nx">r</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// NewReflector creates a new Reflector object which will keep the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// given store up to date with the server&#39;s contents for the given
+</span></span></span><span class="line"><span class="cl"><span class="c1">// resource. Reflector promises to only put things in the store that
+</span></span></span><span class="line"><span class="cl"><span class="c1">// have the type of expectedType, unless expectedType is nil. If
+</span></span></span><span class="line"><span class="cl"><span class="c1">// resyncPeriod is non-zero, then the reflector will periodically
+</span></span></span><span class="line"><span class="cl"><span class="c1">// consult its ShouldResync function to determine whether to invoke
+</span></span></span><span class="line"><span class="cl"><span class="c1">// the Store&#39;s Resync operation; `ShouldResync==nil` means always
+</span></span></span><span class="line"><span class="cl"><span class="c1">// &#34;yes&#34;.  This enables you to use reflectors to periodically process
+</span></span></span><span class="line"><span class="cl"><span class="c1">// everything as well as incrementally processing the things that
+</span></span></span><span class="line"><span class="cl"><span class="c1">// change.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewReflector</span><span class="p">(</span><span class="nx">lw</span> <span class="nx">ListerWatcher</span><span class="p">,</span> <span class="nx">expectedType</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">store</span> <span class="nx">Store</span><span class="p">,</span> <span class="nx">resyncPeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="o">*</span><span class="nx">Reflector</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nf">NewNamedReflector</span><span class="p">(</span><span class="nx">naming</span><span class="p">.</span><span class="nf">GetNameFromCallsite</span><span class="p">(</span><span class="nx">internalPackages</span><span class="o">...</span><span class="p">),</span> <span class="nx">lw</span><span class="p">,</span> <span class="nx">expectedType</span><span class="p">,</span> <span class="nx">store</span><span class="p">,</span> <span class="nx">resyncPeriod</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// NewNamedReflector same as NewReflector, but with a specified name for logging
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewNamedReflector</span><span class="p">(</span><span class="nx">name</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">lw</span> <span class="nx">ListerWatcher</span><span class="p">,</span> <span class="nx">expectedType</span> <span class="kd">interface</span><span class="p">{},</span> <span class="nx">store</span> <span class="nx">Store</span><span class="p">,</span> <span class="nx">resyncPeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="o">*</span><span class="nx">Reflector</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">realClock</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">clock</span><span class="p">.</span><span class="nx">RealClock</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">r</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">Reflector</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">name</span><span class="p">:</span>          <span class="nx">name</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">listerWatcher</span><span class="p">:</span> <span class="nx">lw</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">store</span><span class="p">:</span>         <span class="nx">store</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// We used to make the call every 1sec (1 QPS), the goal here is to achieve ~98% traffic reduction when
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// API server is not healthy. With these parameters, backoff will stop at [30,60) sec interval which is
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// 0.22 QPS. If we don&#39;t backoff for 2min, assume API server is healthy and we reset the backoff.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">backoffManager</span><span class="p">:</span>         <span class="nx">wait</span><span class="p">.</span><span class="nf">NewExponentialBackoffManager</span><span class="p">(</span><span class="mi">800</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">,</span> <span class="mi">30</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Minute</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nx">realClock</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">initConnBackoffManager</span><span class="p">:</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">NewExponentialBackoffManager</span><span class="p">(</span><span class="mi">800</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">,</span> <span class="mi">30</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Minute</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="nx">realClock</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">resyncPeriod</span><span class="p">:</span>           <span class="nx">resyncPeriod</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">clock</span><span class="p">:</span>                  <span class="nx">realClock</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">watchErrorHandler</span><span class="p">:</span>      <span class="nf">WatchErrorHandler</span><span class="p">(</span><span class="nx">DefaultWatchErrorHandler</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">r</span><span class="p">.</span><span class="nf">setExpectedType</span><span class="p">(</span><span class="nx">expectedType</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">r</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="reflector的重要方法">Reflector的重要方法</h2>
 <p>Reflector模块中会调用2个重要的方法来完成任务：</p>
@@ -325,7 +324,7 @@
 <p>Reflector的<code>Run</code>方法会持续调用<code>ListAndWatch</code>，也是我们要重点关注的方法。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -339,19 +338,19 @@
 </span><span class="lnt">12
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// Run repeatedly uses the reflector&#39;s ListAndWatch to fetch all the
-</span><span class="c1">// objects and subsequent deltas.
-</span><span class="c1">// Run will exit when stopCh is closed.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Reflector</span><span class="p">)</span> <span class="nf">Run</span><span class="p">(</span><span class="nx">stopCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span> <span class="p">{</span>
-	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Starting reflector %s (%s) from %s&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">resyncPeriod</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
-	<span class="nx">wait</span><span class="p">.</span><span class="nf">BackoffUntil</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">ListAndWatch</span><span class="p">(</span><span class="nx">stopCh</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">r</span><span class="p">.</span><span class="nf">watchErrorHandler</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-	<span class="p">},</span> <span class="nx">r</span><span class="p">.</span><span class="nx">backoffManager</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="nx">stopCh</span><span class="p">)</span>
-	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Stopping reflector %s (%s) from %s&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">resyncPeriod</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// Run repeatedly uses the reflector&#39;s ListAndWatch to fetch all the
+</span></span></span><span class="line"><span class="cl"><span class="c1">// objects and subsequent deltas.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Run will exit when stopCh is closed.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Reflector</span><span class="p">)</span> <span class="nf">Run</span><span class="p">(</span><span class="nx">stopCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Starting reflector %s (%s) from %s&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">resyncPeriod</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">wait</span><span class="p">.</span><span class="nf">BackoffUntil</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">ListAndWatch</span><span class="p">(</span><span class="nx">stopCh</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">r</span><span class="p">.</span><span class="nf">watchErrorHandler</span><span class="p">(</span><span class="nx">r</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">},</span> <span class="nx">r</span><span class="p">.</span><span class="nx">backoffManager</span><span class="p">,</span> <span class="kc">true</span><span class="p">,</span> <span class="nx">stopCh</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">2</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Stopping reflector %s (%s) from %s&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">resyncPeriod</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>ListAndWatch</code>主要做了3件事：</p>
 <ol>
@@ -371,7 +370,7 @@
 <p>这部分的代码比较长，也比较干，但是都是重要的干货，只能硬着头皮耐心看完。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">  1
+<pre tabindex="0" class="chroma"><code><span class="lnt">  1
 </span><span class="lnt">  2
 </span><span class="lnt">  3
 </span><span class="lnt">  4
@@ -547,186 +546,186 @@
 </span><span class="lnt">174
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ListAndWatch first lists all items and get the resource version at the moment of call,
-</span><span class="c1">// and then use the resource version to watch.
-</span><span class="c1">// It returns error if ListAndWatch didn&#39;t even try to initialize watch.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Reflector</span><span class="p">)</span> <span class="nf">ListAndWatch</span><span class="p">(</span><span class="nx">stopCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="kd">var</span> <span class="nx">resourceVersion</span> <span class="kt">string</span>
-
-	<span class="nx">options</span> <span class="o">:=</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">{</span><span class="nx">ResourceVersion</span><span class="p">:</span> <span class="nx">r</span><span class="p">.</span><span class="nf">relistResourceVersion</span><span class="p">()}</span>
-
-    <span class="c1">// list部分
-</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
-		<span class="kd">var</span> <span class="nx">list</span> <span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span>
-		<span class="kd">var</span> <span class="nx">paginatedResult</span> <span class="kt">bool</span>
-		<span class="kd">var</span> <span class="nx">err</span> <span class="kt">error</span>
-		<span class="nx">listCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{},</span> <span class="mi">1</span><span class="p">)</span>
-		<span class="nx">panicCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">interface</span><span class="p">{},</span> <span class="mi">1</span><span class="p">)</span>
-		<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-			<span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-				<span class="k">if</span> <span class="nx">r</span> <span class="o">:=</span> <span class="nb">recover</span><span class="p">();</span> <span class="nx">r</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-					<span class="nx">panicCh</span> <span class="o">&lt;-</span> <span class="nx">r</span>
-				<span class="p">}</span>
-			<span class="p">}()</span>
-			<span class="c1">// Attempt to gather list in chunks, if supported by listerWatcher, if not, the first
-</span><span class="c1"></span>			<span class="c1">// list request will return the full response.
-</span><span class="c1"></span>			<span class="nx">pager</span> <span class="o">:=</span> <span class="nx">pager</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="nx">pager</span><span class="p">.</span><span class="nf">SimplePageFunc</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">opts</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-				<span class="k">return</span> <span class="nx">r</span><span class="p">.</span><span class="nx">listerWatcher</span><span class="p">.</span><span class="nf">List</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span>
-			<span class="p">}))</span>
-			<span class="k">switch</span> <span class="p">{</span>
-			<span class="k">case</span> <span class="nx">r</span><span class="p">.</span><span class="nx">WatchListPageSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-				<span class="nx">pager</span><span class="p">.</span><span class="nx">PageSize</span> <span class="p">=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">WatchListPageSize</span>
-			<span class="k">case</span> <span class="nx">r</span><span class="p">.</span><span class="nx">paginatedResult</span><span class="p">:</span>
-				<span class="c1">// We got a paginated result initially. Assume this resource and server honor
-</span><span class="c1"></span>				<span class="c1">// paging requests (i.e. watch cache is probably disabled) and leave the default
-</span><span class="c1"></span>				<span class="c1">// pager size set.
-</span><span class="c1"></span>			<span class="k">case</span> <span class="nx">options</span><span class="p">.</span><span class="nx">ResourceVersion</span> <span class="o">!=</span> <span class="s">&#34;&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">options</span><span class="p">.</span><span class="nx">ResourceVersion</span> <span class="o">!=</span> <span class="s">&#34;0&#34;</span><span class="p">:</span>
-				<span class="nx">pager</span><span class="p">.</span><span class="nx">PageSize</span> <span class="p">=</span> <span class="mi">0</span>
-			<span class="p">}</span>
-
-			<span class="nx">list</span><span class="p">,</span> <span class="nx">paginatedResult</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">pager</span><span class="p">.</span><span class="nf">List</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span> <span class="nx">options</span><span class="p">)</span>
-			<span class="k">if</span> <span class="nf">isExpiredError</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="o">||</span> <span class="nf">isTooLargeResourceVersionError</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
-				<span class="nx">r</span><span class="p">.</span><span class="nf">setIsLastSyncResourceVersionUnavailable</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
-				<span class="nx">list</span><span class="p">,</span> <span class="nx">paginatedResult</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">pager</span><span class="p">.</span><span class="nf">List</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">{</span><span class="nx">ResourceVersion</span><span class="p">:</span> <span class="nx">r</span><span class="p">.</span><span class="nf">relistResourceVersion</span><span class="p">()})</span>
-			<span class="p">}</span>
-			<span class="nb">close</span><span class="p">(</span><span class="nx">listCh</span><span class="p">)</span>
-		<span class="p">}()</span>
-		<span class="k">select</span> <span class="p">{</span>
-		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="k">case</span> <span class="nx">r</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">panicCh</span><span class="p">:</span>
-			<span class="nb">panic</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span>
-		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">listCh</span><span class="p">:</span>
-		<span class="p">}</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to list %v: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-
-		<span class="c1">// We check if the list was paginated and if so set the paginatedResult based on that.
-</span><span class="c1"></span>		<span class="c1">// However, we want to do that only for the initial list (which is the only case
-</span><span class="c1"></span>		<span class="c1">// when we set ResourceVersion=&#34;0&#34;). The reasoning behind it is that later, in some
-</span><span class="c1"></span>		<span class="c1">// situations we may force listing directly from etcd (by setting ResourceVersion=&#34;&#34;)
-</span><span class="c1"></span>		<span class="c1">// which will return paginated result, even if watch cache is enabled. However, in
-</span><span class="c1"></span>		<span class="c1">// that case, we still want to prefer sending requests to watch cache if possible.
-</span><span class="c1"></span>		<span class="c1">//
-</span><span class="c1"></span>		<span class="c1">// Paginated result returned for request with ResourceVersion=&#34;0&#34; mean that watch
-</span><span class="c1"></span>		<span class="c1">// cache is disabled and there are a lot of objects of a given type. In such case,
-</span><span class="c1"></span>		<span class="c1">// there is no need to prefer listing from watch cache.
-</span><span class="c1"></span>		<span class="k">if</span> <span class="nx">options</span><span class="p">.</span><span class="nx">ResourceVersion</span> <span class="o">==</span> <span class="s">&#34;0&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">paginatedResult</span> <span class="p">{</span>
-			<span class="nx">r</span><span class="p">.</span><span class="nx">paginatedResult</span> <span class="p">=</span> <span class="kc">true</span>
-		<span class="p">}</span>
-
-		<span class="nx">r</span><span class="p">.</span><span class="nf">setIsLastSyncResourceVersionUnavailable</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span> <span class="c1">// list was successful
-</span><span class="c1"></span>		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Objects listed&#34;</span><span class="p">)</span>
-		<span class="nx">listMetaInterface</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">ListAccessor</span><span class="p">(</span><span class="nx">list</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to understand list result %#v: %v&#34;</span><span class="p">,</span> <span class="nx">list</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-		<span class="nx">resourceVersion</span> <span class="p">=</span> <span class="nx">listMetaInterface</span><span class="p">.</span><span class="nf">GetResourceVersion</span><span class="p">()</span>
-		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Resource version extracted&#34;</span><span class="p">)</span>
-		<span class="nx">items</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">ExtractList</span><span class="p">(</span><span class="nx">list</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to understand list result %#v (%v)&#34;</span><span class="p">,</span> <span class="nx">list</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Objects extracted&#34;</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">syncWith</span><span class="p">(</span><span class="nx">items</span><span class="p">,</span> <span class="nx">resourceVersion</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to sync list result: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="p">}</span>
-		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;SyncWith done&#34;</span><span class="p">)</span>
-		<span class="nx">r</span><span class="p">.</span><span class="nf">setLastSyncResourceVersion</span><span class="p">(</span><span class="nx">resourceVersion</span><span class="p">)</span>
-		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Resource version updated&#34;</span><span class="p">)</span>
-		<span class="k">return</span> <span class="kc">nil</span>
-	<span class="p">}();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-
-    <span class="c1">// resync部分
-</span><span class="c1"></span>	<span class="nx">resyncerrc</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kt">error</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-	<span class="nx">cancelCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span>
-	<span class="k">defer</span> <span class="nb">close</span><span class="p">(</span><span class="nx">cancelCh</span><span class="p">)</span>
-	<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-		<span class="nx">resyncCh</span><span class="p">,</span> <span class="nx">cleanup</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">resyncChan</span><span class="p">()</span>
-		<span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
-			<span class="nf">cleanup</span><span class="p">()</span> <span class="c1">// Call the last one written into cleanup
-</span><span class="c1"></span>		<span class="p">}()</span>
-		<span class="k">for</span> <span class="p">{</span>
-			<span class="k">select</span> <span class="p">{</span>
-			<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">resyncCh</span><span class="p">:</span>
-			<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
-				<span class="k">return</span>
-			<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">cancelCh</span><span class="p">:</span>
-				<span class="k">return</span>
-			<span class="p">}</span>
-			<span class="k">if</span> <span class="nx">r</span><span class="p">.</span><span class="nx">ShouldResync</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">||</span> <span class="nx">r</span><span class="p">.</span><span class="nf">ShouldResync</span><span class="p">()</span> <span class="p">{</span>
-				<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;%s: forcing resync&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
-				<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Resync</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-					<span class="nx">resyncerrc</span> <span class="o">&lt;-</span> <span class="nx">err</span>
-					<span class="k">return</span>
-				<span class="p">}</span>
-			<span class="p">}</span>
-			<span class="nf">cleanup</span><span class="p">()</span>
-			<span class="nx">resyncCh</span><span class="p">,</span> <span class="nx">cleanup</span> <span class="p">=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">resyncChan</span><span class="p">()</span>
-		<span class="p">}</span>
-	<span class="p">}()</span>
-
-    <span class="c1">// watch部分
-</span><span class="c1"></span>	<span class="k">for</span> <span class="p">{</span>
-		<span class="c1">// give the stopCh a chance to stop the loop, even in case of continue statements further down on errors
-</span><span class="c1"></span>		<span class="k">select</span> <span class="p">{</span>
-		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="k">default</span><span class="p">:</span>
-		<span class="p">}</span>
-
-		<span class="nx">timeoutSeconds</span> <span class="o">:=</span> <span class="nb">int64</span><span class="p">(</span><span class="nx">minWatchTimeout</span><span class="p">.</span><span class="nf">Seconds</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="nx">rand</span><span class="p">.</span><span class="nf">Float64</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
-		<span class="nx">options</span> <span class="p">=</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">{</span>
-			<span class="nx">ResourceVersion</span><span class="p">:</span> <span class="nx">resourceVersion</span><span class="p">,</span>
-			<span class="c1">// We want to avoid situations of hanging watchers. Stop any wachers that do not
-</span><span class="c1"></span>			<span class="c1">// receive any events within the timeout window.
-</span><span class="c1"></span>			<span class="nx">TimeoutSeconds</span><span class="p">:</span> <span class="o">&amp;</span><span class="nx">timeoutSeconds</span><span class="p">,</span>
-			<span class="c1">// To reduce load on kube-apiserver on watch restarts, you may enable watch bookmarks.
-</span><span class="c1"></span>			<span class="c1">// Reflector doesn&#39;t assume bookmarks are returned at all (if the server do not support
-</span><span class="c1"></span>			<span class="c1">// watch bookmarks, it will ignore this field).
-</span><span class="c1"></span>			<span class="nx">AllowWatchBookmarks</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-		<span class="p">}</span>
-
-		<span class="c1">// start the clock before sending the request, since some proxies won&#39;t flush headers until after the first watch event is sent
-</span><span class="c1"></span>		<span class="nx">start</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">clock</span><span class="p">.</span><span class="nf">Now</span><span class="p">()</span>
-		<span class="nx">w</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">listerWatcher</span><span class="p">.</span><span class="nf">Watch</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="c1">// If this is &#34;connection refused&#34; error, it means that most likely apiserver is not responsive.
-</span><span class="c1"></span>			<span class="c1">// It doesn&#39;t make sense to re-list all objects because most likely we will be able to restart
-</span><span class="c1"></span>			<span class="c1">// watch where we ended.
-</span><span class="c1"></span>			<span class="c1">// If that&#39;s the case begin exponentially backing off and resend watch request.
-</span><span class="c1"></span>			<span class="k">if</span> <span class="nx">utilnet</span><span class="p">.</span><span class="nf">IsConnectionRefused</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
-				<span class="o">&lt;-</span><span class="nx">r</span><span class="p">.</span><span class="nx">initConnBackoffManager</span><span class="p">.</span><span class="nf">Backoff</span><span class="p">().</span><span class="nf">C</span><span class="p">()</span>
-				<span class="k">continue</span>
-			<span class="p">}</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="p">}</span>
-
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">watchHandler</span><span class="p">(</span><span class="nx">start</span><span class="p">,</span> <span class="nx">w</span><span class="p">,</span> <span class="o">&amp;</span><span class="nx">resourceVersion</span><span class="p">,</span> <span class="nx">resyncerrc</span><span class="p">,</span> <span class="nx">stopCh</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="nx">errorStopRequested</span> <span class="p">{</span>
-				<span class="k">switch</span> <span class="p">{</span>
-				<span class="k">case</span> <span class="nf">isExpiredError</span><span class="p">(</span><span class="nx">err</span><span class="p">):</span>
-					<span class="c1">// Don&#39;t set LastSyncResourceVersionUnavailable - LIST call with ResourceVersion=RV already
-</span><span class="c1"></span>					<span class="c1">// has a semantic that it returns data at least as fresh as provided RV.
-</span><span class="c1"></span>					<span class="c1">// So first try to LIST with setting RV to resource version of last observed object.
-</span><span class="c1"></span>					<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;%s: watch of %v closed with: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-				<span class="k">default</span><span class="p">:</span>
-					<span class="nx">klog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;%s: watch of %v ended with: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-				<span class="p">}</span>
-			<span class="p">}</span>
-			<span class="k">return</span> <span class="kc">nil</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// ListAndWatch first lists all items and get the resource version at the moment of call,
+</span></span></span><span class="line"><span class="cl"><span class="c1">// and then use the resource version to watch.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// It returns error if ListAndWatch didn&#39;t even try to initialize watch.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Reflector</span><span class="p">)</span> <span class="nf">ListAndWatch</span><span class="p">(</span><span class="nx">stopCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kd">var</span> <span class="nx">resourceVersion</span> <span class="kt">string</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">options</span> <span class="o">:=</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">{</span><span class="nx">ResourceVersion</span><span class="p">:</span> <span class="nx">r</span><span class="p">.</span><span class="nf">relistResourceVersion</span><span class="p">()}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// list部分
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kd">var</span> <span class="nx">list</span> <span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span>
+</span></span><span class="line"><span class="cl">		<span class="kd">var</span> <span class="nx">paginatedResult</span> <span class="kt">bool</span>
+</span></span><span class="line"><span class="cl">		<span class="kd">var</span> <span class="nx">err</span> <span class="kt">error</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">listCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{},</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">panicCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">interface</span><span class="p">{},</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="nx">r</span> <span class="o">:=</span> <span class="nb">recover</span><span class="p">();</span> <span class="nx">r</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">					<span class="nx">panicCh</span> <span class="o">&lt;-</span> <span class="nx">r</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}()</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// Attempt to gather list in chunks, if supported by listerWatcher, if not, the first
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// list request will return the full response.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="nx">pager</span> <span class="o">:=</span> <span class="nx">pager</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="nx">pager</span><span class="p">.</span><span class="nf">SimplePageFunc</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">opts</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">return</span> <span class="nx">r</span><span class="p">.</span><span class="nx">listerWatcher</span><span class="p">.</span><span class="nf">List</span><span class="p">(</span><span class="nx">opts</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}))</span>
+</span></span><span class="line"><span class="cl">			<span class="k">switch</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="nx">r</span><span class="p">.</span><span class="nx">WatchListPageSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">pager</span><span class="p">.</span><span class="nx">PageSize</span> <span class="p">=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">WatchListPageSize</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="nx">r</span><span class="p">.</span><span class="nx">paginatedResult</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// We got a paginated result initially. Assume this resource and server honor
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>				<span class="c1">// paging requests (i.e. watch cache is probably disabled) and leave the default
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>				<span class="c1">// pager size set.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">case</span> <span class="nx">options</span><span class="p">.</span><span class="nx">ResourceVersion</span> <span class="o">!=</span> <span class="s">&#34;&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">options</span><span class="p">.</span><span class="nx">ResourceVersion</span> <span class="o">!=</span> <span class="s">&#34;0&#34;</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">pager</span><span class="p">.</span><span class="nx">PageSize</span> <span class="p">=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">			<span class="nx">list</span><span class="p">,</span> <span class="nx">paginatedResult</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">pager</span><span class="p">.</span><span class="nf">List</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span> <span class="nx">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nf">isExpiredError</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="o">||</span> <span class="nf">isTooLargeResourceVersionError</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">r</span><span class="p">.</span><span class="nf">setIsLastSyncResourceVersionUnavailable</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">list</span><span class="p">,</span> <span class="nx">paginatedResult</span><span class="p">,</span> <span class="nx">err</span> <span class="p">=</span> <span class="nx">pager</span><span class="p">.</span><span class="nf">List</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">{</span><span class="nx">ResourceVersion</span><span class="p">:</span> <span class="nx">r</span><span class="p">.</span><span class="nf">relistResourceVersion</span><span class="p">()})</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nb">close</span><span class="p">(</span><span class="nx">listCh</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}()</span>
+</span></span><span class="line"><span class="cl">		<span class="k">select</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="nx">r</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">panicCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="nb">panic</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">listCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to list %v: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="c1">// We check if the list was paginated and if so set the paginatedResult based on that.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// However, we want to do that only for the initial list (which is the only case
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// when we set ResourceVersion=&#34;0&#34;). The reasoning behind it is that later, in some
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// situations we may force listing directly from etcd (by setting ResourceVersion=&#34;&#34;)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// which will return paginated result, even if watch cache is enabled. However, in
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// that case, we still want to prefer sending requests to watch cache if possible.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">//
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// Paginated result returned for request with ResourceVersion=&#34;0&#34; mean that watch
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// cache is disabled and there are a lot of objects of a given type. In such case,
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="c1">// there is no need to prefer listing from watch cache.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">if</span> <span class="nx">options</span><span class="p">.</span><span class="nx">ResourceVersion</span> <span class="o">==</span> <span class="s">&#34;0&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">paginatedResult</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">r</span><span class="p">.</span><span class="nx">paginatedResult</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">r</span><span class="p">.</span><span class="nf">setIsLastSyncResourceVersionUnavailable</span><span class="p">(</span><span class="kc">false</span><span class="p">)</span> <span class="c1">// list was successful
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Objects listed&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">listMetaInterface</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">ListAccessor</span><span class="p">(</span><span class="nx">list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to understand list result %#v: %v&#34;</span><span class="p">,</span> <span class="nx">list</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">resourceVersion</span> <span class="p">=</span> <span class="nx">listMetaInterface</span><span class="p">.</span><span class="nf">GetResourceVersion</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Resource version extracted&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">items</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">ExtractList</span><span class="p">(</span><span class="nx">list</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to understand list result %#v (%v)&#34;</span><span class="p">,</span> <span class="nx">list</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Objects extracted&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">syncWith</span><span class="p">(</span><span class="nx">items</span><span class="p">,</span> <span class="nx">resourceVersion</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unable to sync list result: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;SyncWith done&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">r</span><span class="p">.</span><span class="nf">setLastSyncResourceVersion</span><span class="p">(</span><span class="nx">resourceVersion</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">initTrace</span><span class="p">.</span><span class="nf">Step</span><span class="p">(</span><span class="s">&#34;Resource version updated&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// resync部分
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">resyncerrc</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kt">error</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">cancelCh</span> <span class="o">:=</span> <span class="nb">make</span><span class="p">(</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nb">close</span><span class="p">(</span><span class="nx">cancelCh</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">resyncCh</span><span class="p">,</span> <span class="nx">cleanup</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">resyncChan</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">cleanup</span><span class="p">()</span> <span class="c1">// Call the last one written into cleanup
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="p">}()</span>
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">select</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">resyncCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="k">return</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">cancelCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="k">return</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">r</span><span class="p">.</span><span class="nx">ShouldResync</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">||</span> <span class="nx">r</span><span class="p">.</span><span class="nf">ShouldResync</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;%s: forcing resync&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Resync</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">					<span class="nx">resyncerrc</span> <span class="o">&lt;-</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">					<span class="k">return</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">cleanup</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">resyncCh</span><span class="p">,</span> <span class="nx">cleanup</span> <span class="p">=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">resyncChan</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">    <span class="c1">// watch部分
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">for</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// give the stopCh a chance to stop the loop, even in case of continue statements further down on errors
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="k">select</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="k">default</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">timeoutSeconds</span> <span class="o">:=</span> <span class="nb">int64</span><span class="p">(</span><span class="nx">minWatchTimeout</span><span class="p">.</span><span class="nf">Seconds</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="nx">rand</span><span class="p">.</span><span class="nf">Float64</span><span class="p">()</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">options</span> <span class="p">=</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">ResourceVersion</span><span class="p">:</span> <span class="nx">resourceVersion</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// We want to avoid situations of hanging watchers. Stop any wachers that do not
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// receive any events within the timeout window.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="nx">TimeoutSeconds</span><span class="p">:</span> <span class="o">&amp;</span><span class="nx">timeoutSeconds</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// To reduce load on kube-apiserver on watch restarts, you may enable watch bookmarks.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// Reflector doesn&#39;t assume bookmarks are returned at all (if the server do not support
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// watch bookmarks, it will ignore this field).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="nx">AllowWatchBookmarks</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="c1">// start the clock before sending the request, since some proxies won&#39;t flush headers until after the first watch event is sent
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">start</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">clock</span><span class="p">.</span><span class="nf">Now</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">w</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">listerWatcher</span><span class="p">.</span><span class="nf">Watch</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="c1">// If this is &#34;connection refused&#34; error, it means that most likely apiserver is not responsive.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// It doesn&#39;t make sense to re-list all objects because most likely we will be able to restart
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// watch where we ended.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="c1">// If that&#39;s the case begin exponentially backing off and resend watch request.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">if</span> <span class="nx">utilnet</span><span class="p">.</span><span class="nf">IsConnectionRefused</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="o">&lt;-</span><span class="nx">r</span><span class="p">.</span><span class="nx">initConnBackoffManager</span><span class="p">.</span><span class="nf">Backoff</span><span class="p">().</span><span class="nf">C</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">				<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nf">watchHandler</span><span class="p">(</span><span class="nx">start</span><span class="p">,</span> <span class="nx">w</span><span class="p">,</span> <span class="o">&amp;</span><span class="nx">resourceVersion</span><span class="p">,</span> <span class="nx">resyncerrc</span><span class="p">,</span> <span class="nx">stopCh</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="nx">errorStopRequested</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">switch</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">case</span> <span class="nf">isExpiredError</span><span class="p">(</span><span class="nx">err</span><span class="p">):</span>
+</span></span><span class="line"><span class="cl">					<span class="c1">// Don&#39;t set LastSyncResourceVersionUnavailable - LIST call with ResourceVersion=RV already
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>					<span class="c1">// has a semantic that it returns data at least as fresh as provided RV.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>					<span class="c1">// So first try to LIST with setting RV to resource version of last observed object.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>					<span class="nx">klog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;%s: watch of %v closed with: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="k">default</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">					<span class="nx">klog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;%s: watch of %v ended with: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">expectedTypeName</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>watch部分调用了<code>watchHandler</code>方法来处理watch的返回事件。而在watchHandler中，会根据watch event的type，对应地不断地去 <code>r.store.Add(event.Object)</code> 或 <code>r.store.Update(event.Object)</code> 或 <code>r.store.Delete(event.Object)</code> 。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -788,74 +787,74 @@
 </span><span class="lnt">60
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// watchHandler watches w and keeps *resourceVersion up to date.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Reflector</span><span class="p">)</span> <span class="nf">watchHandler</span><span class="p">(</span><span class="nx">start</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span> <span class="nx">w</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="nx">resourceVersion</span> <span class="o">*</span><span class="kt">string</span><span class="p">,</span> <span class="nx">errc</span> <span class="kd">chan</span> <span class="kt">error</span><span class="p">,</span> <span class="nx">stopCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">eventCount</span> <span class="o">:=</span> <span class="mi">0</span>
-
-	<span class="c1">// Stopping the watcher should be idempotent and if we return from this function there&#39;s no way
-</span><span class="c1"></span>	<span class="c1">// we&#39;re coming back in with the same watch interface.
-</span><span class="c1"></span>	<span class="k">defer</span> <span class="nx">w</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span>
-
-<span class="nx">loop</span><span class="p">:</span>
-	<span class="k">for</span> <span class="p">{</span>
-		<span class="k">select</span> <span class="p">{</span>
-		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
-			<span class="k">return</span> <span class="nx">errorStopRequested</span>
-		<span class="k">case</span> <span class="nx">err</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">errc</span><span class="p">:</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="k">case</span> <span class="nx">event</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">w</span><span class="p">.</span><span class="nf">ResultChan</span><span class="p">():</span>
-			<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
-				<span class="k">break</span> <span class="nx">loop</span>
-			<span class="p">}</span>
-			<span class="nx">meta</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">Accessor</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
-			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-				<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to understand watch event %#v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">))</span>
-				<span class="k">continue</span>
-			<span class="p">}</span>
-			<span class="nx">newResourceVersion</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">GetResourceVersion</span><span class="p">()</span>
-			<span class="k">switch</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Type</span> <span class="p">{</span>
-			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Added</span><span class="p">:</span>
-				<span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
-				<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-					<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to add watch event object (%#v) to store: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
-				<span class="p">}</span>
-			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Modified</span><span class="p">:</span>
-				<span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Update</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
-				<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-					<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to update watch event object (%#v) to store: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
-				<span class="p">}</span>
-			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Deleted</span><span class="p">:</span>
-				<span class="c1">// TODO: Will any consumers need access to the &#34;last known
-</span><span class="c1"></span>				<span class="c1">// state&#34;, which is passed in event.Object? If so, may need
-</span><span class="c1"></span>				<span class="c1">// to change this.
-</span><span class="c1"></span>				<span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
-				<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-					<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to delete watch event object (%#v) from store: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
-				<span class="p">}</span>
-			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Bookmark</span><span class="p">:</span>
-				<span class="c1">// A `Bookmark` means watch has synced here, just update the resourceVersion
-</span><span class="c1"></span>			<span class="k">default</span><span class="p">:</span>
-				<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to understand watch event %#v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">))</span>
-			<span class="p">}</span>
-			<span class="o">*</span><span class="nx">resourceVersion</span> <span class="p">=</span> <span class="nx">newResourceVersion</span>
-			<span class="nx">r</span><span class="p">.</span><span class="nf">setLastSyncResourceVersion</span><span class="p">(</span><span class="nx">newResourceVersion</span><span class="p">)</span>
-			<span class="k">if</span> <span class="nx">rvu</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.(</span><span class="nx">ResourceVersionUpdater</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
-				<span class="nx">rvu</span><span class="p">.</span><span class="nf">UpdateResourceVersion</span><span class="p">(</span><span class="nx">newResourceVersion</span><span class="p">)</span>
-			<span class="p">}</span>
-			<span class="nx">eventCount</span><span class="o">++</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// watchHandler watches w and keeps *resourceVersion up to date.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Reflector</span><span class="p">)</span> <span class="nf">watchHandler</span><span class="p">(</span><span class="nx">start</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="p">,</span> <span class="nx">w</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="nx">resourceVersion</span> <span class="o">*</span><span class="kt">string</span><span class="p">,</span> <span class="nx">errc</span> <span class="kd">chan</span> <span class="kt">error</span><span class="p">,</span> <span class="nx">stopCh</span> <span class="o">&lt;-</span><span class="kd">chan</span> <span class="kd">struct</span><span class="p">{})</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">eventCount</span> <span class="o">:=</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Stopping the watcher should be idempotent and if we return from this function there&#39;s no way
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// we&#39;re coming back in with the same watch interface.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">defer</span> <span class="nx">w</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">loop</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">select</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="o">&lt;-</span><span class="nx">stopCh</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">errorStopRequested</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="nx">err</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">errc</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="nx">event</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="o">&lt;-</span><span class="nx">w</span><span class="p">.</span><span class="nf">ResultChan</span><span class="p">():</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">break</span> <span class="nx">loop</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">meta</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">Accessor</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to understand watch event %#v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">				<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">newResourceVersion</span> <span class="o">:=</span> <span class="nx">meta</span><span class="p">.</span><span class="nf">GetResourceVersion</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">			<span class="k">switch</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Type</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Added</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">					<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to add watch event object (%#v) to store: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Modified</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Update</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">					<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to update watch event object (%#v) to store: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Deleted</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// TODO: Will any consumers need access to the &#34;last known
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>				<span class="c1">// state&#34;, which is passed in event.Object? If so, may need
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>				<span class="c1">// to change this.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>				<span class="nx">err</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">					<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to delete watch event object (%#v) from store: %v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="nx">err</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="k">case</span> <span class="nx">watch</span><span class="p">.</span><span class="nx">Bookmark</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// A `Bookmark` means watch has synced here, just update the resourceVersion
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>			<span class="k">default</span><span class="p">:</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">utilruntime</span><span class="p">.</span><span class="nf">HandleError</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;%s: unable to understand watch event %#v&#34;</span><span class="p">,</span> <span class="nx">r</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span> <span class="nx">event</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="o">*</span><span class="nx">resourceVersion</span> <span class="p">=</span> <span class="nx">newResourceVersion</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">r</span><span class="p">.</span><span class="nf">setLastSyncResourceVersion</span><span class="p">(</span><span class="nx">newResourceVersion</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">rvu</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">store</span><span class="p">.(</span><span class="nx">ResourceVersionUpdater</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">rvu</span><span class="p">.</span><span class="nf">UpdateResourceVersion</span><span class="p">(</span><span class="nx">newResourceVersion</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">eventCount</span><span class="o">++</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="listerwatcher接口">ListerWatcher接口</h2>
 <p>在Reflector部分我们已经知道，创建Reflector的时候会传入ListerWatcher，用以和apiserver交互，list/watch资源。下面我们来详细看下ListerWatcher如何工作。</p>
 <p>ListerWatcher就是有List和Watch方法的接口。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -875,30 +874,30 @@
 </span><span class="lnt">18
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ListerWatcher is any object that knows how to perform an initial list and start a watch on a resource.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ListerWatcher</span> <span class="kd">interface</span> <span class="p">{</span>
-	<span class="nx">Lister</span>
-	<span class="nx">Watcher</span>
-<span class="p">}</span>
-
-<span class="c1">// Lister is any object that knows how to perform an initial list.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Lister</span> <span class="kd">interface</span> <span class="p">{</span>
-	<span class="c1">// List should return a list type object; the Items field will be extracted, and the
-</span><span class="c1"></span>	<span class="c1">// ResourceVersion field will be used to start the watch in the right place.
-</span><span class="c1"></span>	<span class="nf">List</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="c1">// Watcher is any object that knows how to start a watch on a resource.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Watcher</span> <span class="kd">interface</span> <span class="p">{</span>
-	<span class="c1">// Watch should begin a watch at the specified version.
-</span><span class="c1"></span>	<span class="nf">Watch</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">watch</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// ListerWatcher is any object that knows how to perform an initial list and start a watch on a resource.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">ListerWatcher</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">Lister</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">Watcher</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Lister is any object that knows how to perform an initial list.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">Lister</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// List should return a list type object; the Items field will be extracted, and the
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="c1">// ResourceVersion field will be used to start the watch in the right place.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">List</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Watcher is any object that knows how to start a watch on a resource.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">Watcher</span> <span class="kd">interface</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Watch should begin a watch at the specified version.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nf">Watch</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">watch</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>ListerWatcher的生成方法也比较简单，直接看代码。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -932,39 +931,39 @@
 </span><span class="lnt">32
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewListWatchFromClient creates a new ListWatch from the specified client, resource, namespace and field selector.
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewListWatchFromClient</span><span class="p">(</span><span class="nx">c</span> <span class="nx">Getter</span><span class="p">,</span> <span class="nx">resource</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">namespace</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">fieldSelector</span> <span class="nx">fields</span><span class="p">.</span><span class="nx">Selector</span><span class="p">)</span> <span class="o">*</span><span class="nx">ListWatch</span> <span class="p">{</span>
-	<span class="nx">optionsModifier</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="o">*</span><span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">{</span>
-		<span class="nx">options</span><span class="p">.</span><span class="nx">FieldSelector</span> <span class="p">=</span> <span class="nx">fieldSelector</span><span class="p">.</span><span class="nf">String</span><span class="p">()</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nf">NewFilteredListWatchFromClient</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span> <span class="nx">resource</span><span class="p">,</span> <span class="nx">namespace</span><span class="p">,</span> <span class="nx">optionsModifier</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="c1">// NewFilteredListWatchFromClient creates a new ListWatch from the specified client, resource, namespace, and option modifier.
-</span><span class="c1">// Option modifier is a function takes a ListOptions and modifies the consumed ListOptions. Provide customized modifier function
-</span><span class="c1">// to apply modification to ListOptions with a field selector, a label selector, or any other desired options.
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewFilteredListWatchFromClient</span><span class="p">(</span><span class="nx">c</span> <span class="nx">Getter</span><span class="p">,</span> <span class="nx">resource</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">namespace</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">optionsModifier</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="o">*</span><span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">))</span> <span class="o">*</span><span class="nx">ListWatch</span> <span class="p">{</span>
-	<span class="nx">listFunc</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-		<span class="nf">optionsModifier</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">)</span>
-		<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Get</span><span class="p">().</span>
-			<span class="nf">Namespace</span><span class="p">(</span><span class="nx">namespace</span><span class="p">).</span>
-			<span class="nf">Resource</span><span class="p">(</span><span class="nx">resource</span><span class="p">).</span>
-			<span class="nf">VersionedParams</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">,</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ParameterCodec</span><span class="p">).</span>
-			<span class="nf">Do</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">TODO</span><span class="p">()).</span>
-			<span class="nf">Get</span><span class="p">()</span>
-	<span class="p">}</span>
-	<span class="nx">watchFunc</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">watch</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-		<span class="nx">options</span><span class="p">.</span><span class="nx">Watch</span> <span class="p">=</span> <span class="kc">true</span>
-		<span class="nf">optionsModifier</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">)</span>
-		<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Get</span><span class="p">().</span>
-			<span class="nf">Namespace</span><span class="p">(</span><span class="nx">namespace</span><span class="p">).</span>
-			<span class="nf">Resource</span><span class="p">(</span><span class="nx">resource</span><span class="p">).</span>
-			<span class="nf">VersionedParams</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">,</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ParameterCodec</span><span class="p">).</span>
-			<span class="nf">Watch</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">TODO</span><span class="p">())</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">ListWatch</span><span class="p">{</span><span class="nx">ListFunc</span><span class="p">:</span> <span class="nx">listFunc</span><span class="p">,</span> <span class="nx">WatchFunc</span><span class="p">:</span> <span class="nx">watchFunc</span><span class="p">}</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// NewListWatchFromClient creates a new ListWatch from the specified client, resource, namespace and field selector.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewListWatchFromClient</span><span class="p">(</span><span class="nx">c</span> <span class="nx">Getter</span><span class="p">,</span> <span class="nx">resource</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">namespace</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">fieldSelector</span> <span class="nx">fields</span><span class="p">.</span><span class="nx">Selector</span><span class="p">)</span> <span class="o">*</span><span class="nx">ListWatch</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">optionsModifier</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="o">*</span><span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">options</span><span class="p">.</span><span class="nx">FieldSelector</span> <span class="p">=</span> <span class="nx">fieldSelector</span><span class="p">.</span><span class="nf">String</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nf">NewFilteredListWatchFromClient</span><span class="p">(</span><span class="nx">c</span><span class="p">,</span> <span class="nx">resource</span><span class="p">,</span> <span class="nx">namespace</span><span class="p">,</span> <span class="nx">optionsModifier</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// NewFilteredListWatchFromClient creates a new ListWatch from the specified client, resource, namespace, and option modifier.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Option modifier is a function takes a ListOptions and modifies the consumed ListOptions. Provide customized modifier function
+</span></span></span><span class="line"><span class="cl"><span class="c1">// to apply modification to ListOptions with a field selector, a label selector, or any other desired options.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewFilteredListWatchFromClient</span><span class="p">(</span><span class="nx">c</span> <span class="nx">Getter</span><span class="p">,</span> <span class="nx">resource</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">namespace</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">optionsModifier</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="o">*</span><span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">))</span> <span class="o">*</span><span class="nx">ListWatch</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">listFunc</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">runtime</span><span class="p">.</span><span class="nx">Object</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nf">optionsModifier</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Get</span><span class="p">().</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Namespace</span><span class="p">(</span><span class="nx">namespace</span><span class="p">).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Resource</span><span class="p">(</span><span class="nx">resource</span><span class="p">).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">VersionedParams</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">,</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ParameterCodec</span><span class="p">).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Do</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">TODO</span><span class="p">()).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Get</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">watchFunc</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">options</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ListOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">watch</span><span class="p">.</span><span class="nx">Interface</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">options</span><span class="p">.</span><span class="nx">Watch</span> <span class="p">=</span> <span class="kc">true</span>
+</span></span><span class="line"><span class="cl">		<span class="nf">optionsModifier</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Get</span><span class="p">().</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Namespace</span><span class="p">(</span><span class="nx">namespace</span><span class="p">).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Resource</span><span class="p">(</span><span class="nx">resource</span><span class="p">).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">VersionedParams</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">options</span><span class="p">,</span> <span class="nx">metav1</span><span class="p">.</span><span class="nx">ParameterCodec</span><span class="p">).</span>
+</span></span><span class="line"><span class="cl">			<span class="nf">Watch</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nf">TODO</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">ListWatch</span><span class="p">{</span><span class="nx">ListFunc</span><span class="p">:</span> <span class="nx">listFunc</span><span class="p">,</span> <span class="nx">WatchFunc</span><span class="p">:</span> <span class="nx">watchFunc</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>ListWatch结构体里有ListFunc和WatchFunc分别来对资源List和Watch。创建ListWatch的时候传入了一些过滤条件（如namespace、fieldSelector等），要监听的资源(resource)以及一个Getter接口。这个Getter接口能够Get到rest.Request，实际上最终就是用这个Request的Get/Watch方法来对Resource进行操作。</p>
 <h1 id="总结">总结</h1>
@@ -1058,7 +1057,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -1075,10 +1074,10 @@
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

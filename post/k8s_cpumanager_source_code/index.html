@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/k8s_cpumanager_source_code/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2018-11-28T23:14:35&#43;08:00" />
-<meta property="article:modified_time" content="2018-11-28T23:14:35&#43;08:00" />
+<meta property="article:published_time" content="2018-11-28T23:14:35+08:00" />
+<meta property="article:modified_time" content="2018-11-28T23:14:35+08:00" />
 
 <meta itemprop="name" content="Kubernetes源码分析之CPU Manager">
-<meta itemprop="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（"><meta itemprop="datePublished" content="2018-11-28T23:14:35&#43;08:00" />
-<meta itemprop="dateModified" content="2018-11-28T23:14:35&#43;08:00" />
+<meta itemprop="description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（"><meta itemprop="datePublished" content="2018-11-28T23:14:35+08:00" />
+<meta itemprop="dateModified" content="2018-11-28T23:14:35+08:00" />
 <meta itemprop="wordCount" content="3844">
-<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Kubernetes源码分析之CPU Manager"/>
+<meta itemprop="keywords" content="kubernetes,kubelet," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="Kubernetes源码分析之CPU Manager"/>
 <meta name="twitter:description" content="背景 Kubelet默认使用CFS Quota/Share的方式来实现Pod的CPU层面约束，而对于cpuset的支持，通过很长一段时间的讨论（"/>
 
 <!--[if lte IE 9]>
@@ -146,7 +145,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li><a href="#start-cpu-manager">Start CPU Manager</a></li>
@@ -174,35 +173,35 @@
 <p>v1.10版本前需要开启<code>feature-gate</code>。</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"> --feature-gates<span class="o">=</span><span class="nv">CPUManager</span><span class="o">=</span><span class="nb">true</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"> --feature-gates<span class="o">=</span><span class="nv">CPUManager</span><span class="o">=</span><span class="nb">true</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>开启cpuset还需要一些cpumanager的参数设置</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">--cpu-manager-policy<span class="o">=</span>static
---cpu-manager-reconcile-period<span class="o">=</span>10s / Optional, default same as <span class="sb">`</span>--node-status-update-frequency<span class="sb">`</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">--cpu-manager-policy<span class="o">=</span>static
+</span></span><span class="line"><span class="cl">--cpu-manager-reconcile-period<span class="o">=</span>10s / Optional, default same as <span class="sb">`</span>--node-status-update-frequency<span class="sb">`</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>还需要设置cpu reservation，可以通过</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">--kube-reserved
-// or
---system-reserved
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">--kube-reserved
+</span></span><span class="line"><span class="cl">// or
+</span></span><span class="line"><span class="cl">--system-reserved
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h1 id="源码分析">源码分析</h1>
 <h2 id="start-cpu-manager">Start CPU Manager</h2>
@@ -210,7 +209,7 @@
 <p><code>kubelet.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -222,22 +221,22 @@
 </span><span class="lnt">10
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// initializeModules will initialize internal modules that do not require the container runtime to be up.
-</span><span class="c1">// Note that the modules here must not depend on modules that are not initialized here.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">initializeModules</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="o">...</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">containerManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">GetActivePods</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">sourcesReady</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">statusManager</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Failed to start ContainerManager %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="o">...</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// initializeModules will initialize internal modules that do not require the container runtime to be up.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Note that the modules here must not depend on modules that are not initialized here.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">kl</span> <span class="o">*</span><span class="nx">Kubelet</span><span class="p">)</span> <span class="nf">initializeModules</span><span class="p">()</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">containerManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">GetActivePods</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">sourcesReady</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">statusManager</span><span class="p">,</span> <span class="nx">kl</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Failed to start ContainerManager %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>container_manager_linux.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -253,26 +252,26 @@
 </span><span class="lnt">14
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">cm</span> <span class="o">*</span><span class="nx">containerManagerImpl</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">node</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Node</span><span class="p">,</span>
-	<span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span>
-	<span class="nx">sourcesReady</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span><span class="p">,</span>
-	<span class="nx">podStatusProvider</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span>
-	<span class="nx">runtimeService</span> <span class="nx">internalapi</span><span class="p">.</span><span class="nx">RuntimeService</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-
-	<span class="c1">// Initialize CPU manager
-</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
-		<span class="nx">cm</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">cpumanager</span><span class="p">.</span><span class="nf">ActivePodsFunc</span><span class="p">(</span><span class="nx">activePods</span><span class="p">),</span> <span class="nx">podStatusProvider</span><span class="p">,</span> <span class="nx">runtimeService</span><span class="p">)</span>
-	<span class="p">}</span>
-
-	<span class="o">...</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">cm</span> <span class="o">*</span><span class="nx">containerManagerImpl</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">node</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Node</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sourcesReady</span> <span class="nx">config</span><span class="p">.</span><span class="nx">SourcesReady</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">podStatusProvider</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">runtimeService</span> <span class="nx">internalapi</span><span class="p">.</span><span class="nx">RuntimeService</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Initialize CPU manager
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">cm</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">cpumanager</span><span class="p">.</span><span class="nf">ActivePodsFunc</span><span class="p">(</span><span class="nx">activePods</span><span class="p">),</span> <span class="nx">podStatusProvider</span><span class="p">,</span> <span class="nx">runtimeService</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -288,21 +287,21 @@
 </span><span class="lnt">14
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span> <span class="nx">podStatusProvider</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span> <span class="nx">containerRuntime</span> <span class="nx">runtimeService</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanger] starting with %s policy&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanger] reconciling every %v&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">)</span>
-
-	<span class="nx">m</span><span class="p">.</span><span class="nx">activePods</span> <span class="p">=</span> <span class="nx">activePods</span>
-	<span class="nx">m</span><span class="p">.</span><span class="nx">podStatusProvider</span> <span class="p">=</span> <span class="nx">podStatusProvider</span>
-	<span class="nx">m</span><span class="p">.</span><span class="nx">containerRuntime</span> <span class="p">=</span> <span class="nx">containerRuntime</span>
-
-	<span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">()</span> <span class="o">==</span> <span class="nb">string</span><span class="p">(</span><span class="nx">PolicyNone</span><span class="p">)</span> <span class="p">{</span>
-		<span class="k">return</span>
-	<span class="p">}</span>
-	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span> <span class="nx">m</span><span class="p">.</span><span class="nf">reconcileState</span><span class="p">()</span> <span class="p">},</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">,</span> <span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">Start</span><span class="p">(</span><span class="nx">activePods</span> <span class="nx">ActivePodsFunc</span><span class="p">,</span> <span class="nx">podStatusProvider</span> <span class="nx">status</span><span class="p">.</span><span class="nx">PodStatusProvider</span><span class="p">,</span> <span class="nx">containerRuntime</span> <span class="nx">runtimeService</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanger] starting with %s policy&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanger] reconciling every %v&#34;</span><span class="p">,</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nx">activePods</span> <span class="p">=</span> <span class="nx">activePods</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nx">podStatusProvider</span> <span class="p">=</span> <span class="nx">podStatusProvider</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nx">containerRuntime</span> <span class="p">=</span> <span class="nx">containerRuntime</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">()</span> <span class="o">==</span> <span class="nb">string</span><span class="p">(</span><span class="nx">PolicyNone</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">go</span> <span class="nx">wait</span><span class="p">.</span><span class="nf">Until</span><span class="p">(</span><span class="kd">func</span><span class="p">()</span> <span class="p">{</span> <span class="nx">m</span><span class="p">.</span><span class="nf">reconcileState</span><span class="p">()</span> <span class="p">},</span> <span class="nx">m</span><span class="p">.</span><span class="nx">reconcilePeriod</span><span class="p">,</span> <span class="nx">wait</span><span class="p">.</span><span class="nx">NeverStop</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>可以看见，在kubelet启动之时会调用<code>kl.containerManager.Start</code>来启动<code>containerManager</code>，而<code>containerManager</code>一上来会先判断<code>cpuManager Feature Gate</code>是否开启了，如果是，则调用<code>cm.cpuManager.Start</code>。</p>
 <p>在<code>cpuManager.Start()</code>方法中，实际上只做了一件事情——如果<code>policy</code>为<code>static</code>，则每隔<code>reconcilePeriod</code>时间，执行一次<code>reconcileState()</code>方法。</p>
@@ -324,7 +323,7 @@
 <p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -368,54 +367,54 @@
 </span><span class="lnt">42
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">reconcileState</span><span class="p">()</span> <span class="p">(</span><span class="nx">success</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">,</span> <span class="nx">failure</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">success</span> <span class="p">=</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">{}</span>
-	<span class="nx">failure</span> <span class="p">=</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">{}</span>
-
-	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">m</span><span class="p">.</span><span class="nf">activePods</span><span class="p">()</span> <span class="p">{</span>
-		<span class="nx">allContainers</span> <span class="o">:=</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Spec</span><span class="p">.</span><span class="nx">InitContainers</span>
-		<span class="nx">allContainers</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">allContainers</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Spec</span><span class="p">.</span><span class="nx">Containers</span><span class="o">...</span><span class="p">)</span>
-		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">container</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">allContainers</span> <span class="p">{</span>
-			<span class="nx">status</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">podStatusProvider</span><span class="p">.</span><span class="nf">GetPodStatus</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">UID</span><span class="p">)</span>
-			<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
-				<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping pod; status not found (pod: %s, container: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
-				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">})</span>
-				<span class="k">break</span>
-			<span class="p">}</span>
-
-			<span class="nx">containerID</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">findContainerIDByName</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">status</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
-			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-				<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping container; ID not found in status (pod: %s, container: %s, error: %v)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">})</span>
-				<span class="k">continue</span>
-			<span class="p">}</span>
-
-			<span class="nx">cset</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-			<span class="k">if</span> <span class="nx">cset</span><span class="p">.</span><span class="nf">IsEmpty</span><span class="p">()</span> <span class="p">{</span>
-				<span class="c1">// NOTE: This should not happen outside of tests.
-</span><span class="c1"></span>				<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping container; assigned cpuset is empty (pod: %s, container: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
-				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
-				<span class="k">continue</span>
-			<span class="p">}</span>
-
-			<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: updating container (pod: %s, container: %s, container id: %s, cpuset: \&#34;%v\&#34;)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
-			<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">updateContainerCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
-			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-				<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: failed to update container (pod: %s, container: %s, container id: %s, cpuset: \&#34;%v\&#34;, error: %v)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
-				<span class="k">continue</span>
-			<span class="p">}</span>
-			<span class="nx">success</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">success</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
-		<span class="p">}</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">success</span><span class="p">,</span> <span class="nx">failure</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">reconcileState</span><span class="p">()</span> <span class="p">(</span><span class="nx">success</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">,</span> <span class="nx">failure</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">success</span> <span class="p">=</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">failure</span> <span class="p">=</span> <span class="p">[]</span><span class="nx">reconciledContainer</span><span class="p">{}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">m</span><span class="p">.</span><span class="nf">activePods</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">allContainers</span> <span class="o">:=</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Spec</span><span class="p">.</span><span class="nx">InitContainers</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">allContainers</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">allContainers</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Spec</span><span class="p">.</span><span class="nx">Containers</span><span class="o">...</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">container</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">allContainers</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">status</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">podStatusProvider</span><span class="p">.</span><span class="nf">GetPodStatus</span><span class="p">(</span><span class="nx">pod</span><span class="p">.</span><span class="nx">UID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">!</span><span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping pod; status not found (pod: %s, container: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">				<span class="k">break</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">			<span class="nx">containerID</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">findContainerIDByName</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">status</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">glog</span><span class="p">.</span><span class="nf">Warningf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping container; ID not found in status (pod: %s, container: %s, error: %v)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="s">&#34;&#34;</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">				<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">			<span class="nx">cset</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">cset</span><span class="p">.</span><span class="nf">IsEmpty</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// NOTE: This should not happen outside of tests.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>				<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: skipping container; assigned cpuset is empty (pod: %s, container: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">				<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">			<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: updating container (pod: %s, container: %s, container id: %s, cpuset: \&#34;%v\&#34;)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">updateContainerCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] reconcileState: failed to update container (pod: %s, container: %s, container id: %s, cpuset: \&#34;%v\&#34;, error: %v)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">failure</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">failure</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">				<span class="k">continue</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">success</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="nx">success</span><span class="p">,</span> <span class="nx">reconciledContainer</span><span class="p">{</span><span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">})</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">success</span><span class="p">,</span> <span class="nx">failure</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>从以上代码，我们知道通过调用<code>cset := m.state.GetCPUSetOrDefault(containerID)</code>，来获取container需要绑定的cpuset。那么它具体是如何获取的呢？</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -439,34 +438,34 @@
 </span><span class="lnt">22
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewManager creates new cpu manager based on provided policy
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewManager</span><span class="p">(</span>
-	<span class="nx">cpuPolicyName</span> <span class="kt">string</span><span class="p">,</span>
-	<span class="nx">reconcilePeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">,</span>
-	<span class="nx">machineInfo</span> <span class="o">*</span><span class="nx">cadvisorapi</span><span class="p">.</span><span class="nx">MachineInfo</span><span class="p">,</span>
-	<span class="nx">nodeAllocatableReservation</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span>
-	<span class="nx">stateFileDirecory</span> <span class="kt">string</span><span class="p">,</span>
-<span class="p">)</span> <span class="p">(</span><span class="nx">Manager</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-<span class="o">...</span>
-	<span class="nx">stateImpl</span> <span class="o">:=</span> <span class="nx">state</span><span class="p">.</span><span class="nf">NewFileState</span><span class="p">(</span>
-		<span class="nx">path</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">stateFileDirecory</span><span class="p">,</span> <span class="nx">CPUManagerStateFileName</span><span class="p">),</span>
-		<span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
-
-	<span class="nx">manager</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">manager</span><span class="p">{</span>
-		<span class="nx">policy</span><span class="p">:</span>                     <span class="nx">policy</span><span class="p">,</span>
-		<span class="nx">reconcilePeriod</span><span class="p">:</span>            <span class="nx">reconcilePeriod</span><span class="p">,</span>
-		<span class="nx">state</span><span class="p">:</span>                      <span class="nx">stateImpl</span><span class="p">,</span>
-		<span class="nx">machineInfo</span><span class="p">:</span>                <span class="nx">machineInfo</span><span class="p">,</span>
-		<span class="nx">nodeAllocatableReservation</span><span class="p">:</span> <span class="nx">nodeAllocatableReservation</span><span class="p">,</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">manager</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// NewManager creates new cpu manager based on provided policy
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewManager</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">cpuPolicyName</span> <span class="kt">string</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">reconcilePeriod</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">machineInfo</span> <span class="o">*</span><span class="nx">cadvisorapi</span><span class="p">.</span><span class="nx">MachineInfo</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">nodeAllocatableReservation</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">ResourceList</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stateFileDirecory</span> <span class="kt">string</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span> <span class="p">(</span><span class="nx">Manager</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stateImpl</span> <span class="o">:=</span> <span class="nx">state</span><span class="p">.</span><span class="nf">NewFileState</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">path</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">stateFileDirecory</span><span class="p">,</span> <span class="nx">CPUManagerStateFileName</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">policy</span><span class="p">.</span><span class="nf">Name</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">manager</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">manager</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">policy</span><span class="p">:</span>                     <span class="nx">policy</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">reconcilePeriod</span><span class="p">:</span>            <span class="nx">reconcilePeriod</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">state</span><span class="p">:</span>                      <span class="nx">stateImpl</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">machineInfo</span><span class="p">:</span>                <span class="nx">machineInfo</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">nodeAllocatableReservation</span><span class="p">:</span> <span class="nx">nodeAllocatableReservation</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">manager</span><span class="p">,</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>state_file.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -485,30 +484,30 @@
 </span><span class="lnt">17
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// NewFileState creates new State for keeping track of cpu/pod assignment with file backend
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewFileState</span><span class="p">(</span><span class="nx">filePath</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">policyName</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">State</span> <span class="p">{</span>
-	<span class="nx">stateFile</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">stateFile</span><span class="p">{</span>
-		<span class="nx">stateFilePath</span><span class="p">:</span> <span class="nx">filePath</span><span class="p">,</span>
-		<span class="nx">cache</span><span class="p">:</span>         <span class="nf">NewMemoryState</span><span class="p">(),</span>
-		<span class="nx">policyName</span><span class="p">:</span>    <span class="nx">policyName</span><span class="p">,</span>
-	<span class="p">}</span>
-
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">stateFile</span><span class="p">.</span><span class="nf">tryRestoreState</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="c1">// could not restore state, init new state file
-</span><span class="c1"></span>		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] state file: initializing empty state file - reason: \&#34;%s\&#34;&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="nx">stateFile</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">ClearState</span><span class="p">()</span>
-		<span class="nx">stateFile</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
-	<span class="p">}</span>
-
-	<span class="k">return</span> <span class="nx">stateFile</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// NewFileState creates new State for keeping track of cpu/pod assignment with file backend
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewFileState</span><span class="p">(</span><span class="nx">filePath</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">policyName</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">State</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stateFile</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">stateFile</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">stateFilePath</span><span class="p">:</span> <span class="nx">filePath</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">cache</span><span class="p">:</span>         <span class="nf">NewMemoryState</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">policyName</span><span class="p">:</span>    <span class="nx">policyName</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">stateFile</span><span class="p">.</span><span class="nf">tryRestoreState</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// could not restore state, init new state file
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] state file: initializing empty state file - reason: \&#34;%s\&#34;&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">stateFile</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">ClearState</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">stateFile</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">stateFile</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>从以上代码，我们知道cpuManager实际上将<code>state</code>(也就是cpu资源池情况)写进了文件与内存cache中。<code>m.state.GetCPUSetOrDefault(containerID)</code>实际上是从内存中查找对应<code>containerID</code>的cpuset情况。
 <code>state_file.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -516,18 +515,18 @@
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">sf</span> <span class="o">*</span><span class="nx">stateFile</span><span class="p">)</span> <span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span> <span class="p">{</span>
-	<span class="nx">sf</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
-
-	<span class="k">return</span> <span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">sf</span> <span class="o">*</span><span class="nx">stateFile</span><span class="p">)</span> <span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sf</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>state_mem.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -558,48 +557,48 @@
 </span><span class="lnt">29
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">type</span> <span class="nx">stateMemory</span> <span class="kd">struct</span> <span class="p">{</span>
-	<span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
-	<span class="nx">assignments</span>   <span class="nx">ContainerCPUAssignments</span>
-	<span class="nx">defaultCPUSet</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span>
-<span class="p">}</span>
-
-<span class="c1">// NewMemoryState creates new State for keeping track of cpu/pod assignment
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">NewMemoryState</span><span class="p">()</span> <span class="nx">State</span> <span class="p">{</span>
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] initializing new in-memory state store&#34;</span><span class="p">)</span>
-	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">stateMemory</span><span class="p">{</span>
-		<span class="nx">assignments</span><span class="p">:</span>   <span class="nx">ContainerCPUAssignments</span><span class="p">{},</span>
-		<span class="nx">defaultCPUSet</span><span class="p">:</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nf">NewCPUSet</span><span class="p">(),</span>
-	<span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">stateMemory</span><span class="p">)</span> <span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">,</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">s</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">s</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
-
-	<span class="nx">res</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nx">assignments</span><span class="p">[</span><span class="nx">containerID</span><span class="p">]</span>
-	<span class="k">return</span> <span class="nx">res</span><span class="p">.</span><span class="nf">Clone</span><span class="p">(),</span> <span class="nx">ok</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">stateMemory</span><span class="p">)</span> <span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">res</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">()</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span> <span class="nx">stateMemory</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sync</span><span class="p">.</span><span class="nx">RWMutex</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">assignments</span>   <span class="nx">ContainerCPUAssignments</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">defaultCPUSet</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// NewMemoryState creates new State for keeping track of cpu/pod assignment
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewMemoryState</span><span class="p">()</span> <span class="nx">State</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] initializing new in-memory state store&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">stateMemory</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">assignments</span><span class="p">:</span>   <span class="nx">ContainerCPUAssignments</span><span class="p">{},</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">defaultCPUSet</span><span class="p">:</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nf">NewCPUSet</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">stateMemory</span><span class="p">)</span> <span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">,</span> <span class="kt">bool</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">s</span><span class="p">.</span><span class="nf">RLock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">s</span><span class="p">.</span><span class="nf">RUnlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">res</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nx">assignments</span><span class="p">[</span><span class="nx">containerID</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">res</span><span class="p">.</span><span class="nf">Clone</span><span class="p">(),</span> <span class="nx">ok</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">stateMemory</span><span class="p">)</span> <span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">res</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>最终cpuset是从<code>s.assignments[containerID]</code>中获取的，而<code>s.assignments</code>实际上只是一个映射了<code>containerID</code>与cpuset的map。
 <code>state.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="c1">// ContainerCPUAssignments type used in cpu manger state
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">ContainerCPUAssignments</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// ContainerCPUAssignments type used in cpu manger state
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">ContainerCPUAssignments</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>那么问题来了，这个<code>ContainerCPUAssignments</code>是何时添加，何时删除的呢？</p>
 <h2 id="addcontainerremovecontainer">AddContainer/RemoveContainer</h2>
@@ -609,7 +608,7 @@
 <p><code>kuberuntime_container.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -628,29 +627,29 @@
 </span><span class="lnt">17
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">)</span> <span class="nf">startContainer</span><span class="p">(</span><span class="nx">podSandboxID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">podSandboxConfig</span> <span class="o">*</span><span class="nx">runtimeapi</span><span class="p">.</span><span class="nx">PodSandboxConfig</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">podStatus</span> <span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">PodStatus</span><span class="p">,</span> <span class="nx">pullSecrets</span> <span class="p">[]</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Secret</span><span class="p">,</span> <span class="nx">podIP</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-	<span class="c1">// Step 1: pull the image.
-</span><span class="c1"></span><span class="o">...</span>
-	<span class="c1">// Step 2: create the container.
-</span><span class="c1"></span><span class="o">...</span>
-	<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">internalLifecycle</span><span class="p">.</span><span class="nf">PreStartContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">m</span><span class="p">.</span><span class="nx">recorder</span><span class="p">.</span><span class="nf">Eventf</span><span class="p">(</span><span class="nx">ref</span><span class="p">,</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">EventTypeWarning</span><span class="p">,</span> <span class="nx">events</span><span class="p">.</span><span class="nx">FailedToStartContainer</span><span class="p">,</span> <span class="s">&#34;Internal PreStartContainer hook failed: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="k">return</span> <span class="s">&#34;Internal PreStartContainer hook failed&#34;</span><span class="p">,</span> <span class="nx">err</span>
-	<span class="p">}</span>
-<span class="o">...</span>
-	<span class="c1">// Step 3: start the container.
-</span><span class="c1"></span><span class="o">...</span>
-	<span class="c1">// Step 4: execute the post start hook.
-</span><span class="c1"></span><span class="o">...</span>
-	<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">)</span> <span class="nf">startContainer</span><span class="p">(</span><span class="nx">podSandboxID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">podSandboxConfig</span> <span class="o">*</span><span class="nx">runtimeapi</span><span class="p">.</span><span class="nx">PodSandboxConfig</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">podStatus</span> <span class="o">*</span><span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">PodStatus</span><span class="p">,</span> <span class="nx">pullSecrets</span> <span class="p">[]</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Secret</span><span class="p">,</span> <span class="nx">podIP</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Step 1: pull the image.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Step 2: create the container.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">internalLifecycle</span><span class="p">.</span><span class="nf">PreStartContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">m</span><span class="p">.</span><span class="nx">recorder</span><span class="p">.</span><span class="nf">Eventf</span><span class="p">(</span><span class="nx">ref</span><span class="p">,</span> <span class="nx">v1</span><span class="p">.</span><span class="nx">EventTypeWarning</span><span class="p">,</span> <span class="nx">events</span><span class="p">.</span><span class="nx">FailedToStartContainer</span><span class="p">,</span> <span class="s">&#34;Internal PreStartContainer hook failed: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="s">&#34;Internal PreStartContainer hook failed&#34;</span><span class="p">,</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Step 3: start the container.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Step 4: execute the post start hook.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="s">&#34;&#34;</span><span class="p">,</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>internal_container_lifecycle.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -658,19 +657,19 @@
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PreStartContainer</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PreStartContainer</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>最终，我们还是回到了cpuManager，看到了<code>cpuManager.AddContainer</code>。</p>
 <p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -695,30 +694,30 @@
 </span><span class="lnt">23
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">AddContainer</span><span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">c</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">m</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">,</span> <span class="nx">p</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] AddContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-	<span class="nx">cpus</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-	<span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-
-	<span class="k">if</span> <span class="p">!</span><span class="nx">cpus</span><span class="p">.</span><span class="nf">IsEmpty</span><span class="p">()</span> <span class="p">{</span>
-		<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">updateContainerCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cpus</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] AddContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="p">}</span>
-	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-		<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] update container resources is skipped due to cpu set is empty&#34;</span><span class="p">)</span>
-	<span class="p">}</span>
-
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">AddContainer</span><span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">c</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">AddContainer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">,</span> <span class="nx">p</span><span class="p">,</span> <span class="nx">c</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] AddContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">cpus</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">.</span><span class="nf">GetCPUSetOrDefault</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">!</span><span class="nx">cpus</span><span class="p">.</span><span class="nf">IsEmpty</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">err</span> <span class="p">=</span> <span class="nx">m</span><span class="p">.</span><span class="nf">updateContainerCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cpus</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] AddContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] update container resources is skipped due to cpu set is empty&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>我们可以看到<code>AddContainer</code>主要做了2件事：</p>
 <ol>
@@ -728,7 +727,7 @@
 <p><code>policy_static.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -757,39 +756,39 @@
 </span><span class="lnt">27
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">AddContainer</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] static policy: AddContainer (pod: %s, container: %s, container id: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">numCPUs</span> <span class="o">:=</span> <span class="nf">guaranteedCPUs</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">);</span> <span class="nx">numCPUs</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">{</span>
-		<span class="c1">// container belongs in an exclusively allocated pool
-</span><span class="c1"></span>		<span class="nx">cpuset</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">p</span><span class="p">.</span><span class="nf">allocateCPUs</span><span class="p">(</span><span class="nx">s</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">)</span>
-		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)&#34;</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-			<span class="k">return</span> <span class="nx">err</span>
-		<span class="p">}</span>
-		<span class="nx">s</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cpuset</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="c1">// container belongs in the shared pool (nothing to do; use default cpuset)
-</span><span class="c1"></span>	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">allocateCPUs</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">numCPUs</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCpus: (numCPUs: %d)&#34;</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">)</span>
-	<span class="nx">result</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">takeByTopology</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">topology</span><span class="p">,</span> <span class="nx">p</span><span class="p">.</span><span class="nf">assignableCPUs</span><span class="p">(</span><span class="nx">s</span><span class="p">),</span> <span class="nx">numCPUs</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nf">NewCPUSet</span><span class="p">(),</span> <span class="nx">err</span>
-	<span class="p">}</span>
-	<span class="c1">// Remove allocated CPUs from the shared CPUSet.
-</span><span class="c1"></span>	<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Difference</span><span class="p">(</span><span class="nx">result</span><span class="p">))</span>
-
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCPUs: returning \&#34;%v\&#34;&#34;</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span>
-	<span class="k">return</span> <span class="nx">result</span><span class="p">,</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">AddContainer</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">container</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Container</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] static policy: AddContainer (pod: %s, container: %s, container id: %s)&#34;</span><span class="p">,</span> <span class="nx">pod</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">container</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">numCPUs</span> <span class="o">:=</span> <span class="nf">guaranteedCPUs</span><span class="p">(</span><span class="nx">pod</span><span class="p">,</span> <span class="nx">container</span><span class="p">);</span> <span class="nx">numCPUs</span> <span class="o">!=</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// container belongs in an exclusively allocated pool
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">cpuset</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">p</span><span class="p">.</span><span class="nf">allocateCPUs</span><span class="p">(</span><span class="nx">s</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] unable to allocate %d CPUs (container id: %s, error: %v)&#34;</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">s</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cpuset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// container belongs in the shared pool (nothing to do; use default cpuset)
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">allocateCPUs</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">numCPUs</span> <span class="kt">int</span><span class="p">)</span> <span class="p">(</span><span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCpus: (numCPUs: %d)&#34;</span><span class="p">,</span> <span class="nx">numCPUs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">result</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nf">takeByTopology</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">topology</span><span class="p">,</span> <span class="nx">p</span><span class="p">.</span><span class="nf">assignableCPUs</span><span class="p">(</span><span class="nx">s</span><span class="p">),</span> <span class="nx">numCPUs</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nf">NewCPUSet</span><span class="p">(),</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Remove allocated CPUs from the shared CPUSet.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Difference</span><span class="p">(</span><span class="nx">result</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] allocateCPUs: returning \&#34;%v\&#34;&#34;</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">result</span><span class="p">,</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>state_file.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -797,13 +796,13 @@
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">sf</span> <span class="o">*</span><span class="nx">stateFile</span><span class="p">)</span> <span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">cset</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">sf</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-	<span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
-	<span class="nx">sf</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">sf</span> <span class="o">*</span><span class="nx">stateFile</span><span class="p">)</span> <span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">cset</span> <span class="nx">cpuset</span><span class="p">.</span><span class="nx">CPUSet</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sf</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">sf</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sf</span><span class="p">.</span><span class="nx">cache</span><span class="p">.</span><span class="nf">SetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">,</span> <span class="nx">cset</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sf</span><span class="p">.</span><span class="nf">storeState</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>做第一件事——将cpuset信息写到<code>state</code>中时，不但要将<code>containerID</code>对应的cpuset信息写入，同时也要将这部分cpu从共享池子中拿走，这样<code>reconcile</code>的时候其他pod便也update了。同时，这部分信息不但跟新到内存cache中，同时也会写到本地磁盘。</p>
 <blockquote>
@@ -814,7 +813,7 @@
 <p><code>kuberuntime_container.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -832,28 +831,28 @@
 </span><span class="lnt">16
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">)</span> <span class="nf">killContainer</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">containerID</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">ContainerID</span><span class="p">,</span> <span class="nx">containerName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">reason</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">gracePeriodOverride</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-<span class="o">...</span>
-	<span class="c1">// Run internal pre-stop lifecycle hook
-</span><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">internalLifecycle</span><span class="p">.</span><span class="nf">PreStopContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">.</span><span class="nx">ID</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-<span class="o">...</span>
-	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">.</span><span class="nf">StopContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span> <span class="nx">gracePeriod</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Container %q termination failed with gracePeriod %d: %v&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">.</span><span class="nf">String</span><span class="p">(),</span> <span class="nx">gracePeriod</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-		<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Container %q exited normally&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">.</span><span class="nf">String</span><span class="p">())</span>
-	<span class="p">}</span>
-<span class="o">...</span>
-	<span class="k">return</span> <span class="nx">err</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">kubeGenericRuntimeManager</span><span class="p">)</span> <span class="nf">killContainer</span><span class="p">(</span><span class="nx">pod</span> <span class="o">*</span><span class="nx">v1</span><span class="p">.</span><span class="nx">Pod</span><span class="p">,</span> <span class="nx">containerID</span> <span class="nx">kubecontainer</span><span class="p">.</span><span class="nx">ContainerID</span><span class="p">,</span> <span class="nx">containerName</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">reason</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">gracePeriodOverride</span> <span class="o">*</span><span class="kt">int64</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl"><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Run internal pre-stop lifecycle hook
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">internalLifecycle</span><span class="p">.</span><span class="nf">PreStopContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">.</span><span class="nx">ID</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">runtimeService</span><span class="p">.</span><span class="nf">StopContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">.</span><span class="nx">ID</span><span class="p">,</span> <span class="nx">gracePeriod</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;Container %q termination failed with gracePeriod %d: %v&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">.</span><span class="nf">String</span><span class="p">(),</span> <span class="nx">gracePeriod</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">glog</span><span class="p">.</span><span class="nf">V</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;Container %q exited normally&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">.</span><span class="nf">String</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="o">...</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>internal_container_lifecycle.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -868,25 +867,25 @@
 </span><span class="lnt">13
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PreStopContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PostStopContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PreStopContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">i</span> <span class="o">*</span><span class="nx">internalContainerLifecycleImpl</span><span class="p">)</span> <span class="nf">PostStopContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">utilfeature</span><span class="p">.</span><span class="nx">DefaultFeatureGate</span><span class="p">.</span><span class="nf">Enabled</span><span class="p">(</span><span class="nx">kubefeatures</span><span class="p">.</span><span class="nx">CPUManager</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">i</span><span class="p">.</span><span class="nx">cpuManager</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>cpu_manager.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -899,23 +898,23 @@
 </span><span class="lnt">11
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">m</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
-	<span class="k">defer</span> <span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
-
-	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] RemoveContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-		<span class="k">return</span> <span class="nx">err</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">m</span> <span class="o">*</span><span class="nx">manager</span><span class="p">)</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">m</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="k">defer</span> <span class="nx">m</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">m</span><span class="p">.</span><span class="nx">policy</span><span class="p">.</span><span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">glog</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;[cpumanager] RemoveContainer error: %v&#34;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p><code>policy_static.go</code></p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -926,16 +925,16 @@
 </span><span class="lnt">9
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
-	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] static policy: RemoveContainer (container id: %s)&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
-	<span class="k">if</span> <span class="nx">toRelease</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
-		<span class="nx">s</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
-		<span class="c1">// Mutate the shared pool, adding released cpus.
-</span><span class="c1"></span>		<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Union</span><span class="p">(</span><span class="nx">toRelease</span><span class="p">))</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="kc">nil</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span> <span class="p">(</span><span class="nx">p</span> <span class="o">*</span><span class="nx">staticPolicy</span><span class="p">)</span> <span class="nf">RemoveContainer</span><span class="p">(</span><span class="nx">s</span> <span class="nx">state</span><span class="p">.</span><span class="nx">State</span><span class="p">,</span> <span class="nx">containerID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">glog</span><span class="p">.</span><span class="nf">Infof</span><span class="p">(</span><span class="s">&#34;[cpumanager] static policy: RemoveContainer (container id: %s)&#34;</span><span class="p">,</span> <span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">toRelease</span><span class="p">,</span> <span class="nx">ok</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nf">GetCPUSet</span><span class="p">(</span><span class="nx">containerID</span><span class="p">);</span> <span class="nx">ok</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">s</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">containerID</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Mutate the shared pool, adding released cpus.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>		<span class="nx">s</span><span class="p">.</span><span class="nf">SetDefaultCPUSet</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nf">GetDefaultCPUSet</span><span class="p">().</span><span class="nf">Union</span><span class="p">(</span><span class="nx">toRelease</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h1 id="问题思考">问题思考</h1>
 <p><strong>Q</strong>： Kubelet重启后cpuManager如何继续工作？</p>
@@ -1045,7 +1044,7 @@
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -1062,10 +1061,10 @@
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

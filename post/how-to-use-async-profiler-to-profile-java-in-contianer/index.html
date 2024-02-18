@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/how-to-use-async-profiler-to-profile-java-in-contianer/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/how-to-use-async-profiler-to-profile-java-in-contianer/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2019-10-14T15:53:55&#43;08:00" />
-<meta property="article:modified_time" content="2019-10-14T15:53:55&#43;08:00" />
+<meta property="article:published_time" content="2019-10-14T15:53:55+08:00" />
+<meta property="article:modified_time" content="2019-10-14T15:53:55+08:00" />
 
 <meta itemprop="name" content="How to Use async-profiler to Profile Non-root Java Process in Contianer">
-<meta itemprop="description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool."><meta itemprop="datePublished" content="2019-10-14T15:53:55&#43;08:00" />
-<meta itemprop="dateModified" content="2019-10-14T15:53:55&#43;08:00" />
+<meta itemprop="description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool."><meta itemprop="datePublished" content="2019-10-14T15:53:55+08:00" />
+<meta itemprop="dateModified" content="2019-10-14T15:53:55+08:00" />
 <meta itemprop="wordCount" content="585">
-<meta itemprop="keywords" content="async-profiler,perf,flamegraph,docker," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="How to Use async-profiler to Profile Non-root Java Process in Contianer"/>
+<meta itemprop="keywords" content="async-profiler,perf,flamegraph,docker," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="How to Use async-profiler to Profile Non-root Java Process in Contianer"/>
 <meta name="twitter:description" content="In this article, I will share you how to profile non-root java process in container with async-profiler. Async-profiler is one of the popular ways to profile java process, I&rsquo;ll present the process and the difficulties I met while using this tool."/>
 
 <!--[if lte IE 9]>
@@ -147,7 +146,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li><a href="#easy-to-use">Easy to Use</a></li>
@@ -201,19 +200,19 @@ container.</p>
 <p>Just download the async-profiler in place, it&rsquo;s quite easy to use:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">./profiler.sh start PID
-./profiler.sh stop PID
-
-<span class="c1"># flame graph output</span>
-./profiler.sh -d DURATION -f /path/to/output.svg PID
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">./profiler.sh start PID
+</span></span><span class="line"><span class="cl">./profiler.sh stop PID
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># flame graph output</span>
+</span></span><span class="line"><span class="cl">./profiler.sh -d DURATION -f /path/to/output.svg PID
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>For CPU profiling, you may get some flame graphs like this.
 <img src="/post/how-to-use-async-profiler-to-profile-java-in-container/flame_graph.svg" alt="flame graph"></p>
@@ -222,38 +221,38 @@ container.</p>
 permission errors.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">$ ./profiler.sh start PID
-
-Perf events unavailable. See stderr of the target process.
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ ./profiler.sh start PID
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Perf events unavailable. See stderr of the target process.
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>And in my error logs, I found this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">perf_event_open failed: Permission denied
-Try with --all-user option, or <span class="s1">&#39;echo 1 &gt; /proc/sys/kernel/perf_event_paranoid&#39;</span>
-perf_event_open failed: Permission denied
-perf_event_open failed: Permission denied
-...
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf_event_open failed: Permission denied
+</span></span><span class="line"><span class="cl">Try with --all-user option, or <span class="s1">&#39;echo 1 &gt; /proc/sys/kernel/perf_event_paranoid&#39;</span>
+</span></span><span class="line"><span class="cl">perf_event_open failed: Permission denied
+</span></span><span class="line"><span class="cl">perf_event_open failed: Permission denied
+</span></span><span class="line"><span class="cl">...
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>What is <code>perf_event_paranoid</code>? It&rsquo;s a <code>sysctl</code> file used to control the
 permission of unprivileged user to use perf_event.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -266,29 +265,29 @@ permission of unprivileged user to use perf_event.</p>
 </span><span class="lnt">11
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">perf_event_paranoid:
-
-Controls use of the performance events system by unprivileged
-users <span class="o">(</span>without CAP_SYS_ADMIN<span class="o">)</span>.  The default value is 2.
-
- -1: Allow use of <span class="o">(</span>almost<span class="o">)</span> all events by all users
-     Ignore mlock limit after perf_event_mlock_kb without CAP_IPC_LOCK
-&gt;<span class="o">=</span>0: Disallow ftrace <span class="k">function</span> tracepoint by users without CAP_SYS_ADMIN
-     Disallow raw tracepoint access by users without CAP_SYS_ADMIN
-&gt;<span class="o">=</span>1: Disallow CPU event access by users without CAP_SYS_ADMIN
-&gt;<span class="o">=</span>2: Disallow kernel profiling by users without CAP_SYS_ADMIN
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf_event_paranoid:
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Controls use of the performance events system by unprivileged
+</span></span><span class="line"><span class="cl">users <span class="o">(</span>without CAP_SYS_ADMIN<span class="o">)</span>.  The default value is 2.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"> -1: Allow use of <span class="o">(</span>almost<span class="o">)</span> all events by all users
+</span></span><span class="line"><span class="cl">     Ignore mlock limit after perf_event_mlock_kb without CAP_IPC_LOCK
+</span></span><span class="line"><span class="cl">&gt;<span class="o">=</span>0: Disallow ftrace <span class="k">function</span> tracepoint by users without CAP_SYS_ADMIN
+</span></span><span class="line"><span class="cl">     Disallow raw tracepoint access by users without CAP_SYS_ADMIN
+</span></span><span class="line"><span class="cl">&gt;<span class="o">=</span>1: Disallow CPU event access by users without CAP_SYS_ADMIN
+</span></span><span class="line"><span class="cl">&gt;<span class="o">=</span>2: Disallow kernel profiling by users without CAP_SYS_ADMIN
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>And you can&rsquo;t modify the file directly in the container, because it&rsquo;s read-only:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">$ <span class="nb">echo</span> <span class="m">0</span> &gt; /proc/sys/kernel/perf_event_paranoid
-bash: /proc/sys/kernel/perf_event_paranoid: Read-only file system
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ <span class="nb">echo</span> <span class="m">0</span> &gt; /proc/sys/kernel/perf_event_paranoid
+</span></span><span class="line"><span class="cl">bash: /proc/sys/kernel/perf_event_paranoid: Read-only file system
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>You have to do this command on the host system, in which case will definitly
 affect all containers on this host, which leverages some kind of security risks.</p>
@@ -400,7 +399,7 @@ Profiler</a></li>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -417,10 +416,10 @@ Profiler</a></li>
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

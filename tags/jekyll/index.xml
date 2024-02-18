@@ -6,16 +6,14 @@
     <description>Recent content in jekyll on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 12 May 2016 18:20:55 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/jekyll/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 12 May 2016 18:20:55 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/jekyll/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Setup Jekyll in Windows environment using Docker</title>
       <link>https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/</link>
       <pubDate>Thu, 12 May 2016 18:20:55 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/setup-jekyll-with-docker/</guid>
-      <description>Github provides a great service for technique bloggers: Github Pages. Just by creating a repo in GitHub, we can host a domain like http://username.github.io. And with Jekyll we can write blogs with Markdown and preview blog pages locally and conveniently.
-The problem for me is that my work environment is Windows, and it&amp;rsquo;s not easy to install Jekyll in Windows(especially in China). So an idea comes out with me is to use Docker.</description>
+      <description>Github provides a great service for technique bloggers: Github Pages. Just by creating a repo in GitHub, we can host a domain like http://username.github.io. And with Jekyll we can write blogs with Markdown and preview blog pages locally and conveniently.&#xA;The problem for me is that my work environment is Windows, and it&amp;rsquo;s not easy to install Jekyll in Windows(especially in China). So an idea comes out with me is to use Docker.</description>
     </item>
-    
   </channel>
 </rss>

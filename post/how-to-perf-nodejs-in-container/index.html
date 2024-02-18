@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/how-to-perf-nodejs-in-container/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2019-10-24T09:50:45&#43;08:00" />
-<meta property="article:modified_time" content="2019-10-24T09:50:45&#43;08:00" />
+<meta property="article:published_time" content="2019-10-24T09:50:45+08:00" />
+<meta property="article:modified_time" content="2019-10-24T09:50:45+08:00" />
 
 <meta itemprop="name" content="How to Perf Nodejs Apps in Container">
-<meta itemprop="description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;"><meta itemprop="datePublished" content="2019-10-24T09:50:45&#43;08:00" />
-<meta itemprop="dateModified" content="2019-10-24T09:50:45&#43;08:00" />
+<meta itemprop="description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;"><meta itemprop="datePublished" content="2019-10-24T09:50:45+08:00" />
+<meta itemprop="dateModified" content="2019-10-24T09:50:45+08:00" />
 <meta itemprop="wordCount" content="668">
-<meta itemprop="keywords" content="perf,flamegraph,nodejs," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="How to Perf Nodejs Apps in Container"/>
+<meta itemprop="keywords" content="perf,flamegraph,nodejs," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="How to Perf Nodejs Apps in Container"/>
 <meta name="twitter:description" content="In my previous blogs, I&rsquo;ve shared about how to profile Java applications in various of methods, now I&rsquo;ll show you how to profile Nodejs apps with perf&hellip;"/>
 
 <!--[if lte IE 9]>
@@ -146,7 +145,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents">
   <ul>
     <li><a href="#run-app-with---perf-basic-prof-argument">Run App with <code>--perf-basic-prof</code> Argument</a>
@@ -189,7 +188,7 @@ it for symbol translations. So only v8 needed to be modified.</p>
 <p>In November 2013, v8 added perf_events support, enabled using the <code>--perf-basic-prof</code> option. This made it into node v0.11.13. It works like this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -205,34 +204,34 @@ it for symbol translations. So only v8 needed to be modified.</p>
 </span><span class="lnt">14
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># ~/node-v0.11.13-linux-x64/bin/node --perf-basic-prof hello.js &amp;</span>
-<span class="o">[</span>1<span class="o">]</span> <span class="m">31441</span>
-<span class="c1"># ls -l /tmp/perf-31441.map</span>
--rw-r--r-- <span class="m">1</span> root root <span class="m">81920</span> Sep <span class="m">17</span> 20:41 /tmp/perf-31441.map
-<span class="c1"># tail /tmp/perf-31441.map</span>
-14cec4db98a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Generic-&gt;String<span class="o">)</span>
-14cec4db9920 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*String-&gt;String<span class="o">)</span>
-14cec4db99a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Smi-&gt;String<span class="o">)</span>
-14cec4db9a20 22c LazyCompile:~nextTick node.js:389
-14cec4db9cc0 <span class="m">156</span> Stub:KeyedLoadElementStub
-14cec4db9e80 <span class="m">22</span> KeyedLoadIC:
-14cec4db9f20 <span class="m">22</span> KeyedLoadIC:
-14cec4db9fc0 <span class="m">56</span> Stub:DoubleToIStub
-14cec4dba080 10c Stub:KeyedStoreElementStub
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># ~/node-v0.11.13-linux-x64/bin/node --perf-basic-prof hello.js &amp;</span>
+</span></span><span class="line"><span class="cl"><span class="o">[</span>1<span class="o">]</span> <span class="m">31441</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ls -l /tmp/perf-31441.map</span>
+</span></span><span class="line"><span class="cl">-rw-r--r-- <span class="m">1</span> root root <span class="m">81920</span> Sep <span class="m">17</span> 20:41 /tmp/perf-31441.map
+</span></span><span class="line"><span class="cl"><span class="c1"># tail /tmp/perf-31441.map</span>
+</span></span><span class="line"><span class="cl">14cec4db98a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Generic-&gt;String<span class="o">)</span>
+</span></span><span class="line"><span class="cl">14cec4db9920 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*String-&gt;String<span class="o">)</span>
+</span></span><span class="line"><span class="cl">14cec4db99a0 f Stub:BinaryOpICWithAllocationSiteStub<span class="o">(</span>ADD_CreateAllocationMementos:String*Smi-&gt;String<span class="o">)</span>
+</span></span><span class="line"><span class="cl">14cec4db9a20 22c LazyCompile:~nextTick node.js:389
+</span></span><span class="line"><span class="cl">14cec4db9cc0 <span class="m">156</span> Stub:KeyedLoadElementStub
+</span></span><span class="line"><span class="cl">14cec4db9e80 <span class="m">22</span> KeyedLoadIC:
+</span></span><span class="line"><span class="cl">14cec4db9f20 <span class="m">22</span> KeyedLoadIC:
+</span></span><span class="line"><span class="cl">14cec4db9fc0 <span class="m">56</span> Stub:DoubleToIStub
+</span></span><span class="line"><span class="cl">14cec4dba080 10c Stub:KeyedStoreElementStub
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>This text file is what perf_events reads.</p>
 <p>As I run Nodejs applications with <a href="http://pm2.keymetrics.io/">pm2</a> in Docker
 container, I&rsquo;ll <code>--perf-basic-prof</code> argument like this:</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">pm2 start index.js <span class="se">\
-</span><span class="se"></span>          --node-args --perf-basic-prof
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">pm2 start index.js <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>          --node-args --perf-basic-prof
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="perf-outside-of-container">Perf outside of container</h2>
 <p>I decide to perf out side of container mainly because of the following 2
@@ -247,35 +246,35 @@ namespace</li>
 perf.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
 </span><span class="lnt">5
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">$ docker top a3115
-UID     PID      PPID     STIME    TIME       CMD
-<span class="m">1004</span>    <span class="m">65462</span>    <span class="m">14902</span>    10:43    00:00:01   PM2 v2.9.1: God Daemon <span class="o">(</span>/home/deploy/.pm2<span class="o">)</span>
-<span class="m">1004</span>    <span class="m">65700</span>    <span class="m">65462</span>    10:43    00:00:01   node /opt/app/node/lib/node_modules/pm2/lib/HttpInterface.js
-<span class="m">1004</span>    <span class="m">65875</span>    <span class="m">65462</span>    10:43    00:00:03   node /opt/nodeapp/index.js
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">$ docker top a3115
+</span></span><span class="line"><span class="cl">UID     PID      PPID     STIME    TIME       CMD
+</span></span><span class="line"><span class="cl"><span class="m">1004</span>    <span class="m">65462</span>    <span class="m">14902</span>    10:43    00:00:01   PM2 v2.9.1: God Daemon <span class="o">(</span>/home/deploy/.pm2<span class="o">)</span>
+</span></span><span class="line"><span class="cl"><span class="m">1004</span>    <span class="m">65700</span>    <span class="m">65462</span>    10:43    00:00:01   node /opt/app/node/lib/node_modules/pm2/lib/HttpInterface.js
+</span></span><span class="line"><span class="cl"><span class="m">1004</span>    <span class="m">65875</span>    <span class="m">65462</span>    10:43    00:00:03   node /opt/nodeapp/index.js
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>Here <code>65875</code> is our target PID to perf.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">perf record -F <span class="m">99</span> -p <span class="m">65875</span> -g -- sleep <span class="m">30</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf record -F <span class="m">99</span> -p <span class="m">65875</span> -g -- sleep <span class="m">30</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="prepare-tmpperf-65875map-file">Prepare <code>/tmp/perf-65875.map</code> file</h2>
 <p>As we perf outside of container, <code>/tmp/perf-PID.map</code> file was generated inside
 container, we have to copy it out before next process.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span><span class="lnt">3
 </span><span class="lnt">4
@@ -283,51 +282,52 @@ container, we have to copy it out before next process.</p>
 </span><span class="lnt">6
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="c1"># find file in container</span>
-$ docker <span class="nb">exec</span> a3115 sh -c <span class="s2">&#34;ls -l /tmp/perf*.map&#34;</span>
--rw-rw-r-- <span class="m">1</span> deploy deploy <span class="m">686639</span> Oct <span class="m">24</span> 11:51 /tmp/perf-384.map
-
-<span class="c1"># copy out, don&#39;t forget to change file name with host pid</span>
-$ docker cp a3115:/tmp/perf-384.map /tmp/perf-65875.map
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># find file in container</span>
+</span></span><span class="line"><span class="cl">$ docker <span class="nb">exec</span> a3115 sh -c <span class="s2">&#34;ls -l /tmp/perf*.map&#34;</span>
+</span></span><span class="line"><span class="cl">-rw-rw-r-- <span class="m">1</span> deploy deploy <span class="m">686639</span> Oct <span class="m">24</span> 11:51 /tmp/perf-384.map
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># copy out, don&#39;t forget to change file name with host pid</span>
+</span></span><span class="line"><span class="cl">$ docker cp a3115:/tmp/perf-384.map /tmp/perf-65875.map
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="generate-flame-graph">Generate Flame Graph</h2>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">perf script -f &gt; out.nodestacks01
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">perf script -f &gt; out.nodestacks01
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>We need Gregg&rsquo;s <a href="http://github.com/brendangregg/FlameGraph">FlameGraph</a> to generate flame graph.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash">git clone --depth <span class="m">1</span> http://github.com/brendangregg/FlameGraph
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">git clone --depth <span class="m">1</span> http://github.com/brendangregg/FlameGraph
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>Generate</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt">1
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
 </span><span class="lnt">2
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="nb">cd</span> FlameGraph
-./stackcollapse-perf.pl &lt; ../out.nodestacks01 <span class="p">|</span> ./flamegraph.pl --color<span class="o">=</span>js &gt; ../out.nodestacks01.svg
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> FlameGraph
+</span></span><span class="line"><span class="cl">./stackcollapse-perf.pl &lt; ../out.nodestacks01 <span class="p">|</span> ./flamegraph.pl --color<span class="o">=</span>js &gt; ../out.nodestacks01.svg
+</span></span></code></pre></td></tr></table>
 </div>
 </div><p>Now we can get a flame graph like this:</p>
-<p><img src="/post/how-to-profile-nodejs-in-container/nodejs_perf_flamegraph.svg" alt="nodejs perfflamegraph"></p>
+<p><img src="/post/how-to-profile-nodejs-in-container/nodejs_perf_flamegraph.svg" alt="nodejs perf
+flamegraph"></p>
 <h2 id="overall-script">Overall script</h2>
 <p>You can download <code>FlameGraph</code> then use this script to get the svg file outside
 the container.</p>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -359,37 +359,37 @@ the container.</p>
 </span><span class="lnt">30
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-bash" data-lang="bash"><span class="cp">#!/bin/bash
-</span><span class="cp"></span>
-<span class="nb">set</span> -e
-<span class="nb">set</span> -x
-
-<span class="nv">CTN_ID</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span>
-<span class="nv">PROFILING_DURATION</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span>
-<span class="nv">PIDs</span><span class="o">=</span><span class="sb">`</span>docker top <span class="nv">$CTN_ID</span> <span class="p">|</span> grep /opt/nodeapp <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span><span class="sb">`</span>
-<span class="nv">CTN_PIDs</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="nv">$CTN_ID</span> ps aux <span class="p">|</span> grep /opt/nodeapp <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span><span class="sb">`</span>
-
-
-<span class="c1"># check /tmp/perf-PID.map files exist</span>
-<span class="k">for</span> ctn_pid in <span class="nv">$CTN_PIDs</span>
-<span class="k">do</span>
-  <span class="k">if</span> ! docker <span class="nb">exec</span> <span class="nv">$CTN_ID</span> stat /tmp/perf-<span class="nv">$ctn_pid</span>.map<span class="p">;</span> <span class="k">then</span>
-    <span class="nb">exit</span> <span class="m">111</span>
-  <span class="k">fi</span>
-<span class="k">done</span>
-
-<span class="c1"># copy /tmp/perf-PID.map files out of container</span>
-<span class="k">for</span> host_pid in <span class="nv">$PIDs</span>
-<span class="k">do</span>
-  <span class="nv">ctn_pid</span><span class="o">=</span><span class="sb">`</span>awk <span class="s1">&#39;/NSpid/ {print $NF}&#39;</span> /proc/<span class="nv">$host_pid</span>/status<span class="sb">`</span>
-  docker cp <span class="nv">$CTN_ID</span>:/tmp/perf-<span class="nv">$ctn_pid</span>.map /tmp/perf-<span class="nv">$host_pid</span>.map
-<span class="k">done</span>
-
-<span class="c1"># perf</span>
-<span class="nv">HOST_PIDs</span><span class="o">=</span><span class="sb">`</span><span class="nb">echo</span> <span class="nv">$PIDs</span><span class="p">|</span>tr <span class="s1">&#39; &#39;</span> <span class="s1">&#39;,&#39;</span><span class="sb">`</span>
-perf record -F <span class="m">99</span> -p <span class="nv">$HOST_PIDs</span> -g -- sleep <span class="nv">$PROFILING_DURATION</span>
-perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span class="p">|</span> FlameGraph/flamegraph.pl --color<span class="o">=</span>js &gt; <span class="nv">$CTN_ID</span>.<span class="k">$(</span>date +%s<span class="k">)</span>.svg
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/bin/bash
+</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span><span class="line"><span class="cl"><span class="nb">set</span> -e
+</span></span><span class="line"><span class="cl"><span class="nb">set</span> -x
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nv">CTN_ID</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$1</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PROFILING_DURATION</span><span class="o">=</span><span class="s2">&#34;</span><span class="nv">$2</span><span class="s2">&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="nv">PIDs</span><span class="o">=</span><span class="sb">`</span>docker top <span class="nv">$CTN_ID</span> <span class="p">|</span> grep /opt/nodeapp <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl"><span class="nv">CTN_PIDs</span><span class="o">=</span><span class="sb">`</span>docker <span class="nb">exec</span> <span class="nv">$CTN_ID</span> ps aux <span class="p">|</span> grep /opt/nodeapp <span class="p">|</span> awk <span class="s1">&#39;{print $2}&#39;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># check /tmp/perf-PID.map files exist</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> ctn_pid in <span class="nv">$CTN_PIDs</span>
+</span></span><span class="line"><span class="cl"><span class="k">do</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> ! docker <span class="nb">exec</span> <span class="nv">$CTN_ID</span> stat /tmp/perf-<span class="nv">$ctn_pid</span>.map<span class="p">;</span> <span class="k">then</span>
+</span></span><span class="line"><span class="cl">    <span class="nb">exit</span> <span class="m">111</span>
+</span></span><span class="line"><span class="cl">  <span class="k">fi</span>
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># copy /tmp/perf-PID.map files out of container</span>
+</span></span><span class="line"><span class="cl"><span class="k">for</span> host_pid in <span class="nv">$PIDs</span>
+</span></span><span class="line"><span class="cl"><span class="k">do</span>
+</span></span><span class="line"><span class="cl">  <span class="nv">ctn_pid</span><span class="o">=</span><span class="sb">`</span>awk <span class="s1">&#39;/NSpid/ {print $NF}&#39;</span> /proc/<span class="nv">$host_pid</span>/status<span class="sb">`</span>
+</span></span><span class="line"><span class="cl">  docker cp <span class="nv">$CTN_ID</span>:/tmp/perf-<span class="nv">$ctn_pid</span>.map /tmp/perf-<span class="nv">$host_pid</span>.map
+</span></span><span class="line"><span class="cl"><span class="k">done</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># perf</span>
+</span></span><span class="line"><span class="cl"><span class="nv">HOST_PIDs</span><span class="o">=</span><span class="sb">`</span><span class="nb">echo</span> <span class="nv">$PIDs</span><span class="p">|</span>tr <span class="s1">&#39; &#39;</span> <span class="s1">&#39;,&#39;</span><span class="sb">`</span>
+</span></span><span class="line"><span class="cl">perf record -F <span class="m">99</span> -p <span class="nv">$HOST_PIDs</span> -g -- sleep <span class="nv">$PROFILING_DURATION</span>
+</span></span><span class="line"><span class="cl">perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span class="p">|</span> FlameGraph/flamegraph.pl --color<span class="o">=</span>js &gt; <span class="nv">$CTN_ID</span>.<span class="k">$(</span>date +%s<span class="k">)</span>.svg
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h2 id="references">References</h2>
 <ul>
@@ -487,7 +487,7 @@ perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span c
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -504,10 +504,10 @@ perf script -f <span class="p">|</span> FlameGraph/stackcollapse-perf.pl <span c
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;

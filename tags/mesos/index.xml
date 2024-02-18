@@ -6,15 +6,14 @@
     <description>Recent content in mesos on Je pense donc je suis</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en</language>
-    <lastBuildDate>Thu, 18 May 2017 09:56:49 +0800</lastBuildDate><atom:link href="https://wenfeng-gao.github.io/tags/mesos/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Thu, 18 May 2017 09:56:49 +0800</lastBuildDate>
+    <atom:link href="https://wenfeng-gao.github.io/tags/mesos/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Mesos Checkpoint Feature &amp; Master Agent Connection</title>
       <link>https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/</link>
       <pubDate>Thu, 18 May 2017 09:56:49 +0800</pubDate>
-      
       <guid>https://wenfeng-gao.github.io/post/mesos_checkpoint_feature/</guid>
       <description>Mesos在更新版本后将slave改名为agent，所以本文中的agent与mesos-slave完全等同。 本文将讨论的问题： Mesos checkpoint 机制的作用</description>
     </item>
-    
   </channel>
 </rss>

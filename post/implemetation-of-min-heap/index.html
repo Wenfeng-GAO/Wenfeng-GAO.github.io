@@ -23,7 +23,7 @@
 <meta name="google-site-verification" content="3PXyL3M1UDz-QXAwF5RZBmpT7Jm1CGRb3ohchAn5Gn4" />
 
 
-<meta name="generator" content="Hugo 0.83.1 with theme even" />
+<meta name="generator" content="Hugo 0.122.0 with theme even" />
 
 
 <link rel="canonical" href="https://wenfeng-gao.github.io/post/implemetation-of-min-heap/" />
@@ -43,15 +43,14 @@
 <meta property="og:description" content="Heap is a basic and important data structure in computer science, I&rsquo;ll share my simple implementation by interger slice in Go, as well as Go&rsquo;s native library&rsquo;s implementation." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://wenfeng-gao.github.io/post/implemetation-of-min-heap/" /><meta property="article:section" content="post" />
-<meta property="article:published_time" content="2019-10-16T10:49:40&#43;08:00" />
-<meta property="article:modified_time" content="2019-10-16T10:49:40&#43;08:00" />
+<meta property="article:published_time" content="2019-10-16T10:49:40+08:00" />
+<meta property="article:modified_time" content="2019-10-16T10:49:40+08:00" />
 
 <meta itemprop="name" content="Implemetation of Min Heap">
-<meta itemprop="description" content="Heap is a basic and important data structure in computer science, I&rsquo;ll share my simple implementation by interger slice in Go, as well as Go&rsquo;s native library&rsquo;s implementation."><meta itemprop="datePublished" content="2019-10-16T10:49:40&#43;08:00" />
-<meta itemprop="dateModified" content="2019-10-16T10:49:40&#43;08:00" />
+<meta itemprop="description" content="Heap is a basic and important data structure in computer science, I&rsquo;ll share my simple implementation by interger slice in Go, as well as Go&rsquo;s native library&rsquo;s implementation."><meta itemprop="datePublished" content="2019-10-16T10:49:40+08:00" />
+<meta itemprop="dateModified" content="2019-10-16T10:49:40+08:00" />
 <meta itemprop="wordCount" content="437">
-<meta itemprop="keywords" content="algorithms,heap," /><meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Implemetation of Min Heap"/>
+<meta itemprop="keywords" content="algorithms,heap," /><meta name="twitter:card" content="summary"/><meta name="twitter:title" content="Implemetation of Min Heap"/>
 <meta name="twitter:description" content="Heap is a basic and important data structure in computer science, I&rsquo;ll share my simple implementation by interger slice in Go, as well as Go&rsquo;s native library&rsquo;s implementation."/>
 
 <!--[if lte IE 9]>
@@ -146,7 +145,7 @@
 
     <div class="post-toc" id="post-toc">
   <h2 class="post-toc-title">Contents</h2>
-  <div class="post-toc-content always-active">
+  <div class="post-toc-content">
     <nav id="TableOfContents"></nav>
   </div>
 </div>
@@ -159,7 +158,7 @@ native library&rsquo;s implementation.</p>
 <h1 id="simple-implementation">Simple implementation</h1>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -233,84 +232,84 @@ native library&rsquo;s implementation.</p>
 </span><span class="lnt">72
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">package</span> <span class="nx">heap</span>
-
-<span class="c1">// Heap represents the min heap data structure of []int.
-</span><span class="c1"></span><span class="kd">type</span> <span class="nx">Heap</span> <span class="p">[]</span><span class="kt">int</span>
-
-<span class="c1">// Heapify converts nums to a min heap structure in place.
-</span><span class="c1"></span><span class="kd">func</span> <span class="nf">Heapify</span><span class="p">(</span><span class="nx">nums</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="o">*</span><span class="nx">Heap</span> <span class="p">{</span>
-	<span class="nx">h</span> <span class="o">:=</span> <span class="nf">Heap</span><span class="p">(</span><span class="nx">nums</span><span class="p">)</span>
-	<span class="k">for</span> <span class="nx">i</span> <span class="o">:=</span> <span class="nb">len</span><span class="p">(</span><span class="nx">nums</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span><span class="o">--</span> <span class="p">{</span>
-		<span class="nf">siftDown</span><span class="p">(</span><span class="nx">h</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">h</span>
-<span class="p">}</span>
-
-<span class="c1">// Push pushes integer v onto the heap. The complexity is O(logn) where n =
-</span><span class="c1">// h.Len().
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Push</span><span class="p">(</span><span class="nx">v</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
-	<span class="o">*</span><span class="nx">h</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">,</span> <span class="nx">v</span><span class="p">)</span>
-	<span class="nf">siftUp</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="c1">// Pop removes and return the minimum value from the min heap. The complexity is
-</span><span class="c1">// O(logn) where n = h.Len().
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Pop</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="nx">ret</span> <span class="o">:=</span> <span class="nx">h</span><span class="p">.</span><span class="nf">Top</span><span class="p">()</span>
-	<span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="p">=</span> <span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[</span><span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-	<span class="o">*</span><span class="nx">h</span> <span class="p">=</span> <span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[:</span><span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-	<span class="nf">siftDown</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-	<span class="k">return</span> <span class="nx">ret</span>
-<span class="p">}</span>
-
-<span class="c1">// Top returns the minimum value from the min heap. The complexity is O(1).
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Top</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
-		<span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-	<span class="p">}</span>
-	<span class="k">return</span> <span class="mi">0</span>
-<span class="p">}</span>
-
-<span class="c1">// Len returns the length of heap.
-</span><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Len</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
-	<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">siftDown</span><span class="p">(</span><span class="nx">h</span> <span class="nx">Heap</span><span class="p">,</span> <span class="nx">start</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
-	<span class="nx">i</span><span class="p">,</span> <span class="nx">n</span> <span class="o">:=</span> <span class="nx">start</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nx">h</span><span class="p">)</span>
-	<span class="k">for</span> <span class="p">{</span>
-		<span class="nx">leftNode</span> <span class="o">:=</span> <span class="mi">2</span><span class="o">*</span><span class="nx">i</span> <span class="o">+</span> <span class="mi">1</span>
-		<span class="k">if</span> <span class="nx">leftNode</span> <span class="o">&gt;=</span> <span class="nx">n</span> <span class="p">{</span>
-			<span class="k">return</span>
-		<span class="p">}</span>
-		<span class="nx">j</span> <span class="o">:=</span> <span class="nx">leftNode</span>
-		<span class="k">if</span> <span class="nx">rightNode</span> <span class="o">:=</span> <span class="nx">leftNode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">rightNode</span> <span class="p">&lt;</span> <span class="nx">n</span> <span class="o">&amp;&amp;</span> <span class="nx">h</span><span class="p">[</span><span class="nx">rightNode</span><span class="p">]</span> <span class="p">&lt;</span> <span class="nx">h</span><span class="p">[</span><span class="nx">leftNode</span><span class="p">]</span> <span class="p">{</span>
-			<span class="nx">j</span> <span class="p">=</span> <span class="nx">rightNode</span>
-		<span class="p">}</span>
-		<span class="k">if</span> <span class="nx">h</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="nx">h</span><span class="p">[</span><span class="nx">j</span><span class="p">]</span> <span class="p">{</span>
-			<span class="k">return</span>
-		<span class="p">}</span>
-		<span class="nx">h</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">j</span><span class="p">]</span> <span class="p">=</span> <span class="nx">h</span><span class="p">[</span><span class="nx">j</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span>
-		<span class="nx">i</span> <span class="p">=</span> <span class="nx">j</span>
-	<span class="p">}</span>
-<span class="p">}</span>
-
-<span class="kd">func</span> <span class="nf">siftUp</span><span class="p">(</span><span class="nx">h</span> <span class="nx">Heap</span><span class="p">,</span> <span class="nx">k</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
-	<span class="k">for</span> <span class="nx">k</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
-		<span class="nx">parent</span> <span class="o">:=</span> <span class="p">(</span><span class="nx">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-		<span class="k">if</span> <span class="nx">h</span><span class="p">[</span><span class="nx">parent</span><span class="p">]</span> <span class="p">&gt;</span> <span class="nx">h</span><span class="p">[</span><span class="nx">k</span><span class="p">]</span> <span class="p">{</span>
-			<span class="nx">h</span><span class="p">[</span><span class="nx">parent</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">k</span><span class="p">]</span> <span class="p">=</span> <span class="nx">h</span><span class="p">[</span><span class="nx">k</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">parent</span><span class="p">]</span>
-		<span class="p">}</span>
-		<span class="nx">k</span> <span class="p">=</span> <span class="nx">parent</span>
-	<span class="p">}</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">heap</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Heap represents the min heap data structure of []int.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">Heap</span> <span class="p">[]</span><span class="kt">int</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Heapify converts nums to a min heap structure in place.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">Heapify</span><span class="p">(</span><span class="nx">nums</span> <span class="p">[]</span><span class="kt">int</span><span class="p">)</span> <span class="o">*</span><span class="nx">Heap</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">h</span> <span class="o">:=</span> <span class="nf">Heap</span><span class="p">(</span><span class="nx">nums</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="nx">i</span> <span class="o">:=</span> <span class="nb">len</span><span class="p">(</span><span class="nx">nums</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span><span class="o">--</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nf">siftDown</span><span class="p">(</span><span class="nx">h</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">h</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Push pushes integer v onto the heap. The complexity is O(logn) where n =
+</span></span></span><span class="line"><span class="cl"><span class="c1">// h.Len().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Push</span><span class="p">(</span><span class="nx">v</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="o">*</span><span class="nx">h</span> <span class="p">=</span> <span class="nb">append</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">,</span> <span class="nx">v</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nf">siftUp</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Pop removes and return the minimum value from the min heap. The complexity is
+</span></span></span><span class="line"><span class="cl"><span class="c1">// O(logn) where n = h.Len().
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Pop</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">ret</span> <span class="o">:=</span> <span class="nx">h</span><span class="p">.</span><span class="nf">Top</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="p">=</span> <span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[</span><span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="o">*</span><span class="nx">h</span> <span class="p">=</span> <span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[:</span><span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="nf">siftDown</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">ret</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Top returns the minimum value from the min heap. The complexity is O(1).
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Top</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="mi">0</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Len returns the length of heap.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">h</span> <span class="o">*</span><span class="nx">Heap</span><span class="p">)</span> <span class="nf">Len</span><span class="p">()</span> <span class="kt">int</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="o">*</span><span class="nx">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">siftDown</span><span class="p">(</span><span class="nx">h</span> <span class="nx">Heap</span><span class="p">,</span> <span class="nx">start</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">i</span><span class="p">,</span> <span class="nx">n</span> <span class="o">:=</span> <span class="nx">start</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nx">h</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">leftNode</span> <span class="o">:=</span> <span class="mi">2</span><span class="o">*</span><span class="nx">i</span> <span class="o">+</span> <span class="mi">1</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">leftNode</span> <span class="o">&gt;=</span> <span class="nx">n</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">j</span> <span class="o">:=</span> <span class="nx">leftNode</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">rightNode</span> <span class="o">:=</span> <span class="nx">leftNode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span> <span class="nx">rightNode</span> <span class="p">&lt;</span> <span class="nx">n</span> <span class="o">&amp;&amp;</span> <span class="nx">h</span><span class="p">[</span><span class="nx">rightNode</span><span class="p">]</span> <span class="p">&lt;</span> <span class="nx">h</span><span class="p">[</span><span class="nx">leftNode</span><span class="p">]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">j</span> <span class="p">=</span> <span class="nx">rightNode</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">h</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="nx">h</span><span class="p">[</span><span class="nx">j</span><span class="p">]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">h</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">j</span><span class="p">]</span> <span class="p">=</span> <span class="nx">h</span><span class="p">[</span><span class="nx">j</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">i</span> <span class="p">=</span> <span class="nx">j</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">siftUp</span><span class="p">(</span><span class="nx">h</span> <span class="nx">Heap</span><span class="p">,</span> <span class="nx">k</span> <span class="kt">int</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="nx">k</span> <span class="p">&gt;</span> <span class="mi">0</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">parent</span> <span class="o">:=</span> <span class="p">(</span><span class="nx">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">h</span><span class="p">[</span><span class="nx">parent</span><span class="p">]</span> <span class="p">&gt;</span> <span class="nx">h</span><span class="p">[</span><span class="nx">k</span><span class="p">]</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">h</span><span class="p">[</span><span class="nx">parent</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">k</span><span class="p">]</span> <span class="p">=</span> <span class="nx">h</span><span class="p">[</span><span class="nx">k</span><span class="p">],</span> <span class="nx">h</span><span class="p">[</span><span class="nx">parent</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">k</span> <span class="p">=</span> <span class="nx">parent</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h1 id="use-case">Use case</h1>
 <div class="highlight"><div class="chroma">
 <table class="lntable"><tr><td class="lntd">
-<pre class="chroma"><code><span class="lnt"> 1
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
 </span><span class="lnt"> 2
 </span><span class="lnt"> 3
 </span><span class="lnt"> 4
@@ -331,26 +330,26 @@ native library&rsquo;s implementation.</p>
 </span><span class="lnt">19
 </span></code></pre></td>
 <td class="lntd">
-<pre class="chroma"><code class="language-go" data-lang="go"><span class="kn">package</span> <span class="nx">main</span>
-
-<span class="kn">import</span> <span class="p">(</span>
-	<span class="s">&#34;fmt&#34;</span>
-	<span class="s">&#34;./heap&#34;</span>
-<span class="p">)</span>
-
-<span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-	<span class="nx">data</span> <span class="o">:=</span> <span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">}</span>
-	<span class="nx">h</span> <span class="o">:=</span> <span class="nx">heap</span><span class="p">.</span><span class="nf">Heapify</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
-	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
-	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
-	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
-	<span class="nx">h</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-	<span class="nx">h</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
-	<span class="nx">h</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
-	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
-	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Len</span><span class="p">())</span>
-<span class="p">}</span>
-</code></pre></td></tr></table>
+<pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;fmt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;./heap&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">data</span> <span class="o">:=</span> <span class="p">[]</span><span class="kt">int</span><span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">h</span> <span class="o">:=</span> <span class="nx">heap</span><span class="p">.</span><span class="nf">Heapify</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">h</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">h</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">h</span><span class="p">.</span><span class="nf">Push</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Pop</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">h</span><span class="p">.</span><span class="nf">Len</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></td></tr></table>
 </div>
 </div><h1 id="go-native-library-implementation">Go Native Library Implementation</h1>
 <ul>
@@ -449,7 +448,7 @@ native library&rsquo;s implementation.</p>
   <span class="copyright-year">
     &copy; 
     2017 - 
-    2021<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
+    2024<span class="heart"><i class="iconfont icon-heart"></i></span><span>Wenfeng</span>
   </span>
 </div>
 
@@ -466,10 +465,10 @@ native library&rsquo;s implementation.</p>
 
 
 
-<script type="text/javascript" src="/js/main.min.c99b103c33d1539acf3025e1913697534542c4a5aa5af0ccc20475ed2863603b.js"></script>
+<script type="text/javascript" src="/js/main.min.4ae89da218555efa0e7093a20b92017d2e1202b66fff9fc2edf4cb8d44b44c6e.js"></script>
 
 
-<script type="application/javascript">
+<script>
 var doNotTrack = false;
 if (!doNotTrack) {
 	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
